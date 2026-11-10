@@ -1,0 +1,14 @@
+{
+  "name": "shap-platform-root",
+  "version": "1.0.0",
+  "description": "Smart Healthcare Access Platform (SHAP)",
+  "scripts": {
+    "server": "npm run start --prefix server",
+    "server:dev": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "seed": "npm run seed --prefix server",
+    "test": "npm run test --prefix server",
+    "build:client": "npm run build --prefix client"
+  }
+}
+
