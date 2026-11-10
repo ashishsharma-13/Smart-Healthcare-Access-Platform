@@ -18,7 +18,6 @@ export const initSocket = (server) => {
     try {
       const token = socket.handshake.auth?.token || socket.handshake.query?.token;
       if (!token) {
-        // Allow unauthenticated guest connections to public emergency tracking rooms if authorized by request id
         socket.user = null;
         return next();
       }
@@ -27,7 +26,7 @@ export const initSocket = (server) => {
       const user = await userRepository.findById(decoded.id);
       if (user && user.isActive) {
         socket.user = user;
-        if (user.role === 'organization') {
+        if (user.role === 'organization' || user.role === 'hospital') {
           const org = await organizationRepository.findByUserId(user._id);
           socket.organization = org;
         }
@@ -35,7 +34,6 @@ export const initSocket = (server) => {
       next();
     } catch (err) {
       console.warn('[Socket Auth] Token verification failed:', err.message);
-      // Still proceed with socket.user = null for guest tracking
       socket.user = null;
       next();
     }
@@ -44,12 +42,34 @@ export const initSocket = (server) => {
   ioInstance.on('connection', (socket) => {
     console.log(`[Socket] Client connected: ${socket.id}, User: ${socket.user?.name || 'Guest'} (${socket.user?.role || 'Guest'})`);
 
+    // Helper to join all hospital room variants
+    const joinHospitalRooms = (hospitalId, slug = null) => {
+      if (!hospitalId) return;
+      const idStr = hospitalId.toString();
+      socket.join(idStr);
+      socket.join(`org:${idStr}`);
+      socket.join(`facility:${idStr}`);
+      if (slug) socket.join(slug.toString());
+      console.log(`[Socket] ${socket.id} joined hospital rooms: [${idStr}, org:${idStr}, facility:${idStr}]`);
+    };
+
     // Auto-join organization room if user is an organization
     if (socket.organization) {
-      const orgRoom = `org:${socket.organization._id}`;
-      socket.join(orgRoom);
-      console.log(`[Socket] Organization joined room: ${orgRoom}`);
+      joinHospitalRooms(socket.organization._id, socket.organization.slug || socket.organization.name);
     }
+
+    // Explicit room join handlers requested by frontend
+    socket.on('join-organization', (hospitalId) => {
+      joinHospitalRooms(hospitalId);
+    });
+
+    socket.on('join-facility-room', (hospitalId) => {
+      joinHospitalRooms(hospitalId);
+    });
+
+    socket.on('emergency:join_org', ({ organizationId }) => {
+      joinHospitalRooms(organizationId);
+    });
 
     // Join emergency room for updates on a specific emergency request
     socket.on('emergency:subscribe', ({ emergencyRequestId }) => {
@@ -79,4 +99,3 @@ export const initSocket = (server) => {
 export const getSocketIO = () => {
   return ioInstance;
 };
-

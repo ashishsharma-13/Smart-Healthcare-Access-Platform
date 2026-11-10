@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { emergencyRepository } from '../repositories/EmergencyRepository.js';
 import { emergencyMatchingService } from './EmergencyMatchingService.js';
 import { getSocketIO } from '../sockets/socketHandler.js';
@@ -16,6 +17,9 @@ export class EmergencyBroadcastService {
     coordinates, // [lng, lat]
     locationAddress,
     ambulanceRequirement = 'no',
+    targetFacility = null,
+    targetHospital = null,
+    organizationId = null,
   }) {
     const requestCode = `EMG-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
 
@@ -46,10 +50,12 @@ export class EmergencyBroadcastService {
     });
 
     // 2. Identify matching participating organizations
+    const target = targetFacility || targetHospital || organizationId;
     const matchingResults = await emergencyMatchingService.findSuitableOrganizations(
       coordinates,
       emergencyType,
-      50 // max 50km radius
+      50, // max 50km radius
+      target
     );
 
     // If no matching orgs, return request with NO_RESPONSE or Fallback state
@@ -67,12 +73,13 @@ export class EmergencyBroadcastService {
       };
     }
 
-    // 3. Create parallel broadcast records
+    // 3. Create parallel broadcast records with status: 'active'
     const broadcastRecords = matchingResults.map((match) => ({
       emergencyRequestId: emergencyRequest._id,
       organizationId: match.organization._id,
       broadcastedAt: new Date(),
       responseStatus: 'PENDING',
+      status: 'active',
       distanceKm: match.distanceKm,
       estimatedTravelMinutes: match.estimatedTravelMinutes,
       suitabilityScore: match.suitabilityScore,
@@ -90,22 +97,69 @@ export class EmergencyBroadcastService {
     // 5. Emit real-time parallel WebSocket notifications
     const io = getSocketIO();
     if (io) {
-      // Send in parallel to each organization's secure room
+      // Send to each organization's rooms
       matchingResults.forEach((match) => {
-        io.to(`org:${match.organization._id}`).emit('emergency:incoming_beep', {
-          emergencyRequestId: emergencyRequest._id,
-          requestCode: emergencyRequest.requestCode,
-          patientName,
-          patientPhone,
-          emergencyType,
-          severity,
-          description,
-          locationAddress: emergencyRequest.locationAddress,
-          ambulanceRequirement,
+        const bRecord = savedBroadcasts.find(
+          (b) => b.organizationId.toString() === match.organization._id.toString()
+        );
+
+        const payload = {
+          _id: bRecord?._id || new mongoose.Types.ObjectId(),
+          emergencyRequestId: {
+            _id: emergencyRequest._id,
+            requestCode: emergencyRequest.requestCode,
+            patientId: {
+              _id: patientId,
+              name: patientName,
+              phone: patientPhone,
+            },
+            patientName,
+            patientPhone,
+            emergencyType,
+            severity,
+            description,
+            location: emergencyRequest.location,
+            locationAddress: emergencyRequest.locationAddress,
+            ambulanceRequirement,
+            status: 'BROADCASTED',
+            createdAt: emergencyRequest.createdAt,
+          },
+          organizationId: match.organization,
           distanceKm: match.distanceKm,
           estimatedTravelMinutes: match.estimatedTravelMinutes,
-          broadcastedAt: new Date(),
-        });
+          suitabilityScore: match.suitabilityScore,
+          responseStatus: 'PENDING',
+          status: 'active',
+          broadcastedAt: bRecord?.broadcastedAt || new Date(),
+        };
+
+        const orgIdStr = match.organization._id.toString();
+
+        // Specific facility room emissions
+        io.to(orgIdStr).emit('emergency-broadcast-incoming', payload);
+        io.to(`org:${orgIdStr}`).emit('emergency-broadcast-incoming', payload);
+        io.to(`facility:${orgIdStr}`).emit('emergency-broadcast-incoming', payload);
+        if (match.organization.slug) {
+          io.to(match.organization.slug).emit('emergency-broadcast-incoming', payload);
+        }
+
+        // Backwards compatibility event
+        io.to(`org:${orgIdStr}`).emit('emergency:incoming_beep', payload);
+      });
+
+      // Global emission to all listening hospital dashboards
+      io.emit('emergency-broadcast-new', {
+        emergencyRequestId: emergencyRequest._id,
+        requestCode: emergencyRequest.requestCode,
+        patientName,
+        patientPhone,
+        emergencyType,
+        severity,
+        description,
+        locationAddress: emergencyRequest.locationAddress,
+        ambulanceRequirement,
+        totalBroadcasted: matchingResults.length,
+        createdAt: emergencyRequest.createdAt,
       });
 
       // Notify patient channel that broadcast is active
@@ -178,4 +232,3 @@ export class EmergencyBroadcastService {
 }
 
 export const emergencyBroadcastService = new EmergencyBroadcastService();
-

@@ -1,8 +1,17 @@
+import mongoose from 'mongoose';
 import { Appointment } from '../models/index.js';
 
 export class AppointmentRepository {
   async findById(id) {
-    return await Appointment.findById(id)
+    if (!id) return null;
+    let query;
+    if (mongoose.Types.ObjectId.isValid(id) && String(id).length === 24) {
+      query = { $or: [{ _id: id }, { appointmentNumber: id }, { qrToken: id }] };
+    } else {
+      query = { $or: [{ appointmentNumber: id }, { qrToken: id }] };
+    }
+
+    return await Appointment.findOne(query)
       .populate('patientId', 'name email phone avatar')
       .populate({
         path: 'doctorId',
@@ -27,7 +36,15 @@ export class AppointmentRepository {
   }
 
   async updateById(id, updateData) {
-    return await Appointment.findByIdAndUpdate(id, updateData, { new: true })
+    if (!id) return null;
+    let query;
+    if (mongoose.Types.ObjectId.isValid(id) && String(id).length === 24) {
+      query = { $or: [{ _id: id }, { appointmentNumber: id }, { qrToken: id }] };
+    } else {
+      query = { $or: [{ appointmentNumber: id }, { qrToken: id }] };
+    }
+
+    return await Appointment.findOneAndUpdate(query, updateData, { new: true })
       .populate('patientId', 'name email phone')
       .populate({
         path: 'doctorId',
@@ -73,4 +90,3 @@ export class AppointmentRepository {
 }
 
 export const appointmentRepository = new AppointmentRepository();
-

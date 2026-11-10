@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -18,11 +18,15 @@ import {
   CheckCircle2,
   Info,
   ArrowRight,
+  Building2,
 } from 'lucide-react';
 
 export const EmergencyActivatePage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
+
+  const targetFromUrl = searchParams.get('target') || searchParams.get('facility') || searchParams.get('hospital') || '';
 
   const [selectedType, setSelectedType] = useState('cardiac');
   const [severity, setSeverity] = useState('critical');
@@ -30,6 +34,7 @@ export const EmergencyActivatePage = () => {
   const [ambulanceRequirement, setAmbulanceRequirement] = useState('no'); // 'yes', 'no', 'already_arranged'
   const [locationAddress, setLocationAddress] = useState('Connaught Place Circle, Central City');
   const [coordinates, setCoordinates] = useState([77.2090, 28.6139]); // [lng, lat]
+  const [targetFacility, setTargetFacility] = useState(targetFromUrl);
   const [fetchingGps, setFetchingGps] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -97,6 +102,7 @@ export const EmergencyActivatePage = () => {
         ambulanceRequirement,
         patientName: user.name,
         patientPhone: user.phone || '9999999999',
+        targetFacility: targetFacility.trim() || undefined,
       });
 
       if (res.data.success) {
@@ -111,8 +117,7 @@ export const EmergencyActivatePage = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12">
-      
-      {/* Top Banner matching Screen 7 */}
+      {/* Top Banner */}
       <div className="bg-red-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10 space-y-2">
           <div className="inline-flex items-center space-x-2 px-3 py-1 bg-white/20 rounded-full text-xs font-black uppercase tracking-wider">
@@ -136,10 +141,9 @@ export const EmergencyActivatePage = () => {
       )}
 
       <form onSubmit={handleBroadcast} className="space-y-8">
-        
         {/* Step 1: Emergency Category Grid */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+        <div className="bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 sm:p-8 space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100/80">
             <div>
               <span className="text-[11px] font-bold uppercase tracking-wider text-red-600">Step 1</span>
               <h2 className="text-base font-black text-slate-900">Select Emergency Category</h2>
@@ -156,15 +160,15 @@ export const EmergencyActivatePage = () => {
                   key={cat.id}
                   type="button"
                   onClick={() => setSelectedType(cat.id)}
-                  className={`p-4 rounded-2xl border text-left transition-all flex items-start space-x-3.5 ${
+                  className={`p-4 rounded-2xl border text-left transition-all flex items-start space-x-3.5 cursor-pointer ${
                     isSelected
                       ? 'bg-red-50/80 border-red-500 shadow-sm ring-2 ring-red-500/20'
-                      : 'bg-slate-50/60 hover:bg-slate-100/70 border-slate-200 text-slate-700'
+                      : 'bg-white/60 hover:bg-white/90 border-slate-200/80 text-slate-700'
                   }`}
                 >
                   <div
                     className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold ${
-                      isSelected ? 'bg-red-600 text-white' : 'bg-white text-slate-600 border'
+                      isSelected ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-600 border'
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -182,7 +186,7 @@ export const EmergencyActivatePage = () => {
         </div>
 
         {/* Step 2: Immediate Guidance Accordion */}
-        <div className="bg-amber-50/70 rounded-3xl p-6 border border-amber-200/80 space-y-2">
+        <div className="bg-amber-50/80 backdrop-blur-md rounded-2xl p-6 border border-amber-200/80 space-y-2">
           <div className="flex items-center space-x-2 text-amber-900 text-xs font-bold uppercase tracking-wider">
             <Info className="w-4 h-4 text-amber-600" />
             <span>Immediate First-Aid Protocol ({selectedType.toUpperCase()})</span>
@@ -196,8 +200,8 @@ export const EmergencyActivatePage = () => {
         </div>
 
         {/* Step 3: Minimal Required Emergency Information */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
-          <div className="pb-2 border-b border-slate-100">
+        <div className="bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 sm:p-8 space-y-6">
+          <div className="pb-2 border-b border-slate-100/80">
             <span className="text-[11px] font-bold uppercase tracking-wider text-red-600">Step 2</span>
             <h2 className="text-base font-black text-slate-900">Minimum Emergency Information</h2>
           </div>
@@ -211,7 +215,7 @@ export const EmergencyActivatePage = () => {
                   type="button"
                   onClick={detectLocation}
                   disabled={fetchingGps}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+                  className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center space-x-1 cursor-pointer"
                 >
                   <MapPin className="w-3.5 h-3.5" />
                   <span>{fetchingGps ? 'Locating...' : 'Detect Exact GPS'}</span>
@@ -223,8 +227,26 @@ export const EmergencyActivatePage = () => {
                 value={locationAddress}
                 onChange={(e) => setLocationAddress(e.target.value)}
                 placeholder="Street address, landmark, or GPS coordinates"
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500 font-medium"
+                className="w-full p-3 bg-white/80 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500 font-medium"
               />
+            </div>
+
+            {/* Target Facility (Optional / Pre-selected) */}
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-xs font-bold text-slate-700 flex items-center space-x-1">
+                <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                <span>Preferred Destination Facility (Optional)</span>
+              </label>
+              <input
+                type="text"
+                value={targetFacility}
+                onChange={(e) => setTargetFacility(e.target.value)}
+                placeholder="e.g. Apex Metro Trauma & Heart Hospital (Leave blank to alert all nearest capable facilities)"
+                className="w-full p-3 bg-white/80 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              />
+              <p className="text-[11px] text-slate-400">
+                If specified, this facility will receive priority notification in addition to all nearest trauma centers.
+              </p>
             </div>
 
             {/* Severity level */}
@@ -233,11 +255,11 @@ export const EmergencyActivatePage = () => {
               <select
                 value={severity}
                 onChange={(e) => setSeverity(e.target.value)}
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full p-3 bg-white/80 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 <option value="critical">Critical (Immediate life hazard)</option>
                 <option value="severe">Severe (High risk / intense pain)</option>
-                <option value="moderate">Moderate (Urgent urgent care)</option>
+                <option value="moderate">Moderate (Urgent care)</option>
               </select>
             </div>
 
@@ -254,10 +276,10 @@ export const EmergencyActivatePage = () => {
                     key={opt.value}
                     type="button"
                     onClick={() => setAmbulanceRequirement(opt.value)}
-                    className={`py-2 px-2 rounded-xl text-xs font-bold uppercase transition-all ${
+                    className={`py-2 px-2 rounded-xl text-xs font-bold uppercase transition-all cursor-pointer ${
                       ambulanceRequirement === opt.value
                         ? 'bg-red-600 text-white shadow-xs'
-                        : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'
+                        : 'bg-white/80 text-slate-700 border border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     {opt.label}
@@ -274,7 +296,7 @@ export const EmergencyActivatePage = () => {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="e.g., Sudden crushing retrosternal pain for 20 mins, sweating, breathing difficulty..."
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full p-3 bg-white/80 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
           </div>
@@ -285,7 +307,7 @@ export const EmergencyActivatePage = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-red-500/30 transition-all hover:scale-[1.01] active:scale-[0.98] flex items-center justify-center space-x-2 disabled:opacity-50"
+            className="w-full py-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-red-500/30 transition-all hover:scale-[1.01] active:scale-[0.98] flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
           >
             <ShieldAlert className="w-5 h-5 animate-bounce" />
             <span>{loading ? 'Activating Parallel Broadcast...' : 'BROADCAST EMERGENCY BEEP TO HOSPITALS'}</span>
@@ -295,10 +317,9 @@ export const EmergencyActivatePage = () => {
             *Real-time ping will alert trauma centers within 50 km simultaneously.
           </p>
         </div>
-
       </form>
-
     </div>
   );
 };
 
+export default EmergencyActivatePage;

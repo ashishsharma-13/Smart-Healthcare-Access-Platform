@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import { User } from '../models/User.js';
 
 let mongodInstance = null;
 
@@ -12,6 +13,7 @@ export const connectDB = async () => {
       serverSelectionTimeoutMS: 2500,
     });
     console.log(`[Database] Connected to external MongoDB at ${uri}`);
+    await syncUserIndexes();
   } catch (err) {
     console.log(`[Database] External MongoDB not reached (${err.message}). Starting MongoMemoryServer...`);
     try {
@@ -19,6 +21,7 @@ export const connectDB = async () => {
       const inMemoryUri = mongodInstance.getUri();
       await mongoose.connect(inMemoryUri);
       console.log(`[Database] In-memory MongoDB started successfully at ${inMemoryUri}`);
+      await syncUserIndexes();
     } catch (memErr) {
       console.error('[Database] Failed to start MongoMemoryServer:', memErr);
       process.exit(1);
@@ -32,6 +35,14 @@ export const connectDB = async () => {
   mongoose.connection.on('disconnected', () => {
     console.warn('[Database] MongoDB disconnected');
   });
+};
+
+const syncUserIndexes = async () => {
+  try {
+    await User.syncIndexes();
+  } catch (error) {
+    console.warn('[Database] User index sync skipped:', error.message);
+  }
 };
 
 export const disconnectDB = async () => {

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Activity, ShieldCheck, Lock, Mail, ArrowRight, UserCheck } from 'lucide-react';
+import { Activity, Lock, Mail, ArrowRight, UserCheck } from 'lucide-react';
 
 export const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -16,7 +16,7 @@ export const LoginPage = () => {
     setError('');
     setLoading(true);
     try {
-      const user = await login(email, password);
+      const user = await login(identifier, password);
       redirectByRole(user.role);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Login failed');
@@ -32,8 +32,8 @@ export const LoginPage = () => {
     else navigate('/patient/dashboard');
   };
 
-  const quickDemoLogin = (demoEmail, demoPassword) => {
-    setEmail(demoEmail);
+  const quickDemoLogin = (demoIdentifier, demoPassword) => {
+    setIdentifier(demoIdentifier);
     setPassword(demoPassword);
   };
 
@@ -97,15 +97,15 @@ export const LoginPage = () => {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Email Address</label>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Email or Phone Number</label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
-                type="email"
+                type="text"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@domain.com"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="you@domain.com or +919956257068"
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
               />
             </div>
@@ -147,4 +147,3 @@ export const LoginPage = () => {
     </div>
   );
 };
-

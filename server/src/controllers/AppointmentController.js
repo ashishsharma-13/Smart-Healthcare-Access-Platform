@@ -78,7 +78,8 @@ export class AppointmentController {
 
   async rescheduleAppointment(req, res, next) {
     try {
-      const { newDate, newTime } = req.body;
+      const newDate = req.body?.newDate || req.body?.newSlotDate;
+      const newTime = req.body?.newTime || req.body?.newSlotTime;
       const updated = await appointmentService.rescheduleAppointment(req.params.id, req.user._id, {
         newDate,
         newTime,
@@ -91,9 +92,9 @@ export class AppointmentController {
 
   async cancelAppointment(req, res, next) {
     try {
-      const { reason } = req.body;
+      const reason = req.body?.reason || req.body?.cancellationReason || 'Cancelled by patient';
       const updated = await appointmentService.cancelAppointment(req.params.id, req.user._id, reason);
-      res.json({ success: true, message: 'Appointment cancelled', data: updated });
+      res.json({ success: true, message: 'Appointment cancelled successfully', data: updated });
     } catch (err) {
       next(err);
     }
@@ -101,4 +102,3 @@ export class AppointmentController {
 }
 
 export const appointmentController = new AppointmentController();
-

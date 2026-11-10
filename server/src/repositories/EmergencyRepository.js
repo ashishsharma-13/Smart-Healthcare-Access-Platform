@@ -108,16 +108,19 @@ export class EmergencyRepository {
   async listActiveBroadcastsForOrg(organizationId) {
     return await EmergencyBroadcast.find({
       organizationId,
-      responseStatus: { $in: ['PENDING', 'ACCEPTED'] },
+      $or: [
+        { responseStatus: { $in: ['PENDING', 'ACCEPTED'] } },
+        { status: 'active' },
+      ],
     })
       .populate({
         path: 'emergencyRequestId',
         populate: { path: 'patientId', select: 'name email phone' },
       })
+      .populate('organizationId', 'name address location emergencyContactPhone rating')
       .sort({ createdAt: -1 })
       .exec();
   }
 }
 
 export const emergencyRepository = new EmergencyRepository();
-

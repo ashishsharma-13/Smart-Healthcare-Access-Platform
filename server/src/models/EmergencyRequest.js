@@ -84,6 +84,7 @@ const emergencyRequestSchema = new mongoose.Schema(
         'EXPIRED',
         'CANCELLED',
         'RESERVATION_RELEASED',
+        'active',
       ],
       default: 'CREATED',
       index: true,
@@ -120,4 +121,3 @@ const emergencyRequestSchema = new mongoose.Schema(
 emergencyRequestSchema.index({ location: '2dsphere' });
 
 export const EmergencyRequest = mongoose.model('EmergencyRequest', emergencyRequestSchema);
-

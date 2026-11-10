@@ -14,6 +14,12 @@ const emergencyBroadcastSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    status: {
+      type: String,
+      enum: ['active', 'inactive', 'resolved'],
+      default: 'active',
+      index: true,
+    },
     broadcastedAt: {
       type: Date,
       default: Date.now,
@@ -56,4 +62,3 @@ const emergencyBroadcastSchema = new mongoose.Schema(
 emergencyBroadcastSchema.index({ emergencyRequestId: 1, organizationId: 1 }, { unique: true });
 
 export const EmergencyBroadcast = mongoose.model('EmergencyBroadcast', emergencyBroadcastSchema);
-

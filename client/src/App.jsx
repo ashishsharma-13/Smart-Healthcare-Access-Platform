@@ -48,6 +48,14 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
+const DashboardRedirect = () => {
+  const { user } = useAuth();
+  if (user?.role === 'doctor') return <Navigate to="/doctor/dashboard" replace />;
+  if (user?.role === 'organization') return <Navigate to="/organization/dashboard" replace />;
+  if (user?.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+  return <Navigate to="/patient/dashboard" replace />;
+};
+
 export default function App() {
   return (
     <AuthProvider>
@@ -66,6 +74,16 @@ export default function App() {
 
             {/* Authenticated Dashboard Layout */}
             <Route element={<DashboardLayout />}>
+              {/* General Dashboard Redirect */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardRedirect />
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Patient */}
               <Route
                 path="/patient/dashboard"
@@ -243,4 +261,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-

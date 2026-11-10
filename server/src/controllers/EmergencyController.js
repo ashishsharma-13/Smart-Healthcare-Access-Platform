@@ -15,6 +15,9 @@ export class EmergencyController {
         ambulanceRequirement,
         patientName,
         patientPhone,
+        targetFacility,
+        targetHospital,
+        organizationId,
       } = req.body;
 
       const result = await emergencyBroadcastService.activateEmergencyBeep({
@@ -27,12 +30,31 @@ export class EmergencyController {
         coordinates: coordinates || [77.2090, 28.6139],
         locationAddress,
         ambulanceRequirement,
+        targetFacility: targetFacility || targetHospital || organizationId,
       });
 
       res.status(201).json({
         success: true,
         message: 'Emergency Beep broadcast initiated in parallel',
         data: result,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getIncomingForOrganization(req, res, next) {
+    try {
+      const org = await organizationRepository.findByUserId(req.user._id);
+      if (!org) {
+        return res.status(403).json({ success: false, message: 'Only registered organizations can fetch incoming broadcasts' });
+      }
+
+      const broadcasts = await emergencyRepository.listActiveBroadcastsForOrg(org._id);
+      res.json({
+        success: true,
+        count: broadcasts.length,
+        data: broadcasts,
       });
     } catch (err) {
       next(err);
@@ -179,4 +201,3 @@ export class EmergencyController {
 }
 
 export const emergencyController = new EmergencyController();
-

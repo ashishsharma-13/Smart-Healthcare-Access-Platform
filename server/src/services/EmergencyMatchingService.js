@@ -1,6 +1,8 @@
+import mongoose from 'mongoose';
 import { organizationRepository } from '../repositories/OrganizationRepository.js';
 import { resourceRepository } from '../repositories/ResourceRepository.js';
 import { Doctor } from '../models/Doctor.js';
+import { Organization } from '../models/Organization.js';
 
 export class EmergencyMatchingService {
   /**
@@ -33,26 +35,82 @@ export class EmergencyMatchingService {
   }
 
   /**
-   * Matches participating organizations for an emergency request and scores suitability.
-   * "The platform must recommend the NEAREST SUITABLE healthcare facility, not simply the nearest hospital."
+   * Looks up a targeted organization by MongoDB ID, slug, or case-insensitive regex name match.
    */
-  async findSuitableOrganizations(patientCoords, emergencyType, maxRadiusKm = 40) {
+  async findTargetOrganization(targetIdentifier) {
+    if (!targetIdentifier) return null;
+    try {
+      if (
+        typeof targetIdentifier === 'string' &&
+        mongoose.Types.ObjectId.isValid(targetIdentifier) &&
+        targetIdentifier.length === 24
+      ) {
+        const org = await Organization.findById(targetIdentifier);
+        if (org) return org;
+      }
+      if (typeof targetIdentifier === 'object' && targetIdentifier?._id) {
+        const org = await Organization.findById(targetIdentifier._id);
+        if (org) return org;
+      }
+      const str = String(targetIdentifier).trim();
+      const org = await Organization.findOne({
+        $or: [
+          { name: { $regex: str, $options: 'i' } },
+          { slug: str.toLowerCase() },
+          { qrCheckinCode: str },
+        ],
+      });
+      return org;
+    } catch (err) {
+      console.warn('[Matching Service] findTargetOrganization error:', err.message);
+      return null;
+    }
+  }
+
+  /**
+   * Matches participating organizations for an emergency request and scores suitability.
+   * Supports target facility (e.g., "Apex Metro Trauma & Heart Hospital").
+   */
+  async findSuitableOrganizations(patientCoords, emergencyType, maxRadiusKm = 50, targetFacility = null) {
     // 1. Find organizations within radius
-    const allOrgs = await organizationRepository.listAll({
+    let allOrgs = await organizationRepository.listAll({
       verificationStatus: 'verified',
       isParticipating: true,
       emergencyCapable: true,
     });
 
+    // If nothing found with strict flags, fallback to emergency-capable organizations
+    if (!allOrgs || allOrgs.length === 0) {
+      allOrgs = await organizationRepository.listAll({ emergencyCapable: true });
+    }
+    if (!allOrgs || allOrgs.length === 0) {
+      allOrgs = await organizationRepository.listAll({});
+    }
+
+    // Check if a target facility was specified (e.g., "Apex Metro Trauma & Heart Hospital" or ID/slug)
+    let targetedOrg = null;
+    if (targetFacility) {
+      targetedOrg = await this.findTargetOrganization(targetFacility);
+      if (targetedOrg) {
+        const alreadyIn = allOrgs.some((o) => o._id.toString() === targetedOrg._id.toString());
+        if (!alreadyIn) {
+          allOrgs.push(targetedOrg);
+        }
+      }
+    }
+
     const evaluatedOrgs = [];
 
     for (const org of allOrgs) {
-      if (!org.location || !org.location.coordinates || org.location.coordinates.length < 2) {
-        continue;
+      const isTarget = targetedOrg && targetedOrg._id.toString() === org._id.toString();
+
+      let dist = 3.5;
+      if (org.location?.coordinates && org.location.coordinates.length >= 2 && patientCoords?.length >= 2) {
+        dist = this.calculateDistance(patientCoords, org.location.coordinates);
       }
 
-      const dist = this.calculateDistance(patientCoords, org.location.coordinates);
-      if (dist > maxRadiusKm) continue;
+      // If not the targeted facility, respect max radius
+      if (!isTarget && dist > maxRadiusKm) continue;
 
       const travelTime = this.estimateTravelTime(dist);
 
@@ -80,7 +138,6 @@ export class EmergencyMatchingService {
       let presenceScore = 0;
       let proximityScore = 0;
 
-      // Type-specific capability checks
       if (['cardiac', 'stroke', 'respiratory'].includes(emergencyType)) {
         if (icuAvailable > 0) resourceScore += 15;
         if (ventAvailable > 0) resourceScore += 10;
@@ -92,26 +149,28 @@ export class EmergencyMatchingService {
         if (icuAvailable > 0) resourceScore += 10;
       }
 
-      // Presence score
       if (emergencyDoctorsPresent.length > 0) {
         presenceScore += 20;
       } else if (presentDoctors.length > 0) {
         presenceScore += 10;
       }
 
-      // Proximity score (decay with distance: 20 pts max for <= 5km)
       if (dist <= 5) proximityScore = 20;
       else if (dist <= 15) proximityScore = 15;
       else if (dist <= 25) proximityScore = 10;
       else proximityScore = 5;
 
-      const totalSuitability = Math.min(100, capabilityScore + resourceScore + presenceScore + proximityScore);
+      let totalSuitability = Math.min(100, capabilityScore + resourceScore + presenceScore + proximityScore);
+      if (isTarget) {
+        totalSuitability = Math.max(totalSuitability, 95); // Ensure targeted hospital is scored at top
+      }
 
       evaluatedOrgs.push({
         organization: org,
         distanceKm: dist,
         estimatedTravelMinutes: travelTime,
         suitabilityScore: totalSuitability,
+        isTarget: Boolean(isTarget),
         availableResources: {
           icuBeds: icuAvailable,
           erBays: erAvailable,
@@ -122,8 +181,9 @@ export class EmergencyMatchingService {
       });
     }
 
-    // Sort primarily by suitability score (descending), then travel time (ascending)
     evaluatedOrgs.sort((a, b) => {
+      if (a.isTarget && !b.isTarget) return -1;
+      if (!a.isTarget && b.isTarget) return 1;
       if (b.suitabilityScore !== a.suitabilityScore) {
         return b.suitabilityScore - a.suitabilityScore;
       }
@@ -135,4 +195,3 @@ export class EmergencyMatchingService {
 }
 
 export const emergencyMatchingService = new EmergencyMatchingService();
-

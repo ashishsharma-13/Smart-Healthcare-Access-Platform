@@ -1,12 +1,10 @@
+import 'dotenv/config';
 import http from 'http';
-import dotenv from 'dotenv';
 import app from './app.js';
 import { connectDB } from './config/db.js';
 import { initSocket } from './sockets/socketHandler.js';
 import { resourceReservationService } from './services/ResourceReservationService.js';
 import { User } from './models/User.js';
-
-dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 

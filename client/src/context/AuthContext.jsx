@@ -18,8 +18,9 @@ export const AuthProvider = ({ children }) => {
       try {
         const res = await api.get('/auth/me');
         if (res.data.success) {
-          setUser(res.data.data.user);
-          setProfile(res.data.data.profile);
+          const data = res.data.data || res.data;
+          setUser(data.user);
+          setProfile(data.profile || null);
         }
       } catch (err) {
         console.error('Failed to load authenticated user profile', err);
@@ -32,10 +33,18 @@ export const AuthProvider = ({ children }) => {
     fetchUser();
   }, [token]);
 
-  const login = async (email, password) => {
-    const res = await api.post('/auth/login', { email, password });
+  const login = async (identifierOrEmail, password) => {
+    const res = await api.post('/auth/login', {
+      identifier: identifierOrEmail,
+      email: identifierOrEmail,
+      phone: identifierOrEmail,
+      password,
+    });
     if (res.data.success) {
-      const { token: newToken, user: newUser, profile: newProfile } = res.data.data;
+      const data = res.data.data || res.data;
+      const newToken = data.token;
+      const newUser = data.user;
+      const newProfile = data.profile || null;
       localStorage.setItem('shap_token', newToken);
       localStorage.setItem('shap_user', JSON.stringify(newUser));
       setToken(newToken);
@@ -49,7 +58,10 @@ export const AuthProvider = ({ children }) => {
   const register = async (formData) => {
     const res = await api.post('/auth/register', formData);
     if (res.data.success) {
-      const { token: newToken, user: newUser, profile: newProfile } = res.data.data;
+      const data = res.data.data || res.data;
+      const newToken = data.token;
+      const newUser = data.user;
+      const newProfile = data.profile || null;
       localStorage.setItem('shap_token', newToken);
       localStorage.setItem('shap_user', JSON.stringify(newUser));
       setToken(newToken);
@@ -72,8 +84,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await api.get('/auth/me');
       if (res.data.success) {
-        setUser(res.data.data.user);
-        setProfile(res.data.data.profile);
+        const data = res.data.data || res.data;
+        setUser(data.user);
+        setProfile(data.profile || null);
       }
     } catch (err) {
       console.error('Error refreshing profile', err);
@@ -88,4 +101,3 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-

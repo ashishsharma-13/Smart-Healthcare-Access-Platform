@@ -55,16 +55,16 @@ export const Sidebar = () => {
   else if (user.role === 'admin') links = adminLinks;
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 min-h-[calc(100vh-4rem)] flex flex-col justify-between py-6 px-4">
+    <aside className="w-64 bg-white/60 backdrop-blur-xl border-r border-white/60 min-h-[calc(100vh-4rem)] flex flex-col justify-between py-6 px-4">
       <div className="space-y-6">
         {/* User profile card */}
-        <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+        <div className="p-3.5 bg-white/70 backdrop-blur-md border border-white/80 rounded-2xl flex items-center space-x-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
             {user.name.charAt(0)}
           </div>
           <div className="overflow-hidden">
             <h4 className="text-xs font-bold text-slate-900 truncate">{user.name}</h4>
-            <span className="inline-block mt-0.5 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+            <span className="inline-block mt-0.5 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-100/80 text-blue-700">
               {user.role}
             </span>
           </div>
@@ -86,10 +86,10 @@ export const Sidebar = () => {
                     isActive
                       ? link.highlight
                         ? 'bg-red-600 text-white shadow-sm shadow-red-500/20'
-                        : 'bg-blue-50 text-blue-700 border-l-4 border-blue-600 font-bold'
+                        : 'bg-white/85 text-blue-700 shadow-xs border border-white/80 font-bold'
                       : link.highlight
-                      ? 'text-red-600 hover:bg-red-50 hover:text-red-700'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      ? 'text-red-600 hover:bg-red-50/70 hover:text-red-700'
+                      : 'text-slate-600 hover:bg-white/50 hover:text-slate-900'
                   }`
                 }
               >
@@ -100,26 +100,6 @@ export const Sidebar = () => {
           })}
         </div>
       </div>
-
-      {/* Emergency Beep fast card on sidebar bottom */}
-      {user.role === 'patient' && (
-        <div className="p-4 rounded-xl bg-gradient-to-br from-red-50 to-red-100/60 border border-red-200">
-          <div className="flex items-center space-x-2 text-red-700 mb-2">
-            <ShieldAlert className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase">Urgent Care?</span>
-          </div>
-          <p className="text-[11px] text-red-600 mb-3 leading-tight">
-            Broadcast emergency beep to nearby hospitals simultaneously.
-          </p>
-          <NavLink
-            to="/emergency/activate"
-            className="block text-center text-xs font-bold py-2 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-sm transition-colors"
-          >
-            Activate Beep
-          </NavLink>
-        </div>
-      )}
     </aside>
   );
 };
-
