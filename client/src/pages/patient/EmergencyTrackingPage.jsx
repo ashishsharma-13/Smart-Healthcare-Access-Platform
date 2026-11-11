@@ -13,6 +13,9 @@ import {
   XCircle,
   Clock,
 } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 export const EmergencyTrackingPage = () => {
   const { id } = useParams();
@@ -64,12 +67,16 @@ export const EmergencyTrackingPage = () => {
   };
 
   if (loading) {
-    return <div className="p-12 text-center text-xs text-slate-400">Loading navigation tracking...</div>;
+    return (
+      <div className="max-w-5xl mx-auto space-y-4 p-8 text-center text-xs text-slate-400">
+        Loading navigation telemetry...
+      </div>
+    );
   }
 
   const destination = emergency?.selectedOrganizationId;
   const userCoords = emergency?.location?.coordinates
-    ? [emergency.location.coordinates[1], emergency.location.coordinates[0]] // [lat, lng]
+    ? [emergency.location.coordinates[1], emergency.location.coordinates[0]]
     : [28.6139, 77.2090];
   const destCoords = destination?.location?.coordinates
     ? [destination.location.coordinates[1], destination.location.coordinates[0]]
@@ -89,33 +96,40 @@ export const EmergencyTrackingPage = () => {
     <div className="max-w-5xl mx-auto space-y-6 pb-12">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="text-xs font-bold text-red-600 uppercase tracking-wider">
-            Live Emergency Navigation
-          </span>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            En Route to {destination?.name || 'Destination Hospital'}
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant="emergency" size="xs" dot pulseDot>
+              Live Telemetry Navigation
+            </Badge>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            En Route to {destination?.name || 'Destination Trauma Center'}
           </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Real-time GPS routing and hospital trauma arrival coordination
+          </p>
         </div>
 
-        <div className="flex items-center space-x-3">
-          <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-extrabold uppercase tracking-wider rounded-full">
-            Status: {emergency?.status}
-          </span>
+        <div className="flex items-center gap-2">
+          <Badge variant="presence" size="sm">
+            {emergency?.status?.replace(/_/g, ' ')}
+          </Badge>
           {emergency?.status !== 'ARRIVED' && emergency?.status !== 'CANCELLED' && (
-            <button
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
               onClick={handleCancelEmergency}
-              className="px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors"
             >
-              Cancel
-            </button>
+              Cancel Alert
+            </Button>
           )}
         </div>
       </div>
 
-      {/* Progress Stepper matching Screen 11 */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm overflow-x-auto">
+      {/* Progress Stepper */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-card overflow-x-auto">
         <div className="flex items-center justify-between min-w-[500px]">
           {statusSteps.map((step, idx) => {
             const isCompleted = currentStepIdx >= idx;
@@ -124,19 +138,19 @@ export const EmergencyTrackingPage = () => {
               <div key={step} className="flex-1 flex items-center">
                 <div className="flex flex-col items-center flex-1">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                       isCompleted
-                        ? 'bg-emerald-600 text-white shadow-sm'
+                        ? 'bg-presence-600 text-white shadow-xs'
                         : isCurrent
-                        ? 'bg-blue-600 text-white ring-4 ring-blue-100'
+                        ? 'bg-brand-600 text-white ring-2 ring-brand-200'
                         : 'bg-slate-100 text-slate-400'
                     }`}
                   >
                     {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
                   </div>
                   <span
-                    className={`text-[10px] uppercase font-bold mt-1.5 text-center ${
-                      isCompleted ? 'text-emerald-700' : isCurrent ? 'text-blue-600' : 'text-slate-400'
+                    className={`text-[9px] uppercase font-bold mt-1 text-center tracking-wider ${
+                      isCompleted ? 'text-presence-700' : isCurrent ? 'text-brand-600' : 'text-slate-400'
                     }`}
                   >
                     {step.replace(/_/g, ' ')}
@@ -144,8 +158,8 @@ export const EmergencyTrackingPage = () => {
                 </div>
                 {idx < statusSteps.length - 1 && (
                   <div
-                    className={`h-1 flex-1 -mt-4 transition-all ${
-                      currentStepIdx > idx ? 'bg-emerald-500' : 'bg-slate-200'
+                    className={`h-0.5 flex-1 -mt-3.5 transition-all ${
+                      currentStepIdx > idx ? 'bg-presence-500' : 'bg-slate-200'
                     }`}
                   />
                 )}
@@ -158,14 +172,14 @@ export const EmergencyTrackingPage = () => {
       {/* Map & Facility info */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* Map (Col 8) */}
-        <div className="lg:col-span-8 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-2">
-            <span className="flex items-center">
-              <Navigation className="w-4 h-4 text-blue-600 mr-1.5" />
-              Live Route Navigation
+        {/* Leaflet Map (Col 8) */}
+        <div className="lg:col-span-8 bg-white p-3.5 rounded-xl border border-slate-200 shadow-card space-y-3">
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-700 px-1">
+            <span className="flex items-center gap-1.5">
+              <Navigation className="w-4 h-4 text-brand-600" />
+              <span>Turn-by-Turn Route Telemetry</span>
             </span>
-            <span className="text-slate-500">Connecting GPS Coordinates</span>
+            <span className="text-slate-400 text-[11px]">Connecting GPS Live</span>
           </div>
 
           <LeafletMap
@@ -181,48 +195,49 @@ export const EmergencyTrackingPage = () => {
                 isSuitable: true,
               },
             ]}
-            className="h-96 w-full rounded-2xl shadow-inner border border-slate-200"
+            className="h-96 w-full rounded-lg"
           />
         </div>
 
         {/* Facility Details (Col 4) */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Hospital Destination
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-card space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Assigned Facility
             </h3>
 
-            <div className="space-y-2">
-              <h4 className="text-base font-extrabold text-slate-900">{destination?.name}</h4>
-              <p className="text-xs text-slate-500 flex items-start">
-                <MapPin className="w-4 h-4 text-slate-400 mr-1.5 flex-shrink-0 mt-0.5" />
-                {destination?.address?.street}, {destination?.address?.city}
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-slate-900 leading-snug">{destination?.name}</h4>
+              <p className="text-xs text-slate-500 flex items-start gap-1">
+                <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
+                <span>{destination?.address?.street}, {destination?.address?.city}</span>
               </p>
             </div>
 
             {destination?.emergencyContactPhone && (
               <a
                 href={`tel:${destination.emergencyContactPhone}`}
-                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-colors flex items-center justify-center space-x-2"
+                className="w-full"
               >
-                <Phone className="w-4 h-4" />
-                <span>Call Emergency Desk</span>
+                <Button variant="presence" size="md" className="w-full" icon={Phone}>
+                  Call Trauma Desk: {destination.emergencyContactPhone}
+                </Button>
               </a>
             )}
 
-            <div className="pt-3 border-t border-slate-100 text-xs space-y-1 text-slate-600">
-              <p><strong>Patient:</strong> {emergency?.patientName}</p>
-              <p><strong>Code:</strong> {emergency?.requestCode}</p>
-              <p><strong>Category:</strong> {emergency?.emergencyType?.toUpperCase()}</p>
+            <div className="pt-3 border-t border-slate-100 text-xs space-y-1.5 text-slate-600">
+              <p><strong className="text-slate-900">Patient:</strong> {emergency?.patientName}</p>
+              <p><strong className="text-slate-900">Pass Code:</strong> <span className="font-mono">{emergency?.requestCode}</span></p>
+              <p><strong className="text-slate-900">Condition:</strong> {emergency?.emergencyType?.toUpperCase()}</p>
             </div>
           </div>
 
           {emergency?.status === 'ARRIVED' && (
-            <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-3xl text-center space-y-2">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-              <h4 className="text-sm font-bold text-emerald-900">Arrived at Destination</h4>
-              <p className="text-xs text-emerald-700">
-                You have reached reception. The hospital has allocated your reserved bed.
+            <div className="bg-presence-50 border border-presence-200 p-4 rounded-xl text-center space-y-1">
+              <CheckCircle2 className="w-7 h-7 text-presence-600 mx-auto" />
+              <h4 className="text-xs font-bold text-presence-900">Arrived at Trauma Center</h4>
+              <p className="text-[11px] text-presence-700">
+                You have reached reception. The facility has allocated your reserved bed.
               </p>
             </div>
           )}
@@ -234,3 +249,4 @@ export const EmergencyTrackingPage = () => {
   );
 };
 
+export default EmergencyTrackingPage;

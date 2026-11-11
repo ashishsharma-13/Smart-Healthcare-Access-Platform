@@ -9,7 +9,14 @@ import {
   ArrowRight,
   Activity,
   User,
+  ShieldAlert,
+  ChevronRight,
+  ShieldCheck,
 } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -36,110 +43,126 @@ export const PatientDashboard = () => {
   }, []);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       
-      {/* Welcome Bar (Cleaned of duplicate Emergency Beep button) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Welcome Bar */}
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Welcome back, {user?.name}
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Manage your health visits, appointments, and rapid emergency coordination.
-          </p>
-        </div>
-      </div>
-
-      {/* Primary Emergency Banner - Sole Primary Emergency Trigger */}
-      <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white shadow-xl shadow-red-600/20 flex flex-col md:flex-row items-center justify-between gap-6 border border-red-500/80">
-        <div className="space-y-2">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 bg-white/20 rounded-full text-[11px] font-bold uppercase tracking-wider backdrop-blur-xs">
-            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-            <span>Urgent Medical Emergency</span>
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant="info" size="xs">
+              Patient Portal
+            </Badge>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black tracking-tight">
-            Need Immediate Critical Care?
-          </h2>
-          <p className="text-xs sm:text-sm text-red-100 max-w-xl leading-relaxed">
-            Activate Emergency Beep to broadcast your critical condition and location simultaneously to verified nearest suitable hospitals. Compare acceptances and temporarily reserve an ICU bed or ER bay.
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Welcome, {user?.name}
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Manage your medical appointments, digital passes, and parallel emergency triage coordination
           </p>
         </div>
 
-        <Link
-          to="/emergency/activate"
-          className="whitespace-nowrap px-6 py-3.5 bg-white hover:bg-red-50 text-red-700 font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-lg transition-all active:scale-95 cursor-pointer"
-        >
-          Activate Beep Broadcast
+        <Link to="/emergency/activate">
+          <Button variant="emergency" size="md" icon={ShieldAlert}>
+            Emergency Beep
+          </Button>
         </Link>
       </div>
 
-      {/* Appointments & Quick Actions Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* Primary Emergency Banner */}
+      <div className="p-5 sm:p-6 rounded-xl bg-urgent-900 text-white border border-urgent-800 shadow-card flex flex-col md:flex-row items-center justify-between gap-5">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-urgent-800/80 text-urgent-200 text-[10px] font-semibold uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-urgent-400 animate-ping" />
+            <span>Acute Critical Triage</span>
+          </div>
+          <h2 className="text-lg font-bold tracking-tight text-white">
+            Need Immediate Hospital Emergency Care?
+          </h2>
+          <p className="text-xs text-urgent-100/90 max-w-xl leading-relaxed">
+            Emergency Beep broadcasts your location and condition simultaneously to all nearby verified trauma centers within 15 km in parallel, securing an automated 15-minute emergency bay hold.
+          </p>
+        </div>
+
+        <Link to="/emergency/activate" className="flex-shrink-0">
+          <Button variant="secondary" size="md" className="font-semibold text-urgent-800 bg-white hover:bg-urgent-50">
+            Activate Parallel Beep
+          </Button>
+        </Link>
+      </div>
+
+      {/* Grid: Appointments + Quick Access */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* Upcoming Appointments (Col 8) */}
+        {/* Left: Appointments (Col 8) */}
         <div className="lg:col-span-8 space-y-4">
           <div className="flex items-center justify-between px-1">
-            <div className="flex items-center space-x-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              <h2 className="text-base font-bold text-slate-900">Upcoming Appointments</h2>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-brand-600" />
+              <h2 className="text-sm font-bold text-slate-900">Upcoming Appointments</h2>
             </div>
-            <Link to="/patient/appointments" className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors">
+            <Link to="/patient/appointments" className="text-xs font-semibold text-brand-600 hover:text-brand-800">
               View All ({appointments.length})
             </Link>
           </div>
 
           {loading ? (
-            <div className="p-8 text-center text-xs text-slate-400 bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl">
-              Loading visits...
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <div key={i} className="h-24 bg-white border border-slate-200 rounded-xl p-4 animate-pulse">
+                  <Skeleton className="h-4 w-1/3 mb-2" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              ))}
             </div>
           ) : appointments.length === 0 ? (
-            <div className="p-8 text-center bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl space-y-3">
-              <Calendar className="w-8 h-8 text-slate-300 mx-auto" />
-              <p className="text-xs text-slate-500">No scheduled upcoming appointments.</p>
-              <Link
-                to="/doctors"
-                className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
-              >
-                Book with a Specialist
-              </Link>
-            </div>
+            <EmptyState
+              icon={Calendar}
+              title="No Upcoming Consultations"
+              description="You have no scheduled doctor visits. Book with NMC-verified specialists across network hospitals."
+              actionLabel="Find a Specialist"
+              onAction={() => window.location.href = '/doctors'}
+            />
           ) : (
             <div className="space-y-3">
               {appointments.map((apt) => (
                 <div
                   key={apt._id}
-                  className="p-5 bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl hover:bg-white/90 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                  className="p-4 bg-white border border-slate-200 rounded-xl shadow-card hover:border-brand-300 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                 >
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-50/90 text-blue-600 border border-blue-100 flex items-center justify-center font-bold text-base shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-brand-50 border border-brand-200 text-brand-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
                       {apt.doctorId?.userId?.name?.charAt(0) || 'D'}
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900">{apt.doctorId?.userId?.name}</h3>
-                      <p className="text-xs text-blue-600 font-semibold">{apt.doctorId?.specialization}</p>
-                      <div className="flex items-center space-x-3 mt-1 text-[11px] text-slate-500">
-                        <span className="flex items-center">
-                          <Clock className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                          {apt.slotDate} at {apt.slotTime}
+                      <h3 className="text-xs font-bold text-slate-900 leading-snug">
+                        {apt.doctorId?.userId?.name}
+                      </h3>
+                      <p className="text-[11px] font-semibold text-brand-700">
+                        {apt.doctorId?.specialization}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-slate-400" />
+                          <span>{apt.slotDate} at {apt.slotTime}</span>
                         </span>
                         <span>&bull;</span>
-                        <span className="flex items-center">
-                          <MapPin className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                          {apt.organizationId?.name}
+                        <span className="flex items-center gap-1 truncate max-w-[180px]">
+                          <MapPin className="w-3 h-3 text-slate-400" />
+                          <span className="truncate">{apt.organizationId?.name}</span>
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-2.5 self-end sm:self-center">
-                    <span className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <div className="flex items-center gap-2 self-end sm:self-center">
+                    <Badge variant={apt.status === 'BOOKED' ? 'presence' : 'neutral'} size="xs">
                       {apt.status}
-                    </span>
+                    </Badge>
                     <Link
                       to="/patient/appointments"
-                      className="px-3.5 py-1.5 bg-white/80 hover:bg-blue-50 text-slate-700 hover:text-blue-600 font-bold text-xs rounded-xl border border-slate-200/60 shadow-xs transition-colors"
+                      className="text-xs font-semibold px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
                     >
-                      Details & Pass
+                      View Pass
                     </Link>
                   </div>
                 </div>
@@ -148,51 +171,53 @@ export const PatientDashboard = () => {
           )}
         </div>
 
-        {/* Quick Health Actions / Emergency History (Col 4) */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Quick Health Access
+        {/* Right: Quick Access & Emergency Logs (Col 4) */}
+        <div className="lg:col-span-4 space-y-5">
+          
+          {/* Quick Access Card */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-card space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Quick Directory Access
             </h3>
 
-            <div className="space-y-2.5">
+            <div className="space-y-1.5">
               <Link
                 to="/doctors"
-                className="flex items-center justify-between p-3.5 rounded-xl bg-white/60 hover:bg-white/90 border border-white/70 text-slate-800 hover:text-blue-600 transition-all group shadow-xs"
+                className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 hover:border-brand-300 hover:bg-slate-50 text-slate-800 transition-colors text-xs font-medium"
               >
-                <div className="flex items-center space-x-3 text-xs font-bold">
-                  <User className="w-4 h-4 text-blue-600" />
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-brand-600" />
                   <span>Search Verified Doctors</span>
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
               </Link>
 
               <Link
                 to="/hospitals"
-                className="flex items-center justify-between p-3.5 rounded-xl bg-white/60 hover:bg-white/90 border border-white/70 text-slate-800 hover:text-blue-600 transition-all group shadow-xs"
+                className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 hover:border-brand-300 hover:bg-slate-50 text-slate-800 transition-colors text-xs font-medium"
               >
-                <div className="flex items-center space-x-3 text-xs font-bold">
-                  <Activity className="w-4 h-4 text-blue-600" />
-                  <span>Nearby Emergency Hospitals</span>
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-brand-600" />
+                  <span>Trauma Facilities & Beds</span>
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
               </Link>
             </div>
           </div>
 
           {/* Recent Emergency Status Widget */}
-          <div className="bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 space-y-3">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-card space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Recent Emergency Logs
               </h3>
-              <Link to="/emergency/history" className="text-[11px] font-bold text-blue-600 hover:text-blue-700 transition-colors">
-                History
+              <Link to="/emergency/history" className="text-xs font-semibold text-brand-600 hover:text-brand-800">
+                All Logs
               </Link>
             </div>
 
             {emergencies.length === 0 ? (
-              <p className="text-xs text-slate-400 py-3 text-center">No recent emergency logs.</p>
+              <p className="text-xs text-slate-400 py-2 text-center">No recent emergency logs.</p>
             ) : (
               <div className="space-y-2">
                 {emergencies.map((emg) => (
@@ -205,24 +230,25 @@ export const PatientDashboard = () => {
                         ? `/emergency/responses/${emg._id}`
                         : `/emergency/tracking/${emg._id}`
                     }
-                    className="block p-3.5 rounded-xl bg-white/60 hover:bg-white/90 transition-all border border-white/70 shadow-xs"
+                    className="block p-2.5 rounded-lg bg-slate-50 border border-slate-200 hover:border-brand-300 transition-colors text-xs"
                   >
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-900 capitalize">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-slate-900 capitalize">
                         {emg.emergencyType} Emergency
                       </span>
-                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-100/80 text-blue-700">
+                      <Badge variant="emergency" size="xs">
                         {emg.status}
-                      </span>
+                      </Badge>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      {new Date(emg.createdAt).toLocaleDateString()} &bull; {emg.requestCode}
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {new Date(emg.createdAt).toLocaleDateString()} &bull; Code: {emg.requestCode}
                     </p>
                   </Link>
                 ))}
               </div>
             )}
           </div>
+
         </div>
 
       </div>
@@ -230,3 +256,5 @@ export const PatientDashboard = () => {
     </div>
   );
 };
+
+export default PatientDashboard;

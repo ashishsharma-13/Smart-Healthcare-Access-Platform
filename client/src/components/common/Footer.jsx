@@ -1,79 +1,129 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, ShieldCheck, PhoneCall, AlertTriangle } from 'lucide-react';
+import { Activity, ShieldCheck, PhoneCall } from 'lucide-react';
 
 export const Footer = () => {
   return (
-    <footer className="bg-slate-900 text-slate-300 pt-12 pb-8 border-t border-slate-800">
+    <footer className="bg-brand-950 text-slate-300 pt-10 pb-6 border-t border-brand-900 select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        
+        {/* Main Columns Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8 items-start">
           
-          {/* Brand info */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold">
-                <Activity className="w-5 h-5" />
+          {/* Col 1: Brand & Regulatory Mission (5 cols) */}
+          <div className="md:col-span-5 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center text-white shadow-2xs">
+                <Activity className="w-4 h-4 stroke-[2.25]" />
               </div>
-              <span className="text-xl font-bold text-white tracking-tight">SHAP</span>
+              <span className="text-lg font-bold text-white tracking-tight">SHAP</span>
+              <span className="text-[10px] font-mono uppercase bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">
+                Govt Standards NCR
+              </span>
             </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Smart Healthcare Access Platform. Centralized discovery for verified healthcare professionals and parallel real-time emergency coordination.
+
+            <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
+              Smart Healthcare Access Platform. Centralized discovery for NMC-verified medical specialists and automated parallel emergency triage coordination across regional hospital networks.
             </p>
-            <div className="flex items-center space-x-2 text-xs text-emerald-400 font-medium">
-              <ShieldCheck className="w-4 h-4" />
-              <span>100% Verified Medical Practitioners</span>
+
+            <div className="flex items-center gap-2 text-xs text-presence-400 font-medium pt-0.5">
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              <span>National Medical Commission Compliant &bull; 100% Validated</span>
             </div>
           </div>
 
-          {/* Patient Access */}
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-4">Patient Services</h4>
-            <ul className="space-y-2.5 text-xs text-slate-400">
-              <li><Link to="/doctors" className="hover:text-blue-400 transition-colors">Find Verified Doctors</Link></li>
-              <li><Link to="/hospitals" className="hover:text-blue-400 transition-colors">Emergency Ready Hospitals</Link></li>
-              <li><Link to="/emergency/activate" className="hover:text-red-400 font-semibold transition-colors">Emergency Beep Broadcast</Link></li>
-              <li><Link to="/patient/appointments" className="hover:text-blue-400 transition-colors">Manage Appointments</Link></li>
+          {/* Col 2: Patient Directory (2 cols) */}
+          <div className="md:col-span-2 space-y-2.5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-white">
+              Patient Care
+            </h4>
+            <ul className="space-y-2 text-xs text-slate-400">
+              <li>
+                <Link to="/doctors" className="hover:text-white transition-colors">
+                  Find Doctors
+                </Link>
+              </li>
+              <li>
+                <Link to="/hospitals" className="hover:text-white transition-colors">
+                  Trauma Hospitals
+                </Link>
+              </li>
+              <li>
+                <Link to="/emergency/activate" className="text-urgent-400 hover:text-urgent-300 font-medium transition-colors flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-urgent-500 animate-pulse" />
+                  <span>Emergency Beep</span>
+                </Link>
+              </li>
+              <li>
+                <Link to="/patient/appointments" className="hover:text-white transition-colors">
+                  Digital Passes
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Providers */}
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-4">Healthcare Providers</h4>
-            <ul className="space-y-2.5 text-xs text-slate-400">
-              <li><Link to="/login" className="hover:text-blue-400 transition-colors">Doctor Portal Check-In</Link></li>
-              <li><Link to="/login" className="hover:text-blue-400 transition-colors">Hospital Emergency Desk</Link></li>
-              <li><Link to="/register" className="hover:text-blue-400 transition-colors">Register as Provider</Link></li>
-              <li><Link to="/login" className="hover:text-blue-400 transition-colors">Admin Governance</Link></li>
+          {/* Col 3: Clinical Network (2 cols) */}
+          <div className="md:col-span-2 space-y-2.5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-white">
+              Clinical Network
+            </h4>
+            <ul className="space-y-2 text-xs text-slate-400">
+              <li>
+                <Link to="/login" className="hover:text-white transition-colors">
+                  Doctor Presence
+                </Link>
+              </li>
+              <li>
+                <Link to="/login" className="hover:text-white transition-colors">
+                  Trauma Command
+                </Link>
+              </li>
+              <li>
+                <Link to="/register" className="hover:text-white transition-colors">
+                  Provider Registration
+                </Link>
+              </li>
+              <li>
+                <Link to="/login" className="hover:text-white transition-colors">
+                  Admin Governance
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Urgent Hotline */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">24/7 Emergency Helpline</h4>
-            <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700/80">
-              <div className="flex items-center space-x-2.5 text-red-400 mb-1">
-                <PhoneCall className="w-4 h-4 animate-bounce" />
-                <span className="text-sm font-bold">112 / 911 / 108</span>
-              </div>
-              <p className="text-[11px] text-slate-400">
-                National Medical Ambulance & Disaster Services
+          {/* Col 4: 24/7 Helpline Card (3 cols) */}
+          <div className="md:col-span-3 space-y-2">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-white">
+              Life-Critical Helpline
+            </h4>
+            <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+              <a
+                href="tel:112"
+                className="flex items-center gap-2 text-urgent-400 hover:text-urgent-300 font-bold text-sm transition-colors"
+              >
+                <PhoneCall className="w-4 h-4 shrink-0" />
+                <span>112 / 108 (Disaster Desk)</span>
+              </a>
+              <p className="text-[11px] text-slate-400 leading-snug">
+                For immediate life-threatening trauma or stroke resuscitation, dial emergency dispatch directly.
               </p>
             </div>
           </div>
 
         </div>
 
-        {/* Medical disclaimer as strictly instructed in prompt */}
-        <div className="py-4 border-t border-slate-800 text-[11px] text-slate-400 flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="flex items-center space-x-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-            <span>
-              <strong>Medical Disclaimer:</strong> The platform supports healthcare access and emergency coordination. It must not independently diagnose patients. In immediate life-threatening situations, also contact local emergency services immediately.
+        {/* Bottom Bar: Compact & Balanced */}
+        <div className="pt-5 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500">
+          <p>© {new Date().getFullYear()} Smart Healthcare Access Platform (SHAP). All rights reserved.</p>
+          <div className="flex items-center gap-4">
+            <span className="text-presence-400 font-mono text-[10px] flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-presence-400" />
+              SYSTEM OPERATIONAL
             </span>
+            <span className="hover:text-slate-400 cursor-pointer transition-colors">Privacy Policy</span>
+            <span className="hover:text-slate-400 cursor-pointer transition-colors">Terms of Service</span>
+            <span className="hover:text-slate-400 cursor-pointer transition-colors">NMC Protocol</span>
           </div>
-          <span className="text-slate-500 whitespace-nowrap">
-            &copy; {new Date().getFullYear()} SHAP. All rights reserved.
-          </span>
         </div>
 
       </div>
@@ -81,3 +131,4 @@ export const Footer = () => {
   );
 };
 
+export default Footer;

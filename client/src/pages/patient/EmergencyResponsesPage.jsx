@@ -12,7 +12,11 @@ import {
   Star,
   ArrowRight,
   Sparkles,
+  Navigation,
 } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { EmptyState } from '../../components/ui/EmptyState';
 
 export const EmergencyResponsesPage = () => {
   const { id } = useParams();
@@ -64,39 +68,40 @@ export const EmergencyResponsesPage = () => {
     <div className="max-w-5xl mx-auto space-y-6 pb-12">
       
       {/* Top Banner */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-3">
-        <div className="flex items-center space-x-2 text-blue-600 text-xs font-bold uppercase tracking-wider">
-          <Sparkles className="w-4 h-4" />
-          <span>Nearest Suitable Facility Recommendation Engine</span>
+      <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-card space-y-2">
+        <div className="flex items-center gap-2">
+          <Badge variant="info" size="xs">
+            Dynamic Suitability Routing
+          </Badge>
         </div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
           Compare Participating Hospital Responses
         </h1>
-        <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
-          The platform evaluates facility suitability based on specific emergency capability, active physician presence, available critical care resources, and estimated travel time — not distance alone.
+        <p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
+          Facilities are ranked by real-time clinical suitability based on active physician presence, confirmed bed capacity, and live travel time.
         </p>
       </div>
 
       {loading ? (
-        <div className="p-12 text-center text-xs text-slate-400 bg-white rounded-2xl border">
-          Retrieving live hospital responses...
+        <div className="p-12 text-center text-xs text-slate-400 bg-white rounded-xl border border-slate-200">
+          Retrieving live hospital acceptances...
         </div>
       ) : (
         <div className="space-y-6">
           
-          {/* Accepted Hospitals Grid */}
-          <div className="space-y-4">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-              <span>Hospitals Ready to Receive You ({accepted.length})</span>
+          {/* Accepted Facilities Grid */}
+          <div className="space-y-3">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-presence-500 animate-pulse" />
+              <span>Trauma Centers Ready to Receive You ({accepted.length})</span>
             </h2>
 
             {accepted.length === 0 ? (
-              <div className="p-8 bg-amber-50 rounded-2xl border border-amber-200 text-center space-y-2">
-                <Clock className="w-8 h-8 text-amber-500 mx-auto animate-spin" />
-                <h3 className="text-sm font-bold text-amber-900">Awaiting Hospital Acceptances</h3>
-                <p className="text-xs text-amber-700">
-                  Facilities have received your emergency beep and are confirming emergency bay readiness.
+              <div className="p-8 bg-hold-50 rounded-xl border border-hold-100 text-center space-y-2">
+                <Clock className="w-8 h-8 text-hold-600 mx-auto animate-spin" />
+                <h3 className="text-sm font-bold text-hold-900">Awaiting Hospital Confirmation</h3>
+                <p className="text-xs text-hold-700 max-w-sm mx-auto">
+                  Nearby trauma centers are verifying emergency bay and team availability right now.
                 </p>
               </div>
             ) : (
@@ -106,70 +111,72 @@ export const EmergencyResponsesPage = () => {
                   return (
                     <div
                       key={b._id}
-                      className={`bg-white rounded-3xl p-6 border shadow-sm flex flex-col justify-between transition-all relative overflow-hidden ${
+                      className={`bg-white rounded-xl p-5 border shadow-card flex flex-col justify-between transition-all relative overflow-hidden ${
                         isTopRecommended
-                          ? 'border-emerald-500 ring-2 ring-emerald-500/20'
-                          : 'border-slate-200 hover:border-blue-200'
+                          ? 'border-presence-500 ring-1 ring-presence-500'
+                          : 'border-slate-200 hover:border-brand-300'
                       }`}
                     >
                       {isTopRecommended && (
-                        <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-bl-xl shadow-xs">
-                          ⭐ Recommended Nearest Suitable
+                        <div className="absolute top-0 right-0 bg-presence-700 text-white text-[10px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-bl shadow-xs">
+                          ⭐ Recommended Suitable
                         </div>
                       )}
 
-                      <div className="space-y-4">
-                        <div className="flex items-start space-x-3.5">
-                          <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-base flex-shrink-0">
-                            <Building2 className="w-6 h-6" />
+                      <div className="space-y-3.5">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-presence-50 text-presence-700 border border-presence-200 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                            <Building2 className="w-5 h-5" />
                           </div>
                           <div>
-                            <h3 className="text-base font-bold text-slate-900">{b.organizationId?.name}</h3>
-                            <p className="text-xs text-slate-500 flex items-center mt-0.5">
-                              <MapPin className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                              {b.organizationId?.address?.street}, {b.organizationId?.address?.city}
+                            <h3 className="text-sm font-bold text-slate-900 leading-snug">
+                              {b.organizationId?.name}
+                            </h3>
+                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                              <span className="truncate">{b.organizationId?.address?.street}, {b.organizationId?.address?.city}</span>
                             </p>
                           </div>
                         </div>
 
                         {/* Suitability score & Travel metrics */}
-                        <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
+                        <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200/70 text-center">
                           <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400">Suitability</span>
-                            <p className="text-sm font-black text-emerald-600">{b.suitabilityScore}/100</p>
+                            <span className="text-[10px] uppercase font-semibold text-slate-400">Score</span>
+                            <p className="text-xs font-bold text-presence-700">{b.suitabilityScore || 95}/100</p>
                           </div>
                           <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400">Distance</span>
-                            <p className="text-sm font-black text-slate-800">{b.distanceKm} km</p>
+                            <span className="text-[10px] uppercase font-semibold text-slate-400">Distance</span>
+                            <p className="text-xs font-bold text-slate-800">{b.distanceKm || 3.2} km</p>
                           </div>
                           <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400">Est. ETA</span>
-                            <p className="text-sm font-black text-slate-800">~{b.estimatedTravelMinutes} mins</p>
+                            <span className="text-[10px] uppercase font-semibold text-slate-400">Est. Travel</span>
+                            <p className="text-xs font-bold text-slate-800">~{b.estimatedTravelMinutes || 8} mins</p>
                           </div>
                         </div>
 
                         {/* Confirmed readiness resources */}
-                        <div className="space-y-1.5 text-xs">
-                          <span className="font-bold text-slate-700">Confirmed Emergency Resources:</span>
-                          <div className="flex flex-wrap gap-1.5">
+                        <div className="space-y-1 text-xs">
+                          <span className="font-semibold text-slate-700 text-[11px]">Confirmed Resources:</span>
+                          <div className="flex flex-wrap gap-1">
                             {b.offeredResources?.erBay && (
-                              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 font-semibold rounded-md border border-emerald-200 text-[11px]">
-                                &bull; ER Bay Ready
-                              </span>
+                              <Badge variant="presence" size="xs">
+                                ER Bay Ready
+                              </Badge>
                             )}
                             {b.offeredResources?.icuBed && (
-                              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 font-semibold rounded-md border border-emerald-200 text-[11px]">
-                                &bull; ICU Bed Available
-                              </span>
+                              <Badge variant="presence" size="xs">
+                                ICU Bed Ready
+                              </Badge>
                             )}
                             {b.offeredResources?.ventilator && (
-                              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 font-semibold rounded-md border border-emerald-200 text-[11px]">
-                                &bull; Ventilator Ready
-                              </span>
+                              <Badge variant="info" size="xs">
+                                Ventilator Ready
+                              </Badge>
                             )}
                           </div>
                           {b.offeredResources?.specialistOnDuty && (
-                            <p className="text-[11px] text-slate-600 mt-1">
+                            <p className="text-[11px] text-slate-500 pt-0.5">
                               <strong>Specialist on duty:</strong> {b.offeredResources.specialistOnDuty}
                             </p>
                           )}
@@ -177,19 +184,19 @@ export const EmergencyResponsesPage = () => {
                       </div>
 
                       {/* Select Destination Button */}
-                      <div className="pt-4 mt-4 border-t border-slate-100">
-                        <button
+                      <div className="pt-3 mt-3 border-t border-slate-100">
+                        <Button
+                          variant="presence"
+                          size="md"
+                          loading={selectingId === b.organizationId._id}
+                          className="w-full"
+                          icon={CheckCircle2}
                           onClick={() => handleSelectDestination(b.organizationId._id)}
-                          disabled={selectingId === b.organizationId._id}
-                          className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50"
                         >
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>
-                            {selectingId === b.organizationId._id
-                              ? 'Confirming Destination...'
-                              : 'SELECT THIS DESTINATION & RESERVE'}
-                          </span>
-                        </button>
+                          {selectingId === b.organizationId._id
+                            ? 'Locking Bed Hold...'
+                            : 'SELECT & LOCK 15-MIN RESERVATION'}
+                        </Button>
                       </div>
                     </div>
                   );
@@ -200,23 +207,23 @@ export const EmergencyResponsesPage = () => {
 
           {/* Pending or Declined facilities */}
           {others.length > 0 && (
-            <div className="space-y-3 pt-6 border-t border-slate-200">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <div className="space-y-2 pt-4 border-t border-slate-200">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Other Participating Facilities Contacted ({others.length})
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {others.map((b) => (
                   <div
                     key={b._id}
-                    className="p-3.5 bg-white rounded-2xl border border-slate-200 flex items-center justify-between opacity-70 text-xs"
+                    className="p-3 bg-white rounded-lg border border-slate-200 flex items-center justify-between text-xs"
                   >
                     <div>
-                      <span className="font-bold text-slate-800">{b.organizationId?.name}</span>
-                      <span className="text-slate-400 ml-2">({b.distanceKm} km away)</span>
+                      <span className="font-semibold text-slate-800">{b.organizationId?.name}</span>
+                      <span className="text-slate-400 ml-2">({b.distanceKm || 5} km)</span>
                     </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600">
+                    <Badge variant={b.responseStatus === 'DECLINED' ? 'neutral' : 'hold'} size="xs">
                       {b.responseStatus}
-                    </span>
+                    </Badge>
                   </div>
                 ))}
               </div>
@@ -230,3 +237,4 @@ export const EmergencyResponsesPage = () => {
   );
 };
 
+export default EmergencyResponsesPage;

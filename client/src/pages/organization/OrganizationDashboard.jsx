@@ -17,6 +17,10 @@ import {
   Phone,
   AlertTriangle,
 } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { Toast } from '../../components/ui/Toast';
+import { EmptyState } from '../../components/ui/EmptyState';
 
 export const OrganizationDashboard = () => {
   const { user } = useAuth();
@@ -49,9 +53,7 @@ export const OrganizationDashboard = () => {
     fetchOrgData(true);
 
     if (socket) {
-      // Direct real-time queue append for incoming emergency telemetry
       socket.on('emergency-broadcast-incoming', (data) => {
-        console.log('[Hospital Socket] emergency-broadcast-incoming received:', data);
         if (!data) return;
 
         setBroadcasts((prev) => {
@@ -70,14 +72,11 @@ export const OrganizationDashboard = () => {
             });
           }
 
-          // Prepend directly to incoming emergency telemetry queue
           return [data, ...prev];
         });
       });
 
-      // Global broadcast notice for active hospital dashboards
       socket.on('emergency-broadcast-new', (data) => {
-        console.log('[Hospital Socket] emergency-broadcast-new notice received:', data);
         fetchOrgData(false);
       });
 
@@ -124,7 +123,6 @@ export const OrganizationDashboard = () => {
         }
       }
 
-      // Query active incoming broadcasts from GET /api/emergency/incoming first
       try {
         const incomingRes = await api.get('/emergency/incoming');
         if (incomingRes.data.success && Array.isArray(incomingRes.data.data)) {
@@ -132,10 +130,9 @@ export const OrganizationDashboard = () => {
           return;
         }
       } catch (err) {
-        console.warn('Falling back to /organizations/portal/broadcasts', err.message);
+        // Fallback
       }
 
-      // Fallback
       const bCastRes = await api.get('/organizations/portal/broadcasts');
       if (bCastRes.data.success) {
         setBroadcasts(bCastRes.data.data);
@@ -169,7 +166,7 @@ export const OrganizationDashboard = () => {
       setActionLoading(true);
       const res = await api.post(`/emergency/${emergencyRequestId}/arrived`);
       if (res.data.success) {
-        setActionNotice('Patient Arrival Confirmed! Reserved bed has been allocated.');
+        setActionNotice('Patient Arrival Confirmed! Bed allocation active.');
         setTimeout(() => setActionNotice(''), 5000);
         fetchOrgData(false);
       }
@@ -199,107 +196,108 @@ export const OrganizationDashboard = () => {
   };
 
   if (loading) {
-    return <div className="p-12 text-center text-xs text-slate-400">Loading emergency operations desk...</div>;
+    return (
+      <div className="p-12 text-center text-xs text-slate-400">
+        Loading emergency command operations...
+      </div>
+    );
   }
 
   const icuRes = profile?.resources?.find((r) => r.resourceType === 'icu_bed');
   const erRes = profile?.resources?.find((r) => r.resourceType === 'er_bay');
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-6 pb-12">
+      
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">{profile?.name}</h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
-              Verified Facility
-            </span>
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant="presence" size="xs" dot>
+              Verified Facility Command
+            </Badge>
           </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            {profile?.name}
+          </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Emergency Operations & Resource Allocation Desk &bull; Code: {profile?.qrCheckinCode}
+            Emergency Operations & Resource Allocation Desk &bull; Code: <span className="font-mono font-semibold text-slate-800">{profile?.qrCheckinCode}</span>
           </p>
         </div>
 
-        <Link
-          to="/organization/qr-code"
-          className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-sm transition-all"
-        >
-          <QrCode className="w-4 h-4" />
-          <span>Reception Check-In QR</span>
+        <Link to="/organization/qr-code">
+          <Button variant="primary" size="sm" icon={QrCode}>
+            Reception Check-In Stand
+          </Button>
         </Link>
       </div>
 
       {actionNotice && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-2xl font-bold flex items-center space-x-2 animate-fade-in shadow-xs">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{actionNotice}</span>
-        </div>
+        <Toast type="success" message={actionNotice} onClose={() => setActionNotice('')} />
       )}
 
       {/* Resource Counters Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-5 rounded-2xl bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex items-center justify-between">
+        <div className="p-4 sm:p-5 rounded-xl bg-white border border-slate-200 shadow-card flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">ICU Bed Capacity</span>
-            <div className="flex items-baseline space-x-2 mt-1">
-              <span className="text-2xl font-black text-slate-900">{icuRes?.availableCapacity ?? 14}</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ICU Bed Capacity</span>
+            <div className="flex items-baseline gap-1.5 mt-1">
+              <span className="text-2xl font-bold text-slate-900">{icuRes?.availableCapacity ?? 14}</span>
               <span className="text-xs text-slate-400">/ {icuRes?.totalCapacity ?? 20} available</span>
             </div>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-            <BedDouble className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-lg bg-brand-50 text-brand-700 border border-brand-200 flex items-center justify-center font-bold">
+            <BedDouble className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex items-center justify-between">
+        <div className="p-4 sm:p-5 rounded-xl bg-white border border-slate-200 shadow-card flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Emergency Bay Capacity</span>
-            <div className="flex items-baseline space-x-2 mt-1">
-              <span className="text-2xl font-black text-slate-900">{erRes?.availableCapacity ?? 11}</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Emergency Bay Capacity</span>
+            <div className="flex items-baseline gap-1.5 mt-1">
+              <span className="text-2xl font-bold text-slate-900">{erRes?.availableCapacity ?? 11}</span>
               <span className="text-xs text-slate-400">/ {erRes?.totalCapacity ?? 15} available</span>
             </div>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center font-bold">
-            <ShieldAlert className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-lg bg-urgent-50 text-urgent-700 border border-urgent-200 flex items-center justify-center font-bold">
+            <ShieldAlert className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex items-center justify-between">
+        <div className="p-4 sm:p-5 rounded-xl bg-white border border-slate-200 shadow-card flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Physicians Present</span>
-            <div className="flex items-baseline space-x-2 mt-1">
-              <span className="text-2xl font-black text-emerald-600">{profile?.doctorsPresent?.length || 1}</span>
-              <span className="text-xs text-slate-400">physicians on-site</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Physicians On-Site</span>
+            <div className="flex items-baseline gap-1.5 mt-1">
+              <span className="text-2xl font-bold text-presence-700">{profile?.doctorsPresent?.length || 1}</span>
+              <span className="text-xs text-slate-400">checked in now</span>
             </div>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-            <Users className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-lg bg-presence-50 text-presence-700 border border-presence-200 flex items-center justify-center font-bold">
+            <Users className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* Live Emergency Broadcast Reception Desk */}
-      <div className="bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 sm:p-8 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100/80">
-          <div className="flex items-center space-x-2">
-            <span className="w-3 h-3 rounded-full bg-red-600 animate-ping"></span>
-            <h2 className="text-base font-black text-slate-900">
-              Incoming Emergency Beep Telemetry & Destination Queue
+      <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-card space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-urgent-600 animate-ping" />
+            <h2 className="text-sm font-bold text-slate-900">
+              Incoming Emergency Telemetry & Dispatch Queue
             </h2>
           </div>
-          <span className="text-xs font-bold text-slate-500">Active Requests: {broadcasts.length}</span>
+          <span className="text-xs text-slate-400 font-medium">Active Requests: {broadcasts.length}</span>
         </div>
 
         {broadcasts.length === 0 ? (
-          <div className="p-8 text-center bg-white/50 backdrop-blur-md rounded-2xl border border-white/60 space-y-2">
-            <ShieldAlert className="w-8 h-8 text-slate-300 mx-auto" />
-            <p className="text-xs text-slate-500 font-medium">
-              No active emergency broadcasts at this moment. Listening for real-time parallel beeps.
-            </p>
-          </div>
+          <EmptyState
+            icon={ShieldAlert}
+            title="No Active Emergency Dispatches"
+            description="Facility command is listening for real-time parallel emergency broadcasts within your catchment radius."
+          />
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {broadcasts.map((b) => {
               const req = b.emergencyRequestId;
               if (!req) return null;
@@ -307,25 +305,25 @@ export const OrganizationDashboard = () => {
               return (
                 <div
                   key={b._id}
-                  className={`p-5 rounded-2xl border transition-all ${
+                  className={`p-4 rounded-xl border transition-all ${
                     isSelectedDestination
-                      ? 'bg-emerald-50/80 border-emerald-400 ring-2 ring-emerald-400/20'
-                      : 'bg-white/80 border-white/90 shadow-sm'
+                      ? 'bg-presence-50/80 border-presence-300 ring-1 ring-presence-300'
+                      : 'bg-white border-slate-200'
                   }`}
                 >
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div className="space-y-1.5">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-black text-slate-900 capitalize">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-slate-900 capitalize">
                           {req.emergencyType} Emergency
                         </span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-100 text-red-700">
+                        <Badge variant="emergency" size="xs">
                           {req.severity || 'CRITICAL'}
-                        </span>
+                        </Badge>
                         {isSelectedDestination && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-600 text-white">
-                            Selected Destination
-                          </span>
+                          <Badge variant="presence" size="xs" dot pulseDot>
+                            Destination Selected
+                          </Badge>
                         )}
                       </div>
 
@@ -334,57 +332,62 @@ export const OrganizationDashboard = () => {
                         <strong>Contact:</strong> {req.patientPhone || req.patientId?.phone || 'Emergency GPS'}
                       </p>
 
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                         <span>Distance: {b.distanceKm ?? 2.5} km (~{b.estimatedTravelMinutes ?? 8} mins)</span>
                         <span>&bull;</span>
                         <span>Suitability: {b.suitabilityScore ?? 90}/100</span>
                         <span>&bull;</span>
                         <span>
-                          Request Status: <strong className="text-slate-800">{req.status || 'BROADCASTED'}</strong>
+                          Status: <strong className="text-slate-800">{req.status || 'BROADCASTED'}</strong>
                         </span>
                       </div>
                     </div>
 
-                    {/* Operational Action Buttons */}
+                    {/* Operational Actions */}
                     <div className="flex flex-wrap items-center gap-2 self-end md:self-center">
                       {(b.responseStatus === 'PENDING' || !b.responseStatus) && (
                         <>
-                          <button
-                            onClick={() => handleRespond(req._id || req, 'ACCEPTED')}
+                          <Button
+                            size="sm"
+                            variant="presence"
                             disabled={actionLoading}
-                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-xs cursor-pointer"
+                            onClick={() => handleRespond(req._id || req, 'ACCEPTED')}
                           >
                             Accept & Can Receive
-                          </button>
-                          <button
-                            onClick={() => handleRespond(req._id || req, 'DECLINED')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-rose-600 hover:bg-rose-50"
                             disabled={actionLoading}
-                            className="px-3 py-2 bg-slate-200 hover:bg-red-50 hover:text-red-700 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors cursor-pointer"
+                            onClick={() => handleRespond(req._id || req, 'DECLINED')}
                           >
                             Decline
-                          </button>
+                          </Button>
                         </>
                       )}
 
                       {isSelectedDestination && req.status === 'DESTINATION_SELECTED' && (
-                        <button
-                          onClick={() => handleConfirmReservation(req._id || req)}
+                        <Button
+                          size="sm"
+                          variant="primary"
                           disabled={actionLoading}
-                          className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-xs cursor-pointer"
+                          onClick={() => handleConfirmReservation(req._id || req)}
                         >
                           Confirm & Hold 1x ER Bay
-                        </button>
+                        </Button>
                       )}
 
                       {isSelectedDestination &&
                         (req.status === 'RESOURCES_RESERVED' || req.status === 'PATIENT_EN_ROUTE') && (
-                          <button
-                            onClick={() => handleMarkArrival(req._id || req)}
+                          <Button
+                            size="sm"
+                            variant="presence"
                             disabled={actionLoading}
-                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
+                            onClick={() => handleMarkArrival(req._id || req)}
                           >
                             Mark Patient Arrived & Allocate Bed
-                          </button>
+                          </Button>
                         )}
                     </div>
                   </div>

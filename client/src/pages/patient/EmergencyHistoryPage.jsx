@@ -2,78 +2,101 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { ShieldAlert, Calendar, Clock, MapPin, ChevronRight, Activity } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { EmptyState } from '../../components/ui/EmptyState';
 
 export const EmergencyHistoryPage = () => {
   const [emergencies, setEmergencies] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const res = await api.get('/emergency/user/history');
-        if (res.data.success) {
-          setEmergencies(res.data.data);
-        }
-      } catch (err) {
-        console.error('Error fetching emergency history', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchHistory();
   }, []);
 
+  const fetchHistory = async () => {
+    try {
+      const res = await api.get('/emergency/user/history');
+      if (res.data.success) {
+        setEmergencies(res.data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching emergency history', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Emergency Beep History</h1>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Audit trail and records of past emergency activations, broadcasted facilities, and destinations.
-        </p>
+      <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant="emergency" size="xs">
+              Audit Trail
+            </Badge>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Emergency Beep History
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Audit trail and records of past emergency activations, broadcasted trauma facilities, and destination outcomes.
+          </p>
+        </div>
+
+        <Link to="/emergency/activate">
+          <Button variant="emergency" size="sm" icon={ShieldAlert}>
+            Activate New Beep
+          </Button>
+        </Link>
       </div>
 
       {loading ? (
-        <div className="p-12 text-center text-xs text-slate-400 bg-white rounded-2xl border">
-          Loading history...
+        <div className="p-12 text-center text-xs text-slate-400 bg-white rounded-xl border border-slate-200">
+          Loading emergency history...
         </div>
       ) : emergencies.length === 0 ? (
-        <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
-          <Activity className="w-10 h-10 text-slate-300 mx-auto" />
-          <h3 className="text-sm font-bold text-slate-800">No emergency logs recorded</h3>
-          <p className="text-xs text-slate-500">Your emergency broadcast history will be preserved here.</p>
-        </div>
+        <EmptyState
+          icon={Activity}
+          title="No Emergency Logs Recorded"
+          description="Your parallel emergency dispatch activations and destination passes will appear here."
+          actionLabel="Emergency Broadcast Mode"
+          onAction={() => window.location.href = '/emergency/activate'}
+        />
       ) : (
         <div className="space-y-3">
           {emergencies.map((emg) => (
             <div
               key={emg._id}
-              className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between"
+              className="p-4 sm:p-5 bg-white rounded-xl border border-slate-200 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-brand-300 transition-colors"
             >
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-bold text-slate-900 capitalize">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-900 capitalize">
                     {emg.emergencyType} Emergency
                   </span>
-                  <span
-                    className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                  <Badge
+                    variant={
                       emg.status === 'ARRIVED'
-                        ? 'bg-emerald-100 text-emerald-800'
+                        ? 'presence'
                         : emg.status === 'CANCELLED'
-                        ? 'bg-slate-100 text-slate-600'
-                        : 'bg-red-100 text-red-700'
-                    }`}
+                        ? 'neutral'
+                        : 'emergency'
+                    }
+                    size="xs"
                   >
                     {emg.status}
-                  </span>
+                  </Badge>
                 </div>
-                <div className="flex items-center space-x-3 text-xs text-slate-500">
-                  <span>Code: <strong>{emg.requestCode}</strong></span>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                  <span className="font-mono text-slate-700 font-semibold">{emg.requestCode}</span>
                   <span>&bull;</span>
                   <span>{new Date(emg.createdAt).toLocaleString()}</span>
                   {emg.selectedOrganizationId && (
                     <>
                       <span>&bull;</span>
-                      <span>Destination: <strong>{emg.selectedOrganizationId.name}</strong></span>
+                      <span>Destination: <strong className="text-slate-800">{emg.selectedOrganizationId.name}</strong></span>
                     </>
                   )}
                 </div>
@@ -81,10 +104,11 @@ export const EmergencyHistoryPage = () => {
 
               <Link
                 to={`/emergency/tracking/${emg._id}`}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-700 font-bold text-xs rounded-lg transition-colors flex items-center space-x-1"
+                className="self-end sm:self-center"
               >
-                <span>View Details</span>
-                <ChevronRight className="w-4 h-4" />
+                <Button size="sm" variant="outline" icon={ChevronRight} iconPosition="right">
+                  Details
+                </Button>
               </Link>
             </div>
           ))}
@@ -94,3 +118,4 @@ export const EmergencyHistoryPage = () => {
   );
 };
 
+export default EmergencyHistoryPage;

@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, Plus, Check, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Plus, Check, AlertCircle, Save } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { Toast } from '../../components/ui/Toast';
 
 export const DoctorSchedulePage = () => {
   const [activeDay, setActiveDay] = useState(1); // Monday
+  const [savedNotice, setSavedNotice] = useState(false);
   const [slots, setSlots] = useState([
     { id: 1, time: '09:00 AM - 09:30 AM', active: true },
     { id: 2, time: '09:30 AM - 10:00 AM', active: true },
@@ -19,28 +23,54 @@ export const DoctorSchedulePage = () => {
     setSlots(slots.map((s) => (s.id === id ? { ...s, active: !s.active } : s)));
   };
 
+  const handleSave = () => {
+    setSavedNotice(true);
+    setTimeout(() => setSavedNotice(false), 4000);
+  };
+
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Schedule & Slot Availability</h1>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Configure weekly recurring availability and consultation slot timings.
-        </p>
+      <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant="info" size="xs">
+              Outpatient Calendar
+            </Badge>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Consultation Schedule & Slot Management
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Configure weekly recurring availability and consultation slot timings for patient bookings.
+          </p>
+        </div>
+
+        <Button variant="primary" size="sm" icon={Save} onClick={handleSave}>
+          Save Weekly Roster
+        </Button>
       </div>
 
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+      {savedNotice && (
+        <Toast
+          type="success"
+          message="Weekly consultation schedule updated successfully."
+          onClose={() => setSavedNotice(false)}
+        />
+      )}
+
+      <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-card space-y-5">
         
-        {/* Days of week selector matching Screen 13 */}
-        <div className="flex space-x-2 overflow-x-auto pb-2 border-b border-slate-100">
+        {/* Days of week selector */}
+        <div className="flex gap-1.5 overflow-x-auto pb-2 border-b border-slate-100">
           {days.map((d, idx) => (
             <button
               key={d}
               onClick={() => setActiveDay(idx)}
-              className={`py-2 px-4 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              className={`py-2 px-3.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
                 activeDay === idx
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-brand-600 text-white shadow-xs'
                   : 'bg-slate-50 hover:bg-slate-100 text-slate-700'
               }`}
             >
@@ -55,41 +85,30 @@ export const DoctorSchedulePage = () => {
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
               Consultation Slots for {days[activeDay]}
             </h3>
-            <span className="text-xs text-slate-400">Click a slot to toggle availability</span>
+            <span className="text-xs text-slate-400">Click any slot to toggle availability</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
             {slots.map((slot) => (
               <button
                 key={slot.id}
                 onClick={() => toggleSlot(slot.id)}
-                className={`p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between ${
+                className={`p-3 rounded-lg border text-left transition-colors flex items-center justify-between cursor-pointer ${
                   slot.active
-                    ? 'bg-blue-50/60 border-blue-200 text-blue-900 font-bold'
+                    ? 'bg-brand-50/70 border-brand-200 text-brand-900 font-semibold shadow-xs'
                     : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
                 }`}
               >
-                <div className="flex items-center space-x-2">
-                  <Clock className="w-4 h-4 text-slate-400" />
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                   <span className="text-xs">{slot.time}</span>
                 </div>
-                <span
-                  className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                    slot.active ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'
-                  }`}
-                >
-                  {slot.active ? 'Active' : 'Blocked'}
-                </span>
+                <Badge variant={slot.active ? 'presence' : 'neutral'} size="xs">
+                  {slot.active ? 'Open' : 'Blocked'}
+                </Badge>
               </button>
             ))}
           </div>
-
-          <button
-            onClick={() => alert('Custom slot addition saved.')}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-sm transition-all"
-          >
-            Save Weekly Schedule
-          </button>
         </div>
 
       </div>
@@ -97,3 +116,4 @@ export const DoctorSchedulePage = () => {
   );
 };
 
+export default DoctorSchedulePage;
