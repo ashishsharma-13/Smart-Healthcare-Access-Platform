@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
 import { EmergencyRadarIllustration } from '../../components/graphics/EmergencyRadarIllustration';
@@ -15,10 +15,11 @@ import {
   RefreshCw,
   Phone,
   Activity,
+  Info,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { Skeleton } from '../../components/ui/Skeleton';
 
 export const EmergencyBroadcastPage = () => {
   const { id } = useParams();
@@ -42,10 +43,10 @@ export const EmergencyBroadcastPage = () => {
 
       socket.on('emergency:status_change', (data) => {
         console.log('[Socket Update] Emergency status changed:', data);
-        if (data.status === 'DESTINATION_SELECTED') {
-          navigate(`/emergency/responses/${id}`);
+        if (data.status === 'DESTINATION_SELECTED' || data.status === 'PATIENT_EN_ROUTE') {
+          navigate(`/emergency/en-route/${id}`);
         } else if (data.status === 'RESOURCES_RESERVED') {
-          navigate(`/emergency/reserved/${id}`);
+          navigate(`/emergency/en-route/${id}`);
         }
       });
     }
@@ -73,8 +74,10 @@ export const EmergencyBroadcastPage = () => {
     }
   };
 
-  const acceptedCount = broadcasts.filter((b) => b.responseStatus === 'ACCEPTED').length;
+  const acceptedCount = broadcasts.filter((b) => b.responseStatus === 'ACCEPTED' || b.responseStatus === 'CAN_RECEIVE').length;
   const pendingCount = broadcasts.filter((b) => b.responseStatus === 'PENDING').length;
+  const declinedCount = broadcasts.filter((b) => b.responseStatus === 'DECLINED' || b.responseStatus === 'REJECTED').length;
+  const allDeclined = broadcasts.length > 0 && declinedCount === broadcasts.length;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
@@ -87,10 +90,10 @@ export const EmergencyBroadcastPage = () => {
 
         <div className="space-y-1 max-w-md mx-auto mt-1">
           <span className="inline-block px-2.5 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-wider rounded-full border border-red-500/30">
-            TARGETED EMERGENCY BEEP DISPATCH
+            TARGETED EMERGENCY BEEP TELEMETRY
           </span>
           <h1 className="text-lg sm:text-xl font-black tracking-tight">
-            Pinging {broadcasts.length} Chosen Facilities Simultaneously
+            Pinging {broadcasts.length} Suitable Facilities Simultaneously
           </h1>
           <p className="text-xs text-slate-400">
             Real-time ping active for <strong>{emergency?.patientName}</strong> ({emergency?.emergencyType?.toUpperCase()} EMERGENCY)
@@ -101,7 +104,7 @@ export const EmergencyBroadcastPage = () => {
         <div className="flex flex-wrap items-center justify-center gap-2 mt-3 pt-3 border-t border-slate-800 text-xs">
           <div className="inline-flex items-center space-x-1.5 py-1.5 px-3 rounded-full bg-slate-800/80 border border-slate-700/60 font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span className="text-slate-300">Responded:</span>
+            <span className="text-slate-300">Can Receive:</span>
             <span className="font-bold text-emerald-400">{acceptedCount} Ready</span>
           </div>
 
@@ -112,9 +115,9 @@ export const EmergencyBroadcastPage = () => {
           </div>
 
           <div className="inline-flex items-center space-x-1.5 py-1.5 px-3 rounded-full bg-slate-800/80 border border-slate-700/60 font-medium">
-            <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-            <span className="text-slate-300">Protocol:</span>
-            <span className="font-bold text-blue-400">Targeted Dispatch</span>
+            <span className="w-2 h-2 rounded-full bg-slate-500"></span>
+            <span className="text-slate-300">Declined:</span>
+            <span className="font-bold text-slate-400">{declinedCount}</span>
           </div>
         </div>
 
@@ -125,25 +128,56 @@ export const EmergencyBroadcastPage = () => {
               onClick={() => navigate(`/emergency/responses/${id}`)}
               className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition-all hover:scale-105 flex items-center space-x-2 mx-auto cursor-pointer"
             >
-              <span>View {acceptedCount} Responding Hospital{acceptedCount > 1 ? 's' : ''} & Select Destination</span>
+              <span>View {acceptedCount} Ready Hospital{acceptedCount > 1 ? 's' : ''} & Select Destination</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         )}
       </div>
 
+      {/* Mandatory Clinical Readiness Invariant Note */}
+      <div className="bg-blue-50 border border-blue-200/80 rounded-2xl p-4 flex items-start gap-3 text-blue-900 max-w-2xl mx-auto shadow-xs">
+        <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+        <div className="text-xs space-y-0.5">
+          <p className="font-bold text-blue-950">Readiness Telemetry Protocol</p>
+          <p className="text-blue-800 leading-relaxed">
+            <strong>Acceptance signals readiness only.</strong> No beds or bays are formally reserved at this stage. Temporary 15-minute bed lock is established when you confirm your chosen destination.
+          </p>
+        </div>
+      </div>
+
+      {/* All Declined / Zero Accepted Fallback Callout */}
+      {allDeclined && (
+        <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-5 text-center space-y-3 max-w-2xl mx-auto shadow-md">
+          <AlertTriangle className="w-8 h-8 text-red-600 mx-auto animate-bounce" />
+          <div className="space-y-1">
+            <h3 className="text-sm font-black text-red-900 uppercase">
+              All Alerted Hospitals Currently at Full Capacity
+            </h3>
+            <p className="text-xs text-red-700 max-w-md mx-auto">
+              Participating hospitals are unable to accept new trauma admissions. Please immediately activate public trauma fallback.
+            </p>
+          </div>
+          <Link to="/emergency/fallback">
+            <Button variant="danger" size="md" className="font-black" icon={ShieldAlert}>
+              View External Public Trauma Centers & Dial 108/112
+            </Button>
+          </Link>
+        </div>
+      )}
+
       {/* Facilities Status Feed */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-urgent-600" />
+            <Activity className="w-4 h-4 text-red-600" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Trauma Centers Alerted in Parallel
+              Trauma Centers Alerted in Parallel ({broadcasts.length})
             </h2>
           </div>
           <button
             onClick={fetchBroadcastData}
-            className="text-xs text-brand-600 hover:text-brand-800 flex items-center gap-1 font-medium"
+            className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Refresh Telemetry</span>
@@ -156,77 +190,104 @@ export const EmergencyBroadcastPage = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {broadcasts.map((b) => (
-              <div
-                key={b._id}
-                className={`p-4 rounded-xl border transition-colors ${
-                  b.responseStatus === 'ACCEPTED'
-                    ? 'bg-presence-50/70 border-presence-300 shadow-xs'
-                    : b.responseStatus === 'DECLINED'
-                    ? 'bg-slate-50 border-slate-200 opacity-60'
-                    : 'bg-white border-slate-200'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold flex-shrink-0 ${
-                        b.responseStatus === 'ACCEPTED'
-                          ? 'bg-presence-600 text-white'
-                          : 'bg-slate-100 text-slate-700 border border-slate-200'
-                      }`}
-                    >
-                      <Building2 className="w-4 h-4" />
+            {broadcasts.map((b) => {
+              const isAccepted = b.responseStatus === 'ACCEPTED' || b.responseStatus === 'CAN_RECEIVE';
+              const isDeclined = b.responseStatus === 'DECLINED' || b.responseStatus === 'REJECTED';
+              const isPending = !isAccepted && !isDeclined;
+
+              return (
+                <div
+                  key={b._id}
+                  className={`p-4 rounded-xl border transition-all ${
+                    isAccepted
+                      ? 'bg-emerald-50/70 border-emerald-300 shadow-sm'
+                      : isDeclined
+                      ? 'bg-slate-50 border-slate-200 opacity-60'
+                      : 'bg-white border-slate-200'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold flex-shrink-0 ${
+                          isAccepted
+                            ? 'bg-emerald-600 text-white'
+                            : isDeclined
+                            ? 'bg-slate-200 text-slate-400'
+                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                        }`}
+                      >
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-xs text-slate-900 leading-snug">
+                          {b.organizationId?.name}
+                        </h3>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {b.organizationId?.operatingAddress?.city || b.organizationId?.address?.city || 'Local Area'}
+                        </p>
+                      </div>
                     </div>
+
                     <div>
-                      <h3 className="font-semibold text-xs text-slate-900 leading-snug">
-                        {b.organizationId?.name}
-                      </h3>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        {b.organizationId?.address?.city || 'Local Area'}
-                      </p>
+                      {isAccepted ? (
+                        <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-black bg-emerald-600 text-white shadow-xs">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>CAN RECEIVE</span>
+                        </span>
+                      ) : isDeclined ? (
+                        <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-600">
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>DECLINED</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 animate-pulse">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                          <span>PENDING</span>
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  <div>
-                    {b.responseStatus === 'ACCEPTED' ? (
-                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>ACCEPTED</span>
+                  {isAccepted && (
+                    <div className="mt-3 pt-2.5 border-t border-emerald-200 flex items-center justify-between text-xs">
+                      <span className="text-emerald-800 font-bold text-[11px] flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Trauma Bay & Critical Team Ready</span>
                       </span>
-                    ) : (b.responseStatus === 'DECLINED' || b.responseStatus === 'REJECTED') ? (
-                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
-                        <XCircle className="w-3.5 h-3.5" />
-                        <span>{b.responseStatus}</span>
-                      </span>
-                    ) : (
-                      <Badge variant="hold" size="xs" dot pulseDot>
-                        PENDING
-                      </Badge>
-                    )}
-                  </div>
-                </div>
+                      <Button
+                        size="sm"
+                        variant="presence"
+                        icon={ArrowRight}
+                        iconPosition="right"
+                        onClick={() => navigate(`/emergency/responses/${id}`)}
+                      >
+                        Select Destination
+                      </Button>
+                    </div>
+                  )}
 
-                {b.responseStatus === 'ACCEPTED' && (
-                  <div className="mt-3 pt-2.5 border-t border-presence-200 flex items-center justify-between text-xs">
-                    <span className="text-presence-800 font-semibold text-[11px]">
-                      Trauma Bay & Critical Team Ready
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="presence"
-                      icon={ArrowRight}
-                      iconPosition="right"
-                      onClick={() => navigate(`/emergency/responses/${id}`)}
-                    >
-                      Select
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
+                  {isDeclined && (
+                    <div className="mt-2 text-[11px] text-slate-400">
+                      Reason: At maximum emergency capacity / trauma bay occupied.
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
+      </div>
+
+      {/* External Fallback Floating Link */}
+      <div className="text-center pt-2">
+        <Link
+          to="/emergency/fallback"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-red-600 transition-colors"
+        >
+          <span>Need government trauma centers or 108 ambulance? Open External Emergency Fallback</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
 
     </div>

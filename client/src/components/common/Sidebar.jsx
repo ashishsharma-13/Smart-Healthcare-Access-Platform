@@ -20,6 +20,10 @@ import {
   FileCheck,
   Activity,
   X,
+  ChevronRight,
+  ShieldCheck,
+  MapPin,
+  Ambulance,
 } from 'lucide-react';
 import { HelpCenterModal } from './HelpCenterModal';
 
@@ -47,7 +51,7 @@ export const Sidebar = () => {
 
   if (!user) return null;
 
-  // 1. Patient Portal Sidebar (Strictly matches Image 1)
+  // 1. Patient Portal Sidebar
   const patientNavContent = (
     <div className="flex flex-col h-full justify-between p-4 space-y-6 select-none">
       <div className="space-y-5">
@@ -64,7 +68,7 @@ export const Sidebar = () => {
 
         {/* Primary Patient Links */}
         <div className="space-y-1">
-          {/* 1. Overview */}
+          {/* 1. Patient Overview */}
           <NavLink
             to="/patient/dashboard"
             className={({ isActive }) =>
@@ -76,10 +80,25 @@ export const Sidebar = () => {
             }
           >
             <LayoutGrid className="w-4 h-4 shrink-0" />
-            <span>Overview</span>
+            <span>Patient Overview</span>
           </NavLink>
 
-          {/* 2. Find doctors */}
+          {/* 2. Healthcare Map */}
+          <NavLink
+            to="/map"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <MapPin className="w-4 h-4 shrink-0 text-blue-600" />
+            <span>Healthcare Map</span>
+          </NavLink>
+
+          {/* 3. Find Verified Doctors */}
           <NavLink
             to="/doctors"
             className={({ isActive }) =>
@@ -91,10 +110,10 @@ export const Sidebar = () => {
             }
           >
             <Stethoscope className="w-4 h-4 shrink-0" />
-            <span>Find doctors</span>
+            <span>Find Verified Doctors</span>
           </NavLink>
 
-          {/* 3. Find hospitals */}
+          {/* 4. Hospitals & Clinics */}
           <NavLink
             to="/hospitals"
             className={({ isActive }) =>
@@ -106,10 +125,10 @@ export const Sidebar = () => {
             }
           >
             <Building2 className="w-4 h-4 shrink-0" />
-            <span>Find hospitals</span>
+            <span>Hospitals & Clinics</span>
           </NavLink>
 
-          {/* 4. Appointments */}
+          {/* 5. My Appointments */}
           <NavLink
             to="/patient/appointments"
             className={({ isActive }) =>
@@ -121,10 +140,25 @@ export const Sidebar = () => {
             }
           >
             <Calendar className="w-4 h-4 shrink-0" />
-            <span>Appointments</span>
+            <span>My Appointments</span>
           </NavLink>
 
-          {/* 5. Emergency Beep */}
+          {/* 6. Care Activity */}
+          <NavLink
+            to="/patient/care-activity"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <ClipboardList className="w-4 h-4 shrink-0" />
+            <span>Care Activity</span>
+          </NavLink>
+
+          {/* 7. Emergency Beep (Prominent Protocol) */}
           <NavLink
             to="/emergency/activate"
             className={({ isActive }) =>
@@ -136,12 +170,12 @@ export const Sidebar = () => {
             }
           >
             <Siren className="w-4 h-4 text-rose-500 shrink-0" />
-            <span>Emergency Beep</span>
+            <span className="font-bold text-rose-600">Emergency Beep</span>
           </NavLink>
 
-          {/* 6. Care activity */}
+          {/* 8. Emergency Logs */}
           <NavLink
-            to="/patient/activity"
+            to="/emergency/history"
             className={({ isActive }) =>
               `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
                 isActive
@@ -150,8 +184,8 @@ export const Sidebar = () => {
               }`
             }
           >
-            <ClipboardList className="w-4 h-4 shrink-0" />
-            <span>Care activity</span>
+            <Activity className="w-4 h-4 shrink-0" />
+            <span>Emergency Logs</span>
           </NavLink>
         </div>
       </div>

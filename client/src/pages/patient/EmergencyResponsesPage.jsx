@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
 import {
   Building2,
@@ -13,10 +13,14 @@ import {
   ArrowRight,
   Sparkles,
   Navigation,
+  Info,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { openGoogleMapsNavigation } from '../../components/common/LeafletMap';
+import { formatFacilityAddress } from '../../utils/geoUtils';
 
 export const EmergencyResponsesPage = () => {
   const { id } = useParams();
@@ -53,7 +57,7 @@ export const EmergencyResponsesPage = () => {
         organizationId: orgId,
       });
       if (res.data.success) {
-        navigate(`/emergency/reserved/${id}`);
+        navigate(`/emergency/en-route/${id}`);
       }
     } catch (err) {
       alert('Destination selection error: ' + (err.response?.data?.message || err.message));
@@ -62,30 +66,45 @@ export const EmergencyResponsesPage = () => {
     }
   };
 
-  const accepted = broadcasts.filter((b) => b.responseStatus === 'ACCEPTED');
-  const others = broadcasts.filter((b) => b.responseStatus !== 'ACCEPTED');
+  const accepted = broadcasts.filter((b) => b.responseStatus === 'ACCEPTED' || b.responseStatus === 'CAN_RECEIVE');
+  const others = broadcasts.filter((b) => b.responseStatus !== 'ACCEPTED' && b.responseStatus !== 'CAN_RECEIVE');
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12">
       
       {/* Top Banner */}
-      <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-card space-y-2">
+      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-card space-y-2">
         <div className="flex items-center gap-2">
           <Badge variant="info" size="xs">
             Dynamic Suitability Routing
           </Badge>
+          <span className="text-[11px] font-bold text-slate-400">
+            Emergency Condition: <span className="text-red-600 uppercase">{emergency?.emergencyType}</span>
+          </span>
         </div>
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
           Compare Participating Hospital Responses
         </h1>
         <p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
-          Facilities are ranked by real-time clinical suitability based on active physician presence, confirmed bed capacity, and live travel time.
+          Facilities are evaluated by real-time clinical suitability based on active physician presence, confirmed bed capacity, and live travel time.
         </p>
       </div>
 
+      {/* Mandatory Invariant Notice */}
+      <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex items-start gap-3 text-amber-900 shadow-xs">
+        <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+        <div className="text-xs space-y-0.5">
+          <p className="font-bold text-amber-950">15-Minute Bed Hold Invariant</p>
+          <p className="text-amber-800 leading-relaxed">
+            Selecting a destination locks your trauma reservation for 15 minutes, alerts the hospital receiving desk, and immediately launches Google Maps GPS turn-by-turn routing.
+          </p>
+        </div>
+      </div>
+
       {loading ? (
-        <div className="p-12 text-center text-xs text-slate-400 bg-white rounded-xl border border-slate-200">
-          Retrieving live hospital acceptances...
+        <div className="p-12 text-center text-xs text-slate-400 bg-white rounded-2xl border border-slate-200">
+          <Clock className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-2" />
+          <p>Retrieving live hospital acceptances and capacity updates...</p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -93,78 +112,89 @@ export const EmergencyResponsesPage = () => {
           {/* Accepted Facilities Grid */}
           <div className="space-y-3">
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-presence-500 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>Trauma Centers Ready to Receive You ({accepted.length})</span>
             </h2>
 
             {accepted.length === 0 ? (
-              <div className="p-8 bg-hold-50 rounded-xl border border-hold-100 text-center space-y-2">
-                <Clock className="w-8 h-8 text-hold-600 mx-auto animate-spin" />
-                <h3 className="text-sm font-bold text-hold-900">Awaiting Hospital Confirmation</h3>
-                <p className="text-xs text-hold-700 max-w-sm mx-auto">
-                  Nearby trauma centers are verifying emergency bay and team availability right now.
+              <div className="p-8 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-3">
+                <Clock className="w-8 h-8 text-amber-600 mx-auto animate-spin" />
+                <h3 className="text-sm font-bold text-slate-900">Awaiting Hospital Responses</h3>
+                <p className="text-xs text-slate-600 max-w-sm mx-auto">
+                  Alerted trauma centers are verifying emergency bay and physician availability.
                 </p>
+                <div className="pt-2">
+                  <Link to="/emergency/fallback">
+                    <Button variant="danger" size="sm" icon={ShieldAlert}>
+                      Open Public Emergency Centers & Dial 108/112
+                    </Button>
+                  </Link>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {accepted.map((b, idx) => {
                   const isTopRecommended = idx === 0;
+                  const org = b.organizationId;
+                  const operatingAddr = org?.operatingAddress || org?.address;
+                  const coords = operatingAddr?.coordinates || org?.location?.coordinates;
+                  const lat = coords ? coords[1] : null;
+                  const lng = coords ? coords[0] : null;
+
                   return (
                     <div
                       key={b._id}
-                      className={`bg-white rounded-xl p-5 border shadow-card flex flex-col justify-between transition-all relative overflow-hidden ${
+                      className={`bg-white rounded-2xl p-5 border shadow-card flex flex-col justify-between transition-all relative overflow-hidden ${
                         isTopRecommended
-                          ? 'border-presence-500 ring-1 ring-presence-500'
-                          : 'border-slate-200 hover:border-brand-300'
+                          ? 'border-emerald-500 ring-2 ring-emerald-500/20'
+                          : 'border-slate-200 hover:border-blue-300'
                       }`}
                     >
                       {isTopRecommended && (
-                        <div className="absolute top-0 right-0 bg-presence-700 text-white text-[10px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-bl shadow-xs">
-                          ⭐ Recommended Suitable
+                        <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-bl-xl shadow-xs">
+                          ⭐ Recommended Optimal Match
                         </div>
                       )}
 
                       <div className="space-y-3.5">
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-presence-50 text-presence-700 border border-presence-200 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center font-bold text-sm flex-shrink-0">
                             <Building2 className="w-5 h-5" />
                           </div>
-                          <div>
-                            <h3 className="text-base font-bold text-slate-900">{b.organizationId?.name}</h3>
-                            <p className="text-xs text-slate-500 flex items-center mt-0.5">
-                              <MapPin className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                              <span>
-                                {b.organizationId?.operatingAddress?.streetName
-                                  ? `${b.organizationId.operatingAddress.buildingNumber ? b.organizationId.operatingAddress.buildingNumber + ', ' : ''}${b.organizationId.operatingAddress.streetName}, ${b.organizationId.operatingAddress.city}`
-                                  : `${b.organizationId?.address?.street || ''}, ${b.organizationId?.address?.city || ''}`}
+                          <div className="min-w-0 pr-8">
+                            <h3 className="text-base font-black text-slate-900 truncate">{org?.name}</h3>
+                            <p className="text-xs text-slate-500 flex items-start mt-0.5">
+                              <MapPin className="w-3.5 h-3.5 mr-1 text-slate-400 flex-shrink-0 mt-0.5" />
+                              <span className="line-clamp-1">
+                                {formatFacilityAddress(org)}
                               </span>
                             </p>
                           </div>
                         </div>
 
                         {/* Suitability score & Travel metrics */}
-                        <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200/70 text-center">
+                        <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200/70 text-center">
                           <div>
-                            <span className="text-[10px] uppercase font-semibold text-slate-400">Score</span>
-                            <p className="text-xs font-bold text-presence-700">{b.suitabilityScore || 95}/100</p>
+                            <span className="text-[10px] uppercase font-bold text-slate-400">Score</span>
+                            <p className="text-xs font-black text-emerald-700">{b.suitabilityScore || 95}/100</p>
                           </div>
                           <div>
-                            <span className="text-[10px] uppercase font-semibold text-slate-400">Distance</span>
+                            <span className="text-[10px] uppercase font-bold text-slate-400">Distance</span>
                             <p className="text-xs font-bold text-slate-800">{b.distanceKm || 3.2} km</p>
                           </div>
                           <div>
-                            <span className="text-[10px] uppercase font-semibold text-slate-400">Est. Travel</span>
+                            <span className="text-[10px] uppercase font-bold text-slate-400">Est. Travel</span>
                             <p className="text-xs font-bold text-slate-800">~{b.estimatedTravelMinutes || 8} mins</p>
                           </div>
                         </div>
 
                         {/* Confirmed readiness resources */}
-                        <div className="space-y-1 text-xs">
-                          <span className="font-semibold text-slate-700 text-[11px]">Confirmed Resources:</span>
-                          <div className="flex flex-wrap gap-1">
+                        <div className="space-y-1.5 text-xs">
+                          <span className="font-bold text-slate-700 text-[11px] block">Confirmed Live Resources:</span>
+                          <div className="flex flex-wrap gap-1.5">
                             {b.offeredResources?.erBay && (
                               <Badge variant="presence" size="xs">
-                                ER Bay Ready
+                                ER Bay Reserved
                               </Badge>
                             )}
                             {b.offeredResources?.icuBed && (
@@ -177,6 +207,9 @@ export const EmergencyResponsesPage = () => {
                                 Ventilator Ready
                               </Badge>
                             )}
+                            <Badge variant="presence" size="xs">
+                              Emergency Triage On Standby
+                            </Badge>
                           </div>
                           {b.offeredResources?.specialistOnDuty && (
                             <p className="text-[11px] text-slate-500 pt-0.5">
@@ -186,20 +219,30 @@ export const EmergencyResponsesPage = () => {
                         </div>
                       </div>
 
-                      {/* Select Destination Button */}
-                      <div className="pt-3 mt-3 border-t border-slate-100">
+                      {/* Select Destination and Map Launch */}
+                      <div className="pt-3 mt-4 border-t border-slate-100 space-y-2">
                         <Button
                           variant="presence"
                           size="md"
-                          loading={selectingId === b.organizationId._id}
-                          className="w-full"
+                          loading={selectingId === org?._id}
+                          className="w-full font-black tracking-wide"
                           icon={CheckCircle2}
-                          onClick={() => handleSelectDestination(b.organizationId._id)}
+                          onClick={() => handleSelectDestination(org?._id)}
                         >
-                          {selectingId === b.organizationId._id
-                            ? 'Locking Bed Hold...'
+                          {selectingId === org?._id
+                            ? 'Locking Bed Hold & Initiating Routing...'
                             : 'SELECT & LOCK 15-MIN RESERVATION'}
                         </Button>
+
+                        {org && (
+                          <button
+                            onClick={() => openGoogleMapsNavigation(org, null, emergency?.location?.coordinates ? [emergency.location.coordinates[1], emergency.location.coordinates[0]] : null)}
+                            className="w-full py-2 px-3 text-xs font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Navigation className="w-3.5 h-3.5 fill-current" />
+                            <span>Preview Navigation in Google Maps</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -211,17 +254,17 @@ export const EmergencyResponsesPage = () => {
           {/* Pending or Declined facilities */}
           {others.length > 0 && (
             <div className="space-y-2 pt-4 border-t border-slate-200">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Other Participating Facilities Contacted ({others.length})
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Other Alerted Facilities ({others.length})
               </h3>
               <div className="space-y-1.5">
                 {others.map((b) => (
                   <div
                     key={b._id}
-                    className="p-3 bg-white rounded-lg border border-slate-200 flex items-center justify-between text-xs"
+                    className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between text-xs"
                   >
                     <div>
-                      <span className="font-semibold text-slate-800">{b.organizationId?.name}</span>
+                      <span className="font-bold text-slate-800">{b.organizationId?.name}</span>
                       <span className="text-slate-400 ml-2">({b.distanceKm || 5} km)</span>
                     </div>
                     <Badge variant={b.responseStatus === 'DECLINED' ? 'neutral' : 'hold'} size="xs">
@@ -232,6 +275,20 @@ export const EmergencyResponsesPage = () => {
               </div>
             </div>
           )}
+
+          {/* Fallback Directory CTA */}
+          <div className="p-4 bg-slate-100 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-red-600" />
+              <span className="font-bold text-slate-700">Looking for government trauma centers or public ambulances?</span>
+            </div>
+            <Link to="/emergency/fallback">
+              <button className="px-3.5 py-1.5 bg-white text-red-600 font-bold border border-red-200 rounded-lg hover:bg-red-50 flex items-center gap-1 shadow-xs cursor-pointer">
+                <span>View Emergency Fallback (108 / 112)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </Link>
+          </div>
 
         </div>
       )}

@@ -11,6 +11,7 @@ import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { HospitalsListPage } from './pages/public/HospitalsListPage';
+import { GeneralMapPage } from './pages/public/GeneralMapPage';
 
 // Patient Pages
 import { DoctorSearchPage } from './pages/patient/DoctorSearchPage';
@@ -20,10 +21,13 @@ import { AppointmentsPage } from './pages/patient/AppointmentsPage';
 import { PatientProfilePage } from './pages/patient/PatientProfilePage';
 import { CareActivityPage } from './pages/patient/CareActivityPage';
 import { EmergencyActivatePage } from './pages/patient/EmergencyActivatePage';
+import { EmergencyMatchPage } from './pages/patient/EmergencyMatchPage';
 import { EmergencyBroadcastPage } from './pages/patient/EmergencyBroadcastPage';
 import { EmergencyResponsesPage } from './pages/patient/EmergencyResponsesPage';
 import { EmergencyReservedPage } from './pages/patient/EmergencyReservedPage';
+import { EmergencyEnRoutePage } from './pages/patient/EmergencyEnRoutePage';
 import { EmergencyTrackingPage } from './pages/patient/EmergencyTrackingPage';
+import { EmergencyFallbackPage } from './pages/patient/EmergencyFallbackPage';
 import { EmergencyHistoryPage } from './pages/patient/EmergencyHistoryPage';
 
 // Doctor Pages
@@ -72,6 +76,8 @@ export default function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/map" element={<GeneralMapPage />} />
+              <Route path="/emergency/fallback" element={<EmergencyFallbackPage />} />
             </Route>
 
             {/* Authenticated Dashboard / Portal Layout */}
@@ -80,6 +86,7 @@ export default function App() {
               <Route path="/doctors" element={<DoctorSearchPage />} />
               <Route path="/doctors/:id" element={<DoctorProfilePage />} />
               <Route path="/hospitals" element={<HospitalsListPage />} />
+              <Route path="/map" element={<GeneralMapPage />} />
 
               {/* General Dashboard Redirect */}
               <Route
@@ -117,7 +124,7 @@ export default function App() {
                 }
               />
               <Route
-                path="/patient/activity"
+                path="/patient/care-activity"
                 element={
                   <ProtectedRoute allowedRoles={['patient', 'admin']}>
                     <CareActivityPage />
@@ -125,9 +132,23 @@ export default function App() {
                 }
               />
               <Route
+                path="/patient/activity"
+                element={
+                  <ProtectedRoute allowedRoles={['patient', 'admin']}>
+                    <CareActivityPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Emergency Routes: Redirect /emergency/match to /emergency/activate; exclude organization role */}
+              <Route
+                path="/emergency/match"
+                element={<Navigate to="/emergency/activate" replace />}
+              />
+              <Route
                 path="/emergency/activate"
                 element={
-                  <ProtectedRoute allowedRoles={['patient', 'doctor', 'organization', 'admin']}>
+                  <ProtectedRoute allowedRoles={['patient', 'doctor', 'admin']}>
                     <EmergencyActivatePage />
                   </ProtectedRoute>
                 }
@@ -135,7 +156,7 @@ export default function App() {
               <Route
                 path="/emergency/broadcast/:id"
                 element={
-                  <ProtectedRoute allowedRoles={['patient', 'doctor', 'organization', 'admin']}>
+                  <ProtectedRoute allowedRoles={['patient', 'doctor', 'admin']}>
                     <EmergencyBroadcastPage />
                   </ProtectedRoute>
                 }
@@ -143,7 +164,7 @@ export default function App() {
               <Route
                 path="/emergency/responses/:id"
                 element={
-                  <ProtectedRoute allowedRoles={['patient', 'doctor', 'organization', 'admin']}>
+                  <ProtectedRoute allowedRoles={['patient', 'doctor', 'admin']}>
                     <EmergencyResponsesPage />
                   </ProtectedRoute>
                 }
@@ -151,18 +172,30 @@ export default function App() {
               <Route
                 path="/emergency/reserved/:id"
                 element={
-                  <ProtectedRoute allowedRoles={['patient', 'doctor', 'organization', 'admin']}>
+                  <ProtectedRoute allowedRoles={['patient', 'doctor', 'admin']}>
                     <EmergencyReservedPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/emergency/en-route/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['patient', 'doctor', 'admin']}>
+                    <EmergencyEnRoutePage />
                   </ProtectedRoute>
                 }
               />
               <Route
                 path="/emergency/tracking/:id"
                 element={
-                  <ProtectedRoute allowedRoles={['patient', 'doctor', 'organization', 'admin']}>
-                    <EmergencyTrackingPage />
+                  <ProtectedRoute allowedRoles={['patient', 'doctor', 'admin']}>
+                    <EmergencyEnRoutePage />
                   </ProtectedRoute>
                 }
+              />
+              <Route
+                path="/emergency/fallback"
+                element={<EmergencyFallbackPage />}
               />
               <Route
                 path="/emergency/history"

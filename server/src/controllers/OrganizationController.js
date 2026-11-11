@@ -1,16 +1,48 @@
 import { organizationRepository } from '../repositories/OrganizationRepository.js';
 import { organizationService } from '../services/OrganizationService.js';
 import { emergencyRepository } from '../repositories/EmergencyRepository.js';
+import { User } from '../models/index.js';
 
 export class OrganizationController {
   async searchOrganizations(req, res, next) {
     try {
-      const filter = { verificationStatus: 'verified' };
+      const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+      const filter = {};
+      // In local development mode, allow unverified or pending organizations to appear
+      if (!isDev || req.query.verifiedOnly === 'true') {
+        filter.verificationStatus = 'verified';
+      }
+
       if (req.query.type) {
         filter.orgType = req.query.type;
       }
       if (req.query.emergencyOnly === 'true') {
         filter.emergencyCapable = true;
+      }
+
+      const q = req.query.q || req.query.search || '';
+      if (q && q.trim()) {
+        const queryTerm = q.trim();
+        let userIds = [];
+        try {
+          const matchingUsers = await User.find({
+            role: 'organization',
+            $or: [
+              { email: { $regex: queryTerm, $options: 'i' } },
+              { name: { $regex: queryTerm, $options: 'i' } },
+            ],
+          }).select('_id');
+          userIds = matchingUsers.map((u) => u._id);
+        } catch (err) {}
+
+        filter.$or = [
+          { name: { $regex: queryTerm, $options: 'i' } },
+          { organizationName: { $regex: queryTerm, $options: 'i' } },
+          { email: { $regex: queryTerm, $options: 'i' } },
+          ...(userIds.length > 0 ? [{ userId: { $in: userIds } }] : []),
+          { 'address.city': { $regex: queryTerm, $options: 'i' } },
+          { 'operatingAddress.city': { $regex: queryTerm, $options: 'i' } },
+        ];
       }
 
       const orgs = await organizationRepository.listAll(filter);

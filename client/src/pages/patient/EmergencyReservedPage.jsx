@@ -14,6 +14,7 @@ import {
   QrCode,
   CheckCircle2,
 } from 'lucide-react';
+import { openGoogleMapsNavigation } from '../../components/common/LeafletMap';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -56,10 +57,10 @@ export const EmergencyReservedPage = () => {
     try {
       setEnRouteLoading(true);
       await api.post(`/emergency/${id}/en-route`);
-      navigate(`/emergency/tracking/${id}`);
+      navigate(`/emergency/en-route/${id}`);
     } catch (err) {
       console.error('Error marking en-route', err);
-      navigate(`/emergency/tracking/${id}`);
+      navigate(`/emergency/en-route/${id}`);
     } finally {
       setEnRouteLoading(false);
     }

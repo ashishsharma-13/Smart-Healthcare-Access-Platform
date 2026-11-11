@@ -58,12 +58,8 @@ export const DoctorAffiliationsPage = () => {
     }
   };
 
-  const handleSearchOrgs = async (query) => {
+  const handleSearchOrgs = async (query = '') => {
     setSearchOrgQuery(query);
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
     try {
       setSearching(true);
       const res = await api.get(`/doctors/organizations/search?q=${encodeURIComponent(query.trim())}`);
@@ -75,6 +71,14 @@ export const DoctorAffiliationsPage = () => {
     } finally {
       setSearching(false);
     }
+  };
+
+  const openRequestModal = () => {
+    setShowRequestModal(true);
+    setSelectedOrg(null);
+    setSearchOrgQuery('');
+    setFeedback({ type: '', message: '' });
+    handleSearchOrgs('');
   };
 
   const handleSendAffiliationRequest = async (e) => {
@@ -228,10 +232,7 @@ export const DoctorAffiliationsPage = () => {
         </div>
 
         <button
-          onClick={() => {
-            setShowRequestModal(true);
-            setFeedback({ type: '', message: '' });
-          }}
+          onClick={openRequestModal}
           className="inline-flex items-center space-x-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-sm transition-all cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
@@ -587,7 +588,7 @@ export const DoctorAffiliationsPage = () => {
                       >
                         <div>
                           <p className="font-bold text-slate-900">{org.name}</p>
-                          <p className="text-[11px] text-slate-500">{org.address?.city} &bull; {org.orgType}</p>
+                          <p className="text-[11px] text-slate-500">{org.operatingAddress?.city || org.address?.city || 'Healthcare Site'} &bull; {org.orgType}</p>
                         </div>
                         {isSelected && <CheckCircle2 className="w-4 h-4 text-blue-600" />}
                       </div>
@@ -595,7 +596,7 @@ export const DoctorAffiliationsPage = () => {
                   })}
                 </div>
               ) : searchOrgQuery.trim() ? (
-                <p className="text-xs text-slate-400 italic">No verified organizations found matching query.</p>
+                <p className="text-xs text-slate-400 italic">No organizations found matching query.</p>
               ) : null}
 
               {selectedOrg && (

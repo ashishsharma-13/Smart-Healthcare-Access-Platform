@@ -3,6 +3,7 @@ import { doctorAffiliationRepository } from '../repositories/DoctorAffiliationRe
 import { doctorRepository } from '../repositories/DoctorRepository.js';
 import { organizationRepository } from '../repositories/OrganizationRepository.js';
 import { getSocketIO } from '../sockets/socketHandler.js';
+import { User } from '../models/index.js';
 
 export class DoctorAffiliationService {
   /**
@@ -416,12 +417,34 @@ export class DoctorAffiliationService {
    * Search verified organizations for a doctor to request affiliation.
    */
   async searchOrganizationsForDoctor(query = '') {
-    const filter = { verificationStatus: 'verified' };
-    if (query && query.trim()) {
+    const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+    const filter = {};
+    if (!isDev) {
+      filter.verificationStatus = 'verified';
+    }
+
+    const q = query && typeof query === 'string' ? query.trim() : '';
+    if (q) {
+      let userIds = [];
+      try {
+        const matchingUsers = await User.find({
+          role: 'organization',
+          $or: [
+            { email: { $regex: q, $options: 'i' } },
+            { name: { $regex: q, $options: 'i' } },
+          ],
+        }).select('_id');
+        userIds = matchingUsers.map((u) => u._id);
+      } catch (err) {}
+
       filter.$or = [
-        { name: { $regex: query.trim(), $options: 'i' } },
-        { 'address.city': { $regex: query.trim(), $options: 'i' } },
-        { orgType: { $regex: query.trim(), $options: 'i' } },
+        { name: { $regex: q, $options: 'i' } },
+        { organizationName: { $regex: q, $options: 'i' } },
+        { email: { $regex: q, $options: 'i' } },
+        ...(userIds.length > 0 ? [{ userId: { $in: userIds } }] : []),
+        { 'address.city': { $regex: q, $options: 'i' } },
+        { 'operatingAddress.city': { $regex: q, $options: 'i' } },
+        { orgType: { $regex: q, $options: 'i' } },
       ];
     }
     return await organizationRepository.listAll(filter);

@@ -108,10 +108,76 @@ export const Navbar = () => {
             )}
           </div>
 
-          {/* Right: Date, Notifications & User Avatar Pill */}
-          <div className="flex items-center space-x-4">
-            {/* Date Display strictly per Reference Image 2 */}
-            <div className="hidden sm:block text-xs font-medium text-slate-500">
+          {/* Center: Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center gap-1 text-sm font-medium text-slate-600">
+            <Link
+              to="/"
+              className={`px-3 py-1.5 rounded-md transition-colors ${
+                location.pathname === '/'
+                  ? 'text-brand-700 font-semibold bg-brand-50/60'
+                  : 'hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              Home
+            </Link>
+            <Link
+              to="/doctors"
+              className={`px-3 py-1.5 rounded-md transition-colors ${
+                location.pathname === '/doctors'
+                  ? 'text-brand-700 font-semibold bg-brand-50/60'
+                  : 'hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              Find Doctors
+            </Link>
+            <Link
+              to="/map"
+              className={`px-3 py-1.5 rounded-md transition-colors ${
+                location.pathname === '/map'
+                  ? 'text-brand-700 font-semibold bg-brand-50/60'
+                  : 'hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              Healthcare Map
+            </Link>
+            <Link
+              to="/hospitals"
+              className={`px-3 py-1.5 rounded-md transition-colors ${
+                location.pathname === '/hospitals'
+                  ? 'text-brand-700 font-semibold bg-brand-50/60'
+                  : 'hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              Hospitals & Clinics
+            </Link>
+            {user && (
+              <Link
+                to={getDashboardRoute()}
+                className={`px-3 py-1.5 rounded-md transition-colors ${
+                  isDashboardRoute
+                    ? 'text-brand-700 font-semibold bg-brand-50/60'
+                    : 'hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                Clinical Portal
+              </Link>
+            )}
+          </nav>
+
+          {/* Right: Emergency Beep Button, Date, Notifications & User Avatar Pill */}
+          <div className="flex items-center space-x-3">
+            {/* Top-Level Emergency Beep Button */}
+            <Link
+              to="/emergency/activate"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl text-white bg-red-600 hover:bg-red-700 transition-all shadow-xs"
+              title="Activate Emergency Beep broadcast to nearest facilities"
+            >
+              <ShieldAlert className="w-3.5 h-3.5 animate-pulse" />
+              <span>Emergency Beep</span>
+            </Link>
+
+            {/* Date Display */}
+            <div className="hidden lg:block text-xs font-medium text-slate-500">
               {formattedDate}
             </div>
 
@@ -223,6 +289,72 @@ export const Navbar = () => {
             )}
           </div>
         </div>
+        {/* Mobile Navigation Dropdown for Public Routes */}
+        {mobileMenuOpen && !isDashboardRoute && (
+          <div className="md:hidden py-3 border-t border-slate-100 space-y-1">
+            <Link
+              to="/"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg"
+            >
+              Home
+            </Link>
+            <Link
+              to="/doctors"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg"
+            >
+              Find Doctors
+            </Link>
+            <Link
+              to="/map"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg"
+            >
+              Healthcare Map
+            </Link>
+            <Link
+              to="/hospitals"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg"
+            >
+              Hospitals & Clinics Directory
+            </Link>
+            <Link
+              to="/emergency/activate"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg"
+            >
+              Emergency Beep
+            </Link>
+            {user ? (
+              <Link
+                to={getDashboardRoute()}
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 rounded-lg"
+              >
+                Access Portal ({roleLabels[user.role]})
+              </Link>
+            ) : (
+              <div className="pt-2 border-t border-slate-100 flex gap-2">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 text-center py-2 text-xs font-semibold text-slate-700 bg-slate-100 rounded-lg"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 text-center py-2 text-xs font-semibold text-white bg-brand-600 rounded-lg"
+                >
+                  Register
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );

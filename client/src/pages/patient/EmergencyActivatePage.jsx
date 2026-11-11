@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { getUserCurrentLocation } from '../../utils/geoUtils';
 import {
   ShieldAlert,
   HeartPulse,
@@ -43,10 +44,31 @@ export const EmergencyActivatePage = () => {
   const [severity, setSeverity] = useState('critical');
   const [description, setDescription] = useState('');
   const [ambulanceRequirement, setAmbulanceRequirement] = useState('no'); // 'yes', 'no', 'already_arranged'
-  const [locationAddress, setLocationAddress] = useState('Connaught Place Circle, Central City');
+  const [locationAddress, setLocationAddress] = useState('Detecting current GPS coordinates...');
   const [coordinates, setCoordinates] = useState([77.2090, 28.6139]); // [lng, lat]
   const [targetFacility, setTargetFacility] = useState(targetFromUrl);
   const [fetchingGps, setFetchingGps] = useState(false);
+
+  useEffect(() => {
+    initLocation();
+  }, []);
+
+  const initLocation = async (forceRefresh = false) => {
+    try {
+      setFetchingGps(true);
+      const loc = await getUserCurrentLocation(forceRefresh);
+      setCoordinates([loc.lng, loc.lat]);
+      setLocationAddress(loc.address || `GPS: ${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`);
+    } catch (e) {
+      console.warn('Location detection note:', e);
+    } finally {
+      setFetchingGps(false);
+    }
+  };
+
+  const detectLocation = () => {
+    initLocation(true);
+  };
 
   // Step 2: Nearby Hospitals & Selection State
   const [nearbyHospitals, setNearbyHospitals] = useState([]);
@@ -79,23 +101,6 @@ export const EmergencyActivatePage = () => {
     fracture: 'Immobilize the injured limb. Do not attempt to straighten broken bones. Apply wrapped ice pack to reduce swelling.',
     child: 'Keep child in a position of comfort. If feverish with seizure, clear surrounding sharp objects and turn child onto side.',
     pregnancy: 'Keep the mother resting on her left side. Avoid panic. Ensure clean warm towels are accessible.',
-  };
-
-  const detectLocation = () => {
-    if ('geolocation' in navigator) {
-      setFetchingGps(true);
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setCoordinates([pos.coords.longitude, pos.coords.latitude]);
-          setLocationAddress(`GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);
-          setFetchingGps(false);
-        },
-        () => {
-          setFetchingGps(false);
-          alert('GPS location permission denied. Using default central coordinates.');
-        }
-      );
-    }
   };
 
   /**
