@@ -4,7 +4,13 @@ import { authenticate, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Patient creates Emergency Beep
+// Query nearby emergency-enabled facilities and their offerings (Step 1 -> Step 2)
+router.get('/nearby-facilities', (req, res, next) => emergencyController.getNearbyFacilities(req, res, next));
+
+// Patient dispatches Emergency Beep to chosen hospital(s) (Step 2 -> Step 3)
+router.post('/dispatch', authenticate, (req, res, next) => emergencyController.dispatchEmergency(req, res, next));
+
+// Patient creates Emergency Beep (parallel blast compatibility)
 router.post('/beep', authenticate, (req, res, next) => emergencyController.activateEmergencyBeep(req, res, next));
 
 // Hospital fetches incoming active emergency broadcasts (must be placed before /:id)

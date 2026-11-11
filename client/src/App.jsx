@@ -28,6 +28,7 @@ import { EmergencyHistoryPage } from './pages/patient/EmergencyHistoryPage';
 import { DoctorDashboard } from './pages/doctor/DoctorDashboard';
 import { DoctorPresencePage } from './pages/doctor/DoctorPresencePage';
 import { DoctorSchedulePage } from './pages/doctor/DoctorSchedulePage';
+import { DoctorAffiliationsPage } from './pages/doctor/DoctorAffiliationsPage';
 
 // Organization Pages
 import { OrganizationDashboard } from './pages/organization/OrganizationDashboard';
@@ -158,6 +159,14 @@ export default function App() {
                 element={
                   <ProtectedRoute allowedRoles={['doctor']}>
                     <DoctorDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/doctor/affiliations"
+                element={
+                  <ProtectedRoute allowedRoles={['doctor']}>
+                    <DoctorAffiliationsPage />
                   </ProtectedRoute>
                 }
               />

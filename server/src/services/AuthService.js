@@ -22,6 +22,42 @@ export class AuthService {
       throw new Error('An account with this email already exists.');
     }
 
+    let parsedCoords = [77.2090, 28.6139];
+    if (role === 'organization' && orgDetails) {
+      const regPin = orgDetails.registeredAddress?.pinCode;
+      if (regPin && !/^\d{6}$/.test(String(regPin).trim())) {
+        throw new Error('Registered address PIN code must be exactly 6 digits.');
+      }
+
+      const isSameAsRegistered = orgDetails.operatingAddress?.isSameAsRegistered !== false;
+      const opPin = orgDetails.operatingAddress?.pinCode;
+      if (!isSameAsRegistered && opPin && !/^\d{6}$/.test(String(opPin).trim())) {
+        throw new Error('Operating address PIN code must be exactly 6 digits.');
+      }
+
+      if (orgDetails.location?.coordinates && Array.isArray(orgDetails.location.coordinates)) {
+        parsedCoords = orgDetails.location.coordinates.map(Number);
+      } else if (orgDetails.coordinates && Array.isArray(orgDetails.coordinates)) {
+        parsedCoords = orgDetails.coordinates.map(Number);
+      } else if (orgDetails.latitude !== undefined && orgDetails.longitude !== undefined) {
+        parsedCoords = [parseFloat(orgDetails.longitude), parseFloat(orgDetails.latitude)];
+      }
+
+      const [lng, lat] = parsedCoords;
+      if (
+        typeof lng !== 'number' ||
+        typeof lat !== 'number' ||
+        isNaN(lng) ||
+        isNaN(lat) ||
+        lat < -90 ||
+        lat > 90 ||
+        lng < -180 ||
+        lng > 180
+      ) {
+        throw new Error('Invalid GPS coordinates. Latitude must be between -90 and 90, and longitude between -180 and 180.');
+      }
+    }
+
     const user = await userRepository.create({
       name,
       email,
@@ -52,10 +88,11 @@ export class AuthService {
         name: orgDetails.name || name,
         orgType: orgDetails.orgType || 'hospital',
         registrationNumber: orgDetails.registrationNumber || 'REG-PENDING',
-        address: orgDetails.address || address || {},
-        location: orgDetails.location || {
+        registeredAddress: orgDetails.registeredAddress || {},
+        operatingAddress: orgDetails.operatingAddress || { isSameAsRegistered: true },
+        location: {
           type: 'Point',
-          coordinates: orgDetails.coordinates || [77.2090, 28.6139],
+          coordinates: parsedCoords,
         },
         emergencyCapable: orgDetails.emergencyCapable !== undefined ? orgDetails.emergencyCapable : true,
         emergencyContactPhone: orgDetails.emergencyContactPhone || phone || '',

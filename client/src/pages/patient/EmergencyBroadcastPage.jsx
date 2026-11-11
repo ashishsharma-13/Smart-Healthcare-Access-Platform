@@ -79,55 +79,55 @@ export const EmergencyBroadcastPage = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
 
-      {/* Radar Signal Card */}
-      <div className="bg-brand-950 text-white rounded-xl p-6 sm:p-8 text-center relative overflow-hidden shadow-elevated border border-brand-900">
+      {/* Compact Radar Signal Card */}
+      <div className="bg-slate-900 text-white rounded-2xl py-5 px-6 max-w-2xl mx-auto text-center relative overflow-hidden shadow-xl border border-slate-800">
 
         {/* Animated Emergency Radar Illustration */}
         <EmergencyRadarIllustration hospitalCount={broadcasts.length} />
 
-        <div className="space-y-1.5 max-w-lg mx-auto">
-          <Badge variant="emergency" size="xs" dot pulseDot>
-            PARALLEL EMERGENCY BEEP ACTIVE
-          </Badge>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white mt-1">
-            Pinging {broadcasts.length} Matching Facilities Simultaneously
+        <div className="space-y-1 max-w-md mx-auto mt-1">
+          <span className="inline-block px-2.5 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-wider rounded-full border border-red-500/30">
+            TARGETED EMERGENCY BEEP DISPATCH
+          </span>
+          <h1 className="text-lg sm:text-xl font-black tracking-tight">
+            Pinging {broadcasts.length} Chosen Facilities Simultaneously
           </h1>
-          <p className="text-xs text-slate-300">
-            Real-time ping dispatched for <strong className="text-white">{emergency?.patientName}</strong> ({emergency?.emergencyType?.toUpperCase()} EMERGENCY)
+          <p className="text-xs text-slate-400">
+            Real-time ping active for <strong>{emergency?.patientName}</strong> ({emergency?.emergencyType?.toUpperCase()} EMERGENCY)
           </p>
         </div>
 
-        {/* Live Parallel Counters */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-md mx-auto mt-6 pt-5 border-t border-slate-800 text-center">
-          <div className="p-3 bg-slate-900 rounded-lg border border-slate-800">
-            <span className="text-[11px] text-slate-400 block font-medium">Ready & Responded</span>
-            <span className="text-lg font-bold text-presence-400">{acceptedCount} Accepted</span>
+        {/* Compact Inline Telemetry Pills */}
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-3 pt-3 border-t border-slate-800 text-xs">
+          <div className="inline-flex items-center space-x-1.5 py-1.5 px-3 rounded-full bg-slate-800/80 border border-slate-700/60 font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span className="text-slate-300">Responded:</span>
+            <span className="font-bold text-emerald-400">{acceptedCount} Ready</span>
           </div>
 
-          <div className="p-3 bg-slate-900 rounded-lg border border-slate-800">
-            <span className="text-[11px] text-slate-400 block font-medium">Active Pinging</span>
-            <span className="text-lg font-bold text-hold-400">{pendingCount} Awaiting</span>
+          <div className="inline-flex items-center space-x-1.5 py-1.5 px-3 rounded-full bg-slate-800/80 border border-slate-700/60 font-medium">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span className="text-slate-300">Pinging:</span>
+            <span className="font-bold text-amber-400">{pendingCount} Awaiting</span>
           </div>
 
-          <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 col-span-2 sm:col-span-1">
-            <span className="text-[11px] text-slate-400 block font-medium">Dispatch Routing</span>
-            <span className="text-lg font-bold text-brand-400">Parallel</span>
+          <div className="inline-flex items-center space-x-1.5 py-1.5 px-3 rounded-full bg-slate-800/80 border border-slate-700/60 font-medium">
+            <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+            <span className="text-slate-300">Protocol:</span>
+            <span className="font-bold text-blue-400">Targeted Dispatch</span>
           </div>
         </div>
 
         {/* Primary Action Button when facilities respond */}
         {acceptedCount > 0 && (
-          <div className="mt-6">
-            <Button
-              variant="presence"
-              size="lg"
-              className="mx-auto"
-              icon={ArrowRight}
-              iconPosition="right"
+          <div className="mt-3.5">
+            <button
               onClick={() => navigate(`/emergency/responses/${id}`)}
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition-all hover:scale-105 flex items-center space-x-2 mx-auto cursor-pointer"
             >
-              View {acceptedCount} Responding Hospital{acceptedCount > 1 ? 's' : ''} & Select Destination
-            </Button>
+              <span>View {acceptedCount} Responding Hospital{acceptedCount > 1 ? 's' : ''} & Select Destination</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         )}
       </div>
@@ -190,13 +190,15 @@ export const EmergencyBroadcastPage = () => {
 
                   <div>
                     {b.responseStatus === 'ACCEPTED' ? (
-                      <Badge variant="presence" size="xs" dot>
-                        ACCEPTED
-                      </Badge>
-                    ) : b.responseStatus === 'DECLINED' ? (
-                      <Badge variant="neutral" size="xs">
-                        DECLINED
-                      </Badge>
+                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>ACCEPTED</span>
+                      </span>
+                    ) : (b.responseStatus === 'DECLINED' || b.responseStatus === 'REJECTED') ? (
+                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                        <XCircle className="w-3.5 h-3.5" />
+                        <span>{b.responseStatus}</span>
+                      </span>
                     ) : (
                       <Badge variant="hold" size="xs" dot pulseDot>
                         PENDING

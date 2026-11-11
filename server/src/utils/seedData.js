@@ -322,12 +322,48 @@ const seed = async () => {
     bio: 'Neurologist with focus on stroke prevention, epilepsy, and neuro-critical recovery.',
   });
 
-  // Doctor Affiliations
+  // Doctor Affiliations (Many-to-Many via DoctorAffiliation entity)
   await DoctorAffiliation.create([
-    { doctorId: doc1._id, organizationId: org1._id, status: 'approved' },
-    { doctorId: doc1._id, organizationId: org3._id, status: 'approved' },
-    { doctorId: doc2._id, organizationId: org2._id, status: 'approved' },
-    { doctorId: doc3._id, organizationId: org1._id, status: 'approved' },
+    {
+      affiliationId: 'AFF-JENKINS-APEX-01',
+      doctorId: doc1._id,
+      organizationId: org1._id,
+      status: 'ACTIVE',
+      department: 'Cardiology',
+      initiatedBy: 'doctor',
+      doctorAcceptance: { status: 'accepted', respondedAt: new Date() },
+      organizationApproval: { status: 'approved', reviewedAt: new Date(), reviewedBy: org1User._id },
+    },
+    {
+      affiliationId: 'AFF-JENKINS-LIFELINE-02',
+      doctorId: doc1._id,
+      organizationId: org3._id,
+      status: 'ACTIVE',
+      department: 'Cardiology',
+      initiatedBy: 'doctor',
+      doctorAcceptance: { status: 'accepted', respondedAt: new Date() },
+      organizationApproval: { status: 'approved', reviewedAt: new Date(), reviewedBy: org3User._id },
+    },
+    {
+      affiliationId: 'AFF-CHEN-STJUDE-01',
+      doctorId: doc2._id,
+      organizationId: org2._id,
+      status: 'ACTIVE',
+      department: 'Emergency & Trauma',
+      initiatedBy: 'organization',
+      doctorAcceptance: { status: 'accepted', respondedAt: new Date() },
+      organizationApproval: { status: 'approved', reviewedAt: new Date(), reviewedBy: org2User._id },
+    },
+    {
+      affiliationId: 'AFF-RODRIGUEZ-APEX-01',
+      doctorId: doc3._id,
+      organizationId: org1._id,
+      status: 'ACTIVE',
+      department: 'Pediatrics',
+      initiatedBy: 'doctor',
+      doctorAcceptance: { status: 'accepted', respondedAt: new Date() },
+      organizationApproval: { status: 'approved', reviewedAt: new Date(), reviewedBy: org1User._id },
+    },
   ]);
 
   console.log('[Seed] Creating demo appointments...');

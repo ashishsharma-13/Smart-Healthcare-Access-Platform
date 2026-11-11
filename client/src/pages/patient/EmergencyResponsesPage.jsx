@@ -33,6 +33,7 @@ export const EmergencyResponsesPage = () => {
 
   const fetchData = async () => {
     try {
+      setLoading(true);
       const res = await api.get(`/emergency/${id}`);
       if (res.data.success) {
         setEmergency(res.data.data.emergency);
@@ -129,12 +130,14 @@ export const EmergencyResponsesPage = () => {
                             <Building2 className="w-5 h-5" />
                           </div>
                           <div>
-                            <h3 className="text-sm font-bold text-slate-900 leading-snug">
-                              {b.organizationId?.name}
-                            </h3>
-                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                              <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                              <span className="truncate">{b.organizationId?.address?.street}, {b.organizationId?.address?.city}</span>
+                            <h3 className="text-base font-bold text-slate-900">{b.organizationId?.name}</h3>
+                            <p className="text-xs text-slate-500 flex items-center mt-0.5">
+                              <MapPin className="w-3.5 h-3.5 mr-1 text-slate-400" />
+                              <span>
+                                {b.organizationId?.operatingAddress?.streetName
+                                  ? `${b.organizationId.operatingAddress.buildingNumber ? b.organizationId.operatingAddress.buildingNumber + ', ' : ''}${b.organizationId.operatingAddress.streetName}, ${b.organizationId.operatingAddress.city}`
+                                  : `${b.organizationId?.address?.street || ''}, ${b.organizationId?.address?.city || ''}`}
+                              </span>
                             </p>
                           </div>
                         </div>

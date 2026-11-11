@@ -9,7 +9,6 @@ import {
   XCircle,
   QrCode,
   Clock,
-  ShieldAlert,
   Activity,
   Users,
   Award,
@@ -50,23 +49,6 @@ export const DoctorDashboard = () => {
       console.error('Error fetching doctor dashboard', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleToggleEmergencyAvailability = async () => {
-    try {
-      setToggling(true);
-      const newStatus = !doctorProfile.isAvailableForEmergency;
-      const res = await api.put('/doctors/availability', {
-        isAvailableForEmergency: newStatus,
-      });
-      if (res.data.success) {
-        setDoctorProfile(res.data.data);
-      }
-    } catch (err) {
-      alert('Error updating emergency status: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setToggling(false);
     }
   };
 
@@ -124,8 +106,8 @@ export const DoctorDashboard = () => {
         </Link>
       </div>
 
-      {/* 3 Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* 2 Status Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* 1. Physical Presence Indicator */}
         <div className={`p-4 sm:p-5 rounded-xl border shadow-card flex flex-col justify-between transition-colors ${
@@ -183,37 +165,6 @@ export const DoctorDashboard = () => {
               onClick={handleToggleAppointmentsAvailability}
             >
               {doctorProfile?.isAvailableForAppointments ? 'Mark Unavailable' : 'Open for Bookings'}
-            </Button>
-          </div>
-        </div>
-
-        {/* 3. Emergency Duty Availability */}
-        <div className={`p-4 sm:p-5 rounded-xl border shadow-card flex flex-col justify-between transition-colors ${
-          doctorProfile?.isAvailableForEmergency ? 'bg-urgent-50/70 border-urgent-300' : 'bg-white border-slate-200'
-        }`}>
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                3. Emergency On-Call
-              </span>
-              <span className={`w-2.5 h-2.5 rounded-full ${doctorProfile?.isAvailableForEmergency ? 'bg-urgent-500 animate-pulse' : 'bg-slate-300'}`} />
-            </div>
-            <h3 className="text-sm font-bold text-slate-900">
-              {doctorProfile?.isAvailableForEmergency ? 'ON EMERGENCY CALL' : 'OFF EMERGENCY DUTY'}
-            </h3>
-            <p className="text-xs text-slate-500 mt-1 leading-snug">
-              Boosts your affiliated hospital's emergency suitability score when you are on trauma call.
-            </p>
-          </div>
-          <div className="pt-3 border-t border-slate-100 mt-3">
-            <Button
-              size="sm"
-              variant={doctorProfile?.isAvailableForEmergency ? 'secondary' : 'emergency'}
-              disabled={toggling}
-              className="w-full"
-              onClick={handleToggleEmergencyAvailability}
-            >
-              {doctorProfile?.isAvailableForEmergency ? 'Step Down from Duty' : 'Set Emergency Duty'}
             </Button>
           </div>
         </div>

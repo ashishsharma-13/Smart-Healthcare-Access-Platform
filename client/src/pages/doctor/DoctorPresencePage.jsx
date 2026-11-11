@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { DoctorAvatar } from '../../components/graphics/DoctorAvatar';
 import {
@@ -24,6 +25,7 @@ export const DoctorPresencePage = () => {
   const [profile, setProfile] = useState(null);
   const [qrCredential, setQrCredential] = useState(null);
   const [history, setHistory] = useState([]);
+  const [activeAffiliations, setActiveAffiliations] = useState([]);
   const [checkinCode, setCheckinCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -36,15 +38,22 @@ export const DoctorPresencePage = () => {
   const fetchPresenceData = async () => {
     try {
       setLoading(true);
-      const [profRes, qrRes, histRes] = await Promise.all([
+      const [profRes, qrRes, histRes, affRes] = await Promise.all([
         api.get('/doctors/me'),
         api.get('/doctors/qr-credential'),
         api.get('/doctors/presence/history'),
+        api.get('/doctor/affiliations').catch(() => ({ data: { success: false, data: [] } })),
       ]);
 
-      if (profRes.data.success) setProfile(profRes.data.data);
-      if (qrRes.data.success) setQrCredential(qrRes.data.data);
-      if (histRes.data.success) setHistory(histRes.data.data);
+      if (profRes.data?.success) setProfile(profRes.data.data);
+      if (qrRes.data?.success) setQrCredential(qrRes.data.data);
+      if (histRes.data?.success) setHistory(histRes.data.data);
+      if (affRes.data?.success) {
+        const activeOnly = (affRes.data.data || []).filter(
+          (a) => a.status === 'ACTIVE' || a.status === 'approved'
+        );
+        setActiveAffiliations(activeOnly);
+      }
     } catch (err) {
       console.error('Error loading presence data', err);
     } finally {
@@ -240,35 +249,85 @@ export const DoctorPresencePage = () => {
           </div>
 
           {!isPresent && (
-            <form onSubmit={handleCheckIn} className="space-y-3">
-              <div className="space-y-1">
-                <label htmlFor="checkin-code" className="text-xs font-medium text-slate-700 block">
-                  Enter Facility Reception Check-In Code
-                </label>
-                <input
-                  id="checkin-code"
-                  type="text"
-                  required
-                  placeholder="e.g. ORG-APEX-METRO-QR"
-                  value={checkinCode}
-                  onChange={(e) => setCheckinCode(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-800 uppercase focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
-                />
-                <span className="text-[10px] text-slate-400 block">
-                  Quick demo codes: <code className="text-brand-700 font-bold">ORG-APEX-METRO-QR</code> or <code className="text-brand-700 font-bold">ORG-ST-JUDE-QR</code>
-                </span>
-              </div>
+            <div className="space-y-4">
+              {activeAffiliations.length > 0 ? (
+                <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-blue-900">Your Active Affiliated Facilities</span>
+                    <Link
+                      to="/doctor/affiliations"
+                      className="text-[11px] font-bold text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Manage
+                    </Link>
+                  </div>
+                  <p className="text-[11px] text-blue-700">
+                    Click an affiliated facility below to auto-fill its check-in code:
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {activeAffiliations.map((aff) => {
+                      const org = aff.organizationId;
+                      const code = org?.qrCheckinCode || `ORG-${org?.name?.toUpperCase().replace(/[^A-Z0-9]/g, '-').slice(0, 10)}-QR`;
+                      return (
+                        <button
+                          key={aff._id}
+                          type="button"
+                          onClick={() => setCheckinCode(code)}
+                          className={`text-left px-2.5 py-1.5 rounded-xl border text-[11px] transition-all ${
+                            checkinCode === code
+                              ? 'bg-blue-600 text-white border-blue-600 font-bold shadow-xs'
+                              : 'bg-white hover:bg-blue-100/50 text-slate-800 border-blue-200 font-medium'
+                          }`}
+                        >
+                          <span className="font-bold block truncate max-w-[180px]">{org?.name}</span>
+                          <span className="text-[10px] font-mono opacity-80">{code}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs space-y-1">
+                  <div className="flex items-center space-x-1.5 font-bold text-amber-800">
+                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                    <span>No Active Affiliations</span>
+                  </div>
+                  <p className="text-[11px] text-amber-700">
+                    You must have an <strong>ACTIVE</strong> affiliation with an organization before you can check in to its facility.{' '}
+                    <Link to="/doctor/affiliations" className="underline font-bold text-amber-900">
+                      Request an affiliation here
+                    </Link>.
+                  </p>
+                </div>
+              )}
 
-              <Button
-                type="submit"
-                variant="primary"
-                size="md"
-                loading={submitting}
-                className="w-full"
-              >
-                {submitting ? 'Verifying Presence...' : 'Verify Presence & Check In'}
-              </Button>
-            </form>
+              <form onSubmit={handleCheckIn} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Enter Facility Check-In Code</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. ORG-APEX-METRO-QR or ORG-ST-JUDE-QR"
+                    value={checkinCode}
+                    onChange={(e) => setCheckinCode(e.target.value)}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-[10px] text-slate-400 block">
+                    Quick demo codes: <code>ORG-APEX-METRO-QR</code> or <code>ORG-ST-JUDE-QR</code>
+                  </span>
+                </div>
+
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  loading={submitting}
+                  className="w-full"
+                >
+                  {submitting ? 'Verifying Presence...' : 'Verify Presence & Check In'}
+                </Button>
+              </form>
+            </div>
           )}
         </div>
 

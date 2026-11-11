@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { appointmentRepository } from '../repositories/AppointmentRepository.js';
 import { doctorRepository } from '../repositories/DoctorRepository.js';
 import { organizationRepository } from '../repositories/OrganizationRepository.js';
+import { doctorAffiliationRepository } from '../repositories/DoctorAffiliationRepository.js';
 
 export class AppointmentService {
   /**
@@ -54,7 +55,13 @@ export class AppointmentService {
       throw new Error('Healthcare facility not found.');
     }
 
-    // 3. Prevent double booking concurrency check
+    // 3. Verify active doctor-organization affiliation
+    const activeAffiliation = await doctorAffiliationRepository.findActiveAffiliation(doctorId, organizationId);
+    if (!activeAffiliation) {
+      throw new Error('Doctor is not actively affiliated with this healthcare facility. New appointment bookings require an active affiliation.');
+    }
+
+    // 4. Prevent double booking concurrency check
     const existing = await appointmentRepository.findBySlot(doctorId, slotDate, slotTime);
     if (existing) {
       throw new Error('This appointment slot has already been booked. Please choose another time.');

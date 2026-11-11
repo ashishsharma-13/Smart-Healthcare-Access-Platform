@@ -9,6 +9,7 @@ import { emergencyRepository } from '../src/repositories/EmergencyRepository.js'
 import { organizationRepository } from '../src/repositories/OrganizationRepository.js';
 import { resourceRepository } from '../src/repositories/ResourceRepository.js';
 import { Doctor } from '../src/models/Doctor.js';
+import { DoctorAffiliation } from '../src/models/DoctorAffiliation.js';
 
 describe('Issue 1: Appointment Cancellation Tests', () => {
   afterEach(() => {
@@ -138,6 +139,9 @@ describe('Issue 2: Emergency Beep and Apex Hospital Broadcast Tests', () => {
     jest.spyOn(Doctor, 'find').mockReturnValue({
       populate: jest.fn().mockResolvedValue([]),
     });
+    jest.spyOn(DoctorAffiliation, 'find').mockReturnValue({
+      select: jest.fn().mockResolvedValue([]),
+    });
 
     const results = await emergencyMatchingService.findSuitableOrganizations(
       [77.2090, 28.6139],
@@ -222,5 +226,87 @@ describe('Issue 2: Emergency Beep and Apex Hospital Broadcast Tests', () => {
         emergencyType: 'cardiac',
       })
     );
+  });
+
+  test('EmergencyController.getNearbyFacilities returns capability cards', async () => {
+    const mockFacilities = [
+      {
+        _id: '673000000000000000000099',
+        name: 'Apex Metro Trauma & Heart Hospital',
+        distanceKm: 2.5,
+        estimatedTravelMinutes: 8,
+        availableResources: { icuBeds: 5, erBays: 10, ventilators: 4 },
+        specialistOnDuty: 'Trauma & Emergency Specialist On-Site',
+      },
+    ];
+
+    jest.spyOn(emergencyMatchingService, 'getNearbyFacilities').mockResolvedValue(mockFacilities);
+
+    const req = {
+      query: { lat: '28.6139', lng: '77.2090', condition: 'cardiac' },
+    };
+    const res = {
+      json: jest.fn(),
+    };
+    const next = jest.fn();
+
+    await emergencyController.getNearbyFacilities(req, res, next);
+
+    expect(emergencyMatchingService.getNearbyFacilities).toHaveBeenCalledWith({
+      patientCoords: [77.2090, 28.6139],
+      condition: 'cardiac',
+      radius: 50,
+    });
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        count: 1,
+        data: mockFacilities,
+      })
+    );
+  });
+
+  test('EmergencyController.dispatchEmergency dispatches to selected hospitals with status pending', async () => {
+    const mockResult = {
+      emergencyRequest: {
+        _id: '673888888888888888888881',
+        status: 'pending',
+        emergencyType: 'cardiac',
+      },
+      broadcasts: [{ _id: '673999999999999999999991', status: 'active', responseStatus: 'PENDING' }],
+      targetedCount: 1,
+    };
+
+    jest.spyOn(emergencyBroadcastService, 'dispatchEmergencyBeep').mockResolvedValue(mockResult);
+
+    const req = {
+      user: { _id: '673000000000000000000001', name: 'Alex Mercer', phone: '+1-555-0199' },
+      body: {
+        condition: 'cardiac',
+        severity: 'critical',
+        hospitalIds: ['673000000000000000000099'],
+        patientDetails: { name: 'Alex Mercer', phone: '+1-555-0199' },
+      },
+    };
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    const next = jest.fn();
+
+    await emergencyController.dispatchEmergency(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(emergencyBroadcastService.dispatchEmergencyBeep).toHaveBeenCalledWith(
+      expect.objectContaining({
+        condition: 'cardiac',
+        hospitalIds: ['673000000000000000000099'],
+      })
+    );
+    expect(res.json).toHaveBeenCalledWith({
+      success: true,
+      message: 'Emergency Beep dispatched to 1 hospital(s)',
+      data: mockResult,
+    });
   });
 });

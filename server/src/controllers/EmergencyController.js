@@ -1,9 +1,82 @@
 import { emergencyBroadcastService } from '../services/EmergencyBroadcastService.js';
+import { emergencyMatchingService } from '../services/EmergencyMatchingService.js';
 import { resourceReservationService } from '../services/ResourceReservationService.js';
 import { emergencyRepository } from '../repositories/EmergencyRepository.js';
 import { organizationRepository } from '../repositories/OrganizationRepository.js';
 
 export class EmergencyController {
+  async getNearbyFacilities(req, res, next) {
+    try {
+      const { lat, lng, latitude, longitude, condition, emergencyType, radius } = req.query;
+      const patientCoords = [
+        parseFloat(lng ?? longitude ?? 77.2090),
+        parseFloat(lat ?? latitude ?? 28.6139),
+      ];
+      const selectedCondition = condition || emergencyType || 'cardiac';
+      const rad = parseFloat(radius) || 50;
+
+      const facilities = await emergencyMatchingService.getNearbyFacilities({
+        patientCoords,
+        condition: selectedCondition,
+        radius: rad,
+      });
+
+      res.json({
+        success: true,
+        count: facilities.length,
+        data: facilities,
+        message: facilities.length === 0
+          ? 'No emergency-enabled healthcare facilities found within range.'
+          : 'Nearby emergency facilities retrieved successfully',
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async dispatchEmergency(req, res, next) {
+    try {
+      const {
+        emergencyId,
+        condition,
+        emergencyType,
+        severity,
+        description,
+        coordinates,
+        locationAddress,
+        ambulanceRequirement,
+        patientDetails,
+        hospitalIds,
+      } = req.body;
+
+      const user = req.user || {};
+      const result = await emergencyBroadcastService.dispatchEmergencyBeep({
+        emergencyId,
+        patientId: user._id,
+        patientDetails: {
+          name: patientDetails?.name || user.name || 'Emergency Patient',
+          phone: patientDetails?.phone || user.phone || '9999999999',
+          ...patientDetails,
+        },
+        condition: condition || emergencyType || 'cardiac',
+        severity: severity || 'critical',
+        description: description || '',
+        coordinates: coordinates || [77.2090, 28.6139],
+        locationAddress: locationAddress || 'Current GPS Location',
+        ambulanceRequirement: ambulanceRequirement || 'no',
+        hospitalIds: hospitalIds || [],
+      });
+
+      res.status(201).json({
+        success: true,
+        message: `Emergency Beep dispatched to ${result.targetedCount} hospital(s)`,
+        data: result,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async activateEmergencyBeep(req, res, next) {
     try {
       const {

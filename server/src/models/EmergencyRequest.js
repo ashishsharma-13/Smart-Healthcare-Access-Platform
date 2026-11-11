@@ -34,6 +34,7 @@ const emergencyRequestSchema = new mongoose.Schema(
         'fracture',
         'child',
         'respiratory',
+        'general',
         'other',
       ],
       required: true,
@@ -71,6 +72,7 @@ const emergencyRequestSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: [
+        'pending',
         'CREATED',
         'BROADCASTED',
         'RESPONSES_RECEIVED',
@@ -86,7 +88,7 @@ const emergencyRequestSchema = new mongoose.Schema(
         'RESERVATION_RELEASED',
         'active',
       ],
-      default: 'CREATED',
+      default: 'pending',
       index: true,
     },
     selectedOrganizationId: {

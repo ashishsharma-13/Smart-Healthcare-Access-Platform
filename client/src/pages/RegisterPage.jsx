@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { OrganizationAddressSection } from '../components/organization/OrganizationAddressSection';
 import {
   Activity,
   User,
@@ -34,6 +35,36 @@ export const RegisterPage = () => {
   const [licenseNumber, setLicenseNumber] = useState('');
   const [orgType, setOrgType] = useState('hospital');
   const [regNumber, setRegNumber] = useState('');
+
+  // Organization Address States
+  const [registeredAddress, setRegisteredAddress] = useState({
+    buildingNumber: '',
+    streetName: '',
+    locality: '',
+    landmark: '',
+    city: '',
+    district: '',
+    state: '',
+    pinCode: '',
+    country: 'India',
+  });
+
+  const [operatingAddress, setOperatingAddress] = useState({
+    buildingNumber: '',
+    streetName: '',
+    locality: '',
+    landmark: '',
+    city: '',
+    district: '',
+    state: '',
+    pinCode: '',
+    country: 'India',
+    isSameAsRegistered: true,
+  });
+
+  const [isSameAsRegistered, setIsSameAsRegistered] = useState(true);
+  const [latitude, setLatitude] = useState(28.6139);
+  const [longitude, setLongitude] = useState(77.2090);
 
   // Step 1 States
   const [error, setError] = useState('');
@@ -78,9 +109,49 @@ export const RegisterPage = () => {
       return;
     }
 
-    if (role === 'organization' && !regNumber.trim()) {
-      setError('Please enter your health facility registration number.');
-      return;
+    if (role === 'organization') {
+      if (!regNumber.trim()) {
+        setError('Please enter your facility registration number.');
+        return;
+      }
+      if (
+        !registeredAddress.buildingNumber?.trim() ||
+        !registeredAddress.streetName?.trim() ||
+        !registeredAddress.locality?.trim() ||
+        !registeredAddress.city?.trim() ||
+        !registeredAddress.state?.trim()
+      ) {
+        setError('Please complete the required Registered Address fields (Building #, Street Name, Locality, City, State).');
+        return;
+      }
+      if (!registeredAddress.pinCode || !/^\d{6}$/.test(registeredAddress.pinCode.trim())) {
+        setError('Registered Address PIN Code must be exactly 6 digits.');
+        return;
+      }
+
+      if (!isSameAsRegistered) {
+        if (
+          !operatingAddress.buildingNumber?.trim() ||
+          !operatingAddress.streetName?.trim() ||
+          !operatingAddress.locality?.trim() ||
+          !operatingAddress.city?.trim() ||
+          !operatingAddress.state?.trim()
+        ) {
+          setError('Please complete the required Operating Address fields (Building #, Street Name, Locality, City, State).');
+          return;
+        }
+        if (!operatingAddress.pinCode || !/^\d{6}$/.test(operatingAddress.pinCode.trim())) {
+          setError('Operating Address PIN Code must be exactly 6 digits.');
+          return;
+        }
+      }
+
+      const lat = parseFloat(latitude);
+      const lng = parseFloat(longitude);
+      if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        setError('Physical operating GPS coordinates must have Latitude between -90 and 90, and Longitude between -180 and 180.');
+        return;
+      }
     }
 
     const targetType = trimmedEmail ? 'email' : 'phone';
@@ -136,10 +207,53 @@ export const RegisterPage = () => {
           experienceYears: 5,
         };
       } else if (role === 'organization') {
+        const finalOperatingAddress = isSameAsRegistered
+          ? {
+              buildingNumber: registeredAddress.buildingNumber?.trim() || '',
+              streetName: registeredAddress.streetName?.trim() || '',
+              locality: registeredAddress.locality?.trim() || '',
+              landmark: registeredAddress.landmark?.trim() || '',
+              city: registeredAddress.city?.trim() || '',
+              district: registeredAddress.district?.trim() || '',
+              state: registeredAddress.state?.trim() || '',
+              pinCode: registeredAddress.pinCode?.trim() || '',
+              country: registeredAddress.country || 'India',
+              isSameAsRegistered: true,
+            }
+          : {
+              buildingNumber: operatingAddress.buildingNumber?.trim() || '',
+              streetName: operatingAddress.streetName?.trim() || '',
+              locality: operatingAddress.locality?.trim() || '',
+              landmark: operatingAddress.landmark?.trim() || '',
+              city: operatingAddress.city?.trim() || '',
+              district: operatingAddress.district?.trim() || '',
+              state: operatingAddress.state?.trim() || '',
+              pinCode: operatingAddress.pinCode?.trim() || '',
+              country: operatingAddress.country || 'India',
+              isSameAsRegistered: false,
+            };
+
         payload.orgDetails = {
           name: name.trim(),
           orgType,
           registrationNumber: regNumber.trim(),
+          registeredAddress: {
+            buildingNumber: registeredAddress.buildingNumber?.trim() || '',
+            streetName: registeredAddress.streetName?.trim() || '',
+            locality: registeredAddress.locality?.trim() || '',
+            landmark: registeredAddress.landmark?.trim() || '',
+            city: registeredAddress.city?.trim() || '',
+            district: registeredAddress.district?.trim() || '',
+            state: registeredAddress.state?.trim() || '',
+            pinCode: registeredAddress.pinCode?.trim() || '',
+            country: registeredAddress.country || 'India',
+          },
+          operatingAddress: finalOperatingAddress,
+          location: {
+            type: 'Point',
+            coordinates: [parseFloat(longitude), parseFloat(latitude)],
+          },
+          coordinates: [parseFloat(longitude), parseFloat(latitude)],
         };
       }
 
@@ -171,7 +285,7 @@ export const RegisterPage = () => {
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-xl w-full bg-white border border-slate-200 p-6 sm:p-8 rounded-xl shadow-card space-y-6">
+      <div className={`${role === 'organization' ? 'max-w-3xl' : 'max-w-xl'} w-full bg-white border border-slate-200 p-6 sm:p-8 rounded-xl shadow-card space-y-6 transition-all duration-300`}>
         
         {/* Header */}
         <div className="text-center space-y-2">
@@ -187,13 +301,13 @@ export const RegisterPage = () => {
         </div>
 
         {/* 3-Tab Segmented Role Selector */}
-        <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-lg border border-slate-200">
+        <div className="grid grid-cols-3 gap-2 p-1 bg-slate-100 rounded-lg border border-slate-200/60">
           <button
             type="button"
             onClick={() => setRole('patient')}
-            className={`py-2 px-3 rounded-md text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-3 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
               role === 'patient'
-                ? 'bg-white text-brand-700 shadow-xs'
+                ? 'bg-white text-brand-700 shadow-xs font-bold'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -204,49 +318,63 @@ export const RegisterPage = () => {
           <button
             type="button"
             onClick={() => setRole('doctor')}
-            className={`py-2 px-3 rounded-md text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-3 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
               role === 'doctor'
-                ? 'bg-white text-brand-700 shadow-xs'
+                ? 'bg-white text-brand-700 shadow-xs font-bold'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Stethoscope className="w-3.5 h-3.5" />
-            <span>Doctor</span>
+            <span>Practitioner</span>
           </button>
 
           <button
             type="button"
             onClick={() => setRole('organization')}
-            className={`py-2 px-3 rounded-md text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-3 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
               role === 'organization'
-                ? 'bg-white text-brand-700 shadow-xs'
+                ? 'bg-white text-brand-700 shadow-xs font-bold'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
-            <span>Hospital</span>
+            <span>Facility</span>
           </button>
         </div>
 
+        {/* Error notification */}
         {error && (
           <Toast type="error" message={error} onClose={() => setError('')} />
         )}
 
-        {/* Registration Form */}
+        {/* Step 1 Form */}
         <form onSubmit={handleContinueToVerification} className="space-y-4">
           <div>
             <label htmlFor="reg-name" className="block text-xs font-medium text-slate-700 mb-1">
-              {role === 'organization' ? 'Hospital / Facility Legal Name' : 'Full Name'}
+              {role === 'organization' ? 'Health Facility / Hospital Name' : 'Full Name'}
             </label>
-            <input
-              id="reg-name"
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={role === 'organization' ? 'e.g. Apollo Multi-Speciality Hospital' : 'e.g. Dr. Rajesh Kumar or Priya Sharma'}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
-            />
+            <div className="relative">
+              {role === 'organization' ? (
+                <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              ) : (
+                <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              )}
+              <input
+                id="reg-name"
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={
+                  role === 'doctor'
+                    ? 'Dr. Rajesh Sharma'
+                    : role === 'organization'
+                    ? 'Apex Metro Trauma & Heart Hospital'
+                    : 'Sunita Verma'
+                }
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -261,7 +389,7 @@ export const RegisterPage = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="contact@domain.com"
+                  placeholder="name@domain.com"
                   className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
                 />
               </div>
@@ -269,46 +397,46 @@ export const RegisterPage = () => {
 
             <div>
               <label htmlFor="reg-phone" className="block text-xs font-medium text-slate-700 mb-1">
-                Phone Number
+                Phone Number (India +91)
               </label>
               <div className="relative">
                 <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   id="reg-phone"
-                  type="text"
+                  type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+919956257068"
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
+                  placeholder="+91 98765 43210"
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white font-mono"
                 />
               </div>
             </div>
           </div>
 
           <div>
-            <label htmlFor="reg-password" className="block text-xs font-medium text-slate-700 mb-1">
+            <label htmlFor="reg-pwd" className="block text-xs font-medium text-slate-700 mb-1">
               Password (min. 6 characters)
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
-                id="reg-password"
+                id="reg-pwd"
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
+                placeholder="••••••••"
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white font-mono"
               />
             </div>
           </div>
 
-          {/* Role Conditioned Fields */}
+          {/* Doctor Professional Fields */}
           {role === 'doctor' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
               <div>
                 <label htmlFor="reg-spec" className="block text-xs font-medium text-slate-700 mb-1">
-                  Primary Specialization
+                  Primary Speciality
                 </label>
                 <select
                   id="reg-spec"
@@ -316,19 +444,18 @@ export const RegisterPage = () => {
                   onChange={(e) => setSpecialization(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
                 >
-                  <option value="General Physician">General Physician</option>
                   <option value="Cardiology">Cardiology</option>
+                  <option value="Emergency Medicine">Emergency Medicine</option>
                   <option value="Neurology">Neurology</option>
                   <option value="Pediatrics">Pediatrics</option>
                   <option value="Orthopedics">Orthopedics</option>
-                  <option value="Ophthalmology">Ophthalmology</option>
-                  <option value="Emergency Medicine">Emergency Medicine</option>
+                  <option value="General Physician">General Physician</option>
                 </select>
               </div>
 
               <div>
                 <label htmlFor="reg-license" className="block text-xs font-medium text-slate-700 mb-1">
-                  NMC Registration / License #
+                  NMC Registration #
                 </label>
                 <input
                   id="reg-license"
@@ -343,39 +470,56 @@ export const RegisterPage = () => {
             </div>
           )}
 
+          {/* Organization Registration & Address Section */}
           {role === 'organization' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-              <div>
-                <label htmlFor="reg-orgtype" className="block text-xs font-medium text-slate-700 mb-1">
-                  Facility Classification
-                </label>
-                <select
-                  id="reg-orgtype"
-                  value={orgType}
-                  onChange={(e) => setOrgType(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
-                >
-                  <option value="hospital">Multi-Speciality Hospital</option>
-                  <option value="trauma_center">Dedicated Trauma Center</option>
-                  <option value="clinic">Outpatient Day Clinic</option>
-                </select>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                <div>
+                  <label htmlFor="reg-orgtype" className="block text-xs font-medium text-slate-700 mb-1">
+                    Facility Classification
+                  </label>
+                  <select
+                    id="reg-orgtype"
+                    value={orgType}
+                    onChange={(e) => setOrgType(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
+                  >
+                    <option value="hospital">Multi-Speciality Hospital</option>
+                    <option value="specialty_center">Specialty Center</option>
+                    <option value="clinic">Outpatient Day Clinic</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="reg-orgreg" className="block text-xs font-medium text-slate-700 mb-1">
+                    Health Facility License #
+                  </label>
+                  <input
+                    id="reg-orgreg"
+                    type="text"
+                    required
+                    value={regNumber}
+                    onChange={(e) => setRegNumber(e.target.value)}
+                    placeholder="e.g. HOSP-DEL-2024-001"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white font-mono"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label htmlFor="reg-orgreg" className="block text-xs font-medium text-slate-700 mb-1">
-                  Health Facility License #
-                </label>
-                <input
-                  id="reg-orgreg"
-                  type="text"
-                  required
-                  value={regNumber}
-                  onChange={(e) => setRegNumber(e.target.value)}
-                  placeholder="e.g. HOSP-DEL-2024-001"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white font-mono"
-                />
-              </div>
-            </div>
+              {/* Comprehensive Organization Address Section with Registered + Operating + GPS Map */}
+              <OrganizationAddressSection
+                registeredAddress={registeredAddress}
+                setRegisteredAddress={setRegisteredAddress}
+                operatingAddress={operatingAddress}
+                setOperatingAddress={setOperatingAddress}
+                isSameAsRegistered={isSameAsRegistered}
+                setIsSameAsRegistered={setIsSameAsRegistered}
+                latitude={latitude}
+                setLatitude={setLatitude}
+                longitude={longitude}
+                setLongitude={setLongitude}
+              />
+            </>
           )}
 
           <Button

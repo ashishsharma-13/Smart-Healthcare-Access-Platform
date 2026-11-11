@@ -16,11 +16,37 @@ import {
   Activity,
   Phone,
   AlertTriangle,
+  BellRing,
+  Volume2,
+  MapPin,
+  Navigation,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Toast } from '../../components/ui/Toast';
 import { EmptyState } from '../../components/ui/EmptyState';
+
+const playAlertBeep = () => {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      const ctx = new AudioContextClass();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.setValueAtTime(440, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.4);
+    }
+  } catch (err) {
+    console.warn('[Audio Alert] playback ignored or blocked', err);
+  }
+};
 
 export const OrganizationDashboard = () => {
   const { user } = useAuth();
@@ -30,6 +56,7 @@ export const OrganizationDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionNotice, setActionNotice] = useState('');
+  const [incomingAlert, setIncomingAlert] = useState(null);
 
   // 1. Socket room joining on hospital mount / profile load
   useEffect(() => {
@@ -55,6 +82,15 @@ export const OrganizationDashboard = () => {
     if (socket) {
       socket.on('emergency-broadcast-incoming', (data) => {
         if (!data) return;
+
+        playAlertBeep();
+        const reqObj = data.emergencyRequestId || data;
+        setIncomingAlert({
+          patientName: reqObj.patientName || 'Emergency Patient',
+          condition: reqObj.emergencyType || 'General Emergency',
+          severity: reqObj.severity || 'CRITICAL',
+        });
+        setTimeout(() => setIncomingAlert(null), 8000);
 
         setBroadcasts((prev) => {
           const incomingReqId = (data.emergencyRequestId?._id || data.emergencyRequestId || '').toString();
@@ -82,6 +118,15 @@ export const OrganizationDashboard = () => {
 
       socket.on('emergency:incoming_beep', (data) => {
         if (!data) return;
+        playAlertBeep();
+        const reqObj = data.emergencyRequestId || data;
+        setIncomingAlert({
+          patientName: reqObj.patientName || 'Emergency Patient',
+          condition: reqObj.emergencyType || 'General Emergency',
+          severity: reqObj.severity || 'CRITICAL',
+        });
+        setTimeout(() => setIncomingAlert(null), 8000);
+
         setBroadcasts((prev) => {
           const incomingReqId = (data.emergencyRequestId?._id || data.emergencyRequestId || '').toString();
           const exists = prev.some((b) => {
@@ -278,13 +323,93 @@ export const OrganizationDashboard = () => {
         </div>
       </div>
 
+      {/* Facility Address & GPS Operating Telemetry Card */}
+      <div className="p-5 rounded-2xl bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+          <div className="flex items-center space-x-2">
+            <MapPin className="w-4 h-4 text-red-600" />
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+              Facility Address & Operating Physical GPS Location
+            </h3>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200">
+              GPS: {profile?.location?.coordinates?.[1]?.toFixed(5)}, {profile?.location?.coordinates?.[0]?.toFixed(5)}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          {/* Registered Address */}
+          <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/60 space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+              Official Registered Address
+            </span>
+            <p className="font-semibold text-slate-800">
+              {profile?.registeredAddress?.buildingNumber ? `${profile.registeredAddress.buildingNumber}, ` : ''}
+              {profile?.registeredAddress?.streetName || profile?.address?.street || 'N/A'}
+            </p>
+            <p className="text-slate-600">
+              {[profile?.registeredAddress?.locality, profile?.registeredAddress?.city, profile?.registeredAddress?.state, profile?.registeredAddress?.pinCode || profile?.address?.postalCode].filter(Boolean).join(', ')}
+            </p>
+          </div>
+
+          {/* Operating Address */}
+          <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-200/60 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 block">
+                Physical Operating Site (Ambulance Destination)
+              </span>
+              {profile?.operatingAddress?.isSameAsRegistered && (
+                <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">
+                  Same as Registered
+                </span>
+              )}
+            </div>
+            <p className="font-semibold text-slate-900">
+              {profile?.operatingAddress?.buildingNumber ? `${profile.operatingAddress.buildingNumber}, ` : ''}
+              {profile?.operatingAddress?.streetName || profile?.registeredAddress?.streetName || profile?.address?.street || 'N/A'}
+            </p>
+            <p className="text-slate-600">
+              {[profile?.operatingAddress?.locality || profile?.registeredAddress?.locality, profile?.operatingAddress?.city || profile?.registeredAddress?.city, profile?.operatingAddress?.state || profile?.registeredAddress?.state, profile?.operatingAddress?.pinCode || profile?.registeredAddress?.pinCode].filter(Boolean).join(', ')}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Live Emergency Broadcast Reception Desk */}
-      <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-card space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-urgent-600 animate-ping" />
-            <h2 className="text-sm font-bold text-slate-900">
-              Incoming Emergency Telemetry & Dispatch Queue
+      <div className="bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 sm:p-8 space-y-4">
+        {/* Real-time Incoming Emergency Beep Alert Badge Banner */}
+        {incomingAlert && (
+          <div className="p-4 bg-red-600 text-white rounded-2xl shadow-lg shadow-red-600/30 flex items-center justify-between animate-bounce">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold">
+                <BellRing className="w-5 h-5 text-white animate-spin" />
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-white text-red-700 rounded-md">
+                    NEW INCOMING EMERGENCY ALERT
+                  </span>
+                  <span className="text-xs font-bold text-red-200">
+                    <Volume2 className="w-3.5 h-3.5 inline mr-1" />
+                    Chime Active
+                  </span>
+                </div>
+                <h4 className="text-sm font-black mt-0.5">
+                  {incomingAlert.patientName} &bull; <span className="capitalize">{incomingAlert.condition} Emergency</span> ({incomingAlert.severity})
+                </h4>
+              </div>
+            </div>
+            <span className="text-xs font-bold text-red-100 hidden sm:inline">Urgent Response Requested</span>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100/80">
+          <div className="flex items-center space-x-2">
+            <span className="w-3 h-3 rounded-full bg-red-600 animate-ping"></span>
+            <h2 className="text-base font-black text-slate-900">
+              Incoming Emergency Beep Telemetry & Destination Queue
             </h2>
           </div>
           <span className="text-xs text-slate-400 font-medium">Active Requests: {broadcasts.length}</span>
@@ -345,7 +470,7 @@ export const OrganizationDashboard = () => {
 
                     {/* Operational Actions */}
                     <div className="flex flex-wrap items-center gap-2 self-end md:self-center">
-                      {(b.responseStatus === 'PENDING' || !b.responseStatus) && (
+                      {(b.responseStatus === 'PENDING' || !b.responseStatus || req.status === 'pending') && (
                         <>
                           <Button
                             size="sm"
@@ -353,6 +478,7 @@ export const OrganizationDashboard = () => {
                             disabled={actionLoading}
                             onClick={() => handleRespond(req._id || req, 'ACCEPTED')}
                           >
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-1 inline" />
                             Accept & Can Receive
                           </Button>
                           <Button
@@ -362,6 +488,7 @@ export const OrganizationDashboard = () => {
                             disabled={actionLoading}
                             onClick={() => handleRespond(req._id || req, 'DECLINED')}
                           >
+                            <XCircle className="w-3.5 h-3.5 mr-1 inline" />
                             Decline
                           </Button>
                         </>

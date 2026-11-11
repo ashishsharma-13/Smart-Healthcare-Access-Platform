@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import apiRouter from './routes/apiRouter.js';
+import apiRouter, { doctorAffiliationRoutes, organizationAffiliationRoutes } from './routes/apiRouter.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -28,6 +28,10 @@ app.use('/api', limiter);
 // Body parser
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Mount affiliation routes directly
+app.use('/api/doctor/affiliations', doctorAffiliationRoutes);
+app.use('/api/organization/affiliations', organizationAffiliationRoutes);
 
 // Mount all API routes
 app.use('/api', apiRouter);

@@ -315,16 +315,65 @@ export const register = async (req, res) => {
         verificationStatus: 'pending',
       });
     } else if (role === 'organization' && orgDetails) {
+      // Validate PIN code format if provided
+      const regPin = orgDetails.registeredAddress?.pinCode;
+      if (regPin && !/^\d{6}$/.test(String(regPin).trim())) {
+        await User.findByIdAndDelete(newUser._id);
+        return res.status(400).json({
+          success: false,
+          message: 'Registered address PIN code must be exactly 6 digits.',
+        });
+      }
+
+      const isSameAsRegistered = orgDetails.operatingAddress?.isSameAsRegistered !== false;
+      const opPin = orgDetails.operatingAddress?.pinCode;
+      if (!isSameAsRegistered && opPin && !/^\d{6}$/.test(String(opPin).trim())) {
+        await User.findByIdAndDelete(newUser._id);
+        return res.status(400).json({
+          success: false,
+          message: 'Operating address PIN code must be exactly 6 digits.',
+        });
+      }
+
+      // Resolve physical operating coordinates: [longitude, latitude]
+      let coords = [77.2090, 28.6139];
+      if (orgDetails.location?.coordinates && Array.isArray(orgDetails.location.coordinates)) {
+        coords = orgDetails.location.coordinates.map(Number);
+      } else if (orgDetails.coordinates && Array.isArray(orgDetails.coordinates)) {
+        coords = orgDetails.coordinates.map(Number);
+      } else if (orgDetails.latitude !== undefined && orgDetails.longitude !== undefined) {
+        coords = [parseFloat(orgDetails.longitude), parseFloat(orgDetails.latitude)];
+      }
+
+      const [lng, lat] = coords;
+      if (
+        typeof lng !== 'number' ||
+        typeof lat !== 'number' ||
+        isNaN(lng) ||
+        isNaN(lat) ||
+        lat < -90 ||
+        lat > 90 ||
+        lng < -180 ||
+        lng > 180
+      ) {
+        await User.findByIdAndDelete(newUser._id);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid GPS coordinates. Latitude must be between -90 and 90, and longitude between -180 and 180.',
+        });
+      }
+
       const code = `ORG-QR-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 899 + 100)}`;
       profile = await Organization.create({
         userId: newUser._id,
         name: orgDetails.name || name,
         orgType: orgDetails.orgType || 'hospital',
         registrationNumber: orgDetails.registrationNumber || 'REG-PENDING',
-        address: orgDetails.address || {},
-        location: orgDetails.location || {
+        registeredAddress: orgDetails.registeredAddress || {},
+        operatingAddress: orgDetails.operatingAddress || { isSameAsRegistered: true },
+        location: {
           type: 'Point',
-          coordinates: orgDetails.coordinates || [77.2090, 28.6139],
+          coordinates: [lng, lat],
         },
         emergencyCapable: orgDetails.emergencyCapable !== undefined ? orgDetails.emergencyCapable : true,
         emergencyContactPhone: orgDetails.emergencyContactPhone || phone || '',

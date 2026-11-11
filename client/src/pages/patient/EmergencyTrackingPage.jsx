@@ -206,11 +206,15 @@ export const EmergencyTrackingPage = () => {
               Assigned Facility
             </h3>
 
-            <div className="space-y-1">
-              <h4 className="text-sm font-bold text-slate-900 leading-snug">{destination?.name}</h4>
-              <p className="text-xs text-slate-500 flex items-start gap-1">
-                <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
-                <span>{destination?.address?.street}, {destination?.address?.city}</span>
+            <div className="space-y-2">
+              <h4 className="text-base font-extrabold text-slate-900">{destination?.name}</h4>
+              <p className="text-xs text-slate-500 flex items-start">
+                <MapPin className="w-4 h-4 text-slate-400 mr-1.5 flex-shrink-0 mt-0.5" />
+                <span>
+                  {destination?.operatingAddress?.streetName
+                    ? `${destination.operatingAddress.buildingNumber ? destination.operatingAddress.buildingNumber + ', ' : ''}${destination.operatingAddress.streetName}, ${destination.operatingAddress.city}`
+                    : `${destination?.address?.street || ''}, ${destination?.address?.city || ''}`}
+                </span>
               </p>
             </div>
 

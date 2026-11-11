@@ -178,17 +178,226 @@ export class EmergencyBroadcastService {
   }
 
   /**
-   * Organization responds to Emergency Beep with ACCEPT / DECLINE.
+   * Dispatches Emergency Beep strictly to chosen hospital(s) with status: 'pending'.
+   * Emits targeted and universal WebSocket events.
+   */
+  async dispatchEmergencyBeep({
+    emergencyId,
+    patientId,
+    patientDetails = {},
+    condition,
+    emergencyType,
+    severity = 'critical',
+    description = '',
+    coordinates = [77.2090, 28.6139],
+    locationAddress = 'Current GPS Location',
+    ambulanceRequirement = 'no',
+    hospitalIds = [],
+  }) {
+    const chosenType = condition || emergencyType || 'cardiac';
+    const patientName = patientDetails.name || patientDetails.patientName || 'Emergency Patient';
+    const patientPhone = patientDetails.phone || patientDetails.patientPhone || '9999999999';
+
+    if (!Array.isArray(hospitalIds) || hospitalIds.length === 0) {
+      throw new Error('Please select at least one hospital to dispatch the emergency beep');
+    }
+
+    // 1. Create or update EmergencyRequest in 'pending' status
+    let emergencyRequest = null;
+    if (emergencyId && mongoose.Types.ObjectId.isValid(emergencyId)) {
+      emergencyRequest = await emergencyRepository.findRequestById(emergencyId);
+      if (emergencyRequest) {
+        emergencyRequest.status = 'pending';
+        emergencyRequest.emergencyType = chosenType;
+        emergencyRequest.severity = severity;
+        if (description) emergencyRequest.description = description;
+        if (locationAddress) emergencyRequest.locationAddress = locationAddress;
+        if (coordinates && coordinates.length === 2) {
+          emergencyRequest.location = { type: 'Point', coordinates };
+        }
+        emergencyRequest.ambulanceRequirement = ambulanceRequirement;
+        emergencyRequest.statusHistory.push({
+          status: 'pending',
+          timestamp: new Date(),
+          notes: `Emergency beep dispatched to ${hospitalIds.length} hospital(s)`,
+          updatedBy: patientId,
+        });
+        await emergencyRequest.save();
+      }
+    }
+
+    if (!emergencyRequest) {
+      const requestCode = `EMG-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
+      emergencyRequest = await emergencyRepository.createRequest({
+        requestCode,
+        patientId: patientId || new mongoose.Types.ObjectId(),
+        patientName,
+        patientPhone,
+        emergencyType: chosenType,
+        severity,
+        description,
+        location: {
+          type: 'Point',
+          coordinates: coordinates || [77.2090, 28.6139],
+        },
+        locationAddress: locationAddress || 'Current GPS Location',
+        ambulanceRequirement,
+        status: 'pending',
+        statusHistory: [
+          {
+            status: 'pending',
+            timestamp: new Date(),
+            notes: `Emergency beep dispatched to ${hospitalIds.length} hospital(s)`,
+            updatedBy: patientId,
+          },
+        ],
+      });
+    }
+
+    // 2. Fetch or evaluate target organizations
+    const matchingFacilities = await emergencyMatchingService.findSuitableOrganizations(
+      coordinates || [77.2090, 28.6139],
+      chosenType,
+      100
+    );
+
+    const { Organization } = await import('../models/Organization.js');
+    const validObjectIds = hospitalIds
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+
+    const targetedOrgs = await Organization.find({
+      _id: { $in: validObjectIds },
+    });
+
+    // 3. Build & save broadcast records strictly for the targeted hospitals
+    const { EmergencyBroadcast } = await import('../models/EmergencyBroadcast.js');
+    const savedBroadcasts = [];
+
+    for (const org of targetedOrgs) {
+      const match = matchingFacilities.find(
+        (m) => m.organization._id.toString() === org._id.toString()
+      );
+
+      let dist = match?.distanceKm;
+      if (!dist && org.location?.coordinates && coordinates) {
+        dist = emergencyMatchingService.calculateDistance(coordinates, org.location.coordinates);
+      }
+      dist = dist || 3.5;
+      const travelTime = match?.estimatedTravelMinutes || emergencyMatchingService.estimateTravelTime(dist);
+      const suitability = match?.suitabilityScore || 90;
+
+      const bRecord = {
+        emergencyRequestId: emergencyRequest._id,
+        organizationId: org._id,
+        broadcastedAt: new Date(),
+        responseStatus: 'PENDING',
+        status: 'active',
+        distanceKm: dist,
+        estimatedTravelMinutes: travelTime,
+        suitabilityScore: suitability,
+      };
+
+      const saved = await EmergencyBroadcast.findOneAndUpdate(
+        { emergencyRequestId: bRecord.emergencyRequestId, organizationId: bRecord.organizationId },
+        { $set: bRecord },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      ).populate('organizationId', 'name address location emergencyContactPhone rating facilities slug');
+      savedBroadcasts.push(saved);
+    }
+
+    // 4. Emit real-time WebSocket events
+    const io = getSocketIO();
+    if (io) {
+      for (const bRecord of savedBroadcasts) {
+        const orgDoc = bRecord.organizationId;
+        const orgIdStr = (orgDoc?._id || bRecord.organizationId).toString();
+
+        const payload = {
+          _id: bRecord._id,
+          emergencyRequestId: {
+            _id: emergencyRequest._id,
+            requestCode: emergencyRequest.requestCode,
+            patientId: {
+              _id: patientId,
+              name: patientName,
+              phone: patientPhone,
+            },
+            patientName,
+            patientPhone,
+            emergencyType: emergencyRequest.emergencyType,
+            severity: emergencyRequest.severity,
+            description: emergencyRequest.description,
+            location: emergencyRequest.location,
+            locationAddress: emergencyRequest.locationAddress,
+            ambulanceRequirement: emergencyRequest.ambulanceRequirement,
+            status: 'pending',
+            createdAt: emergencyRequest.createdAt,
+          },
+          organizationId: orgDoc || { _id: orgIdStr },
+          distanceKm: bRecord.distanceKm,
+          estimatedTravelMinutes: bRecord.estimatedTravelMinutes,
+          suitabilityScore: bRecord.suitabilityScore,
+          responseStatus: 'PENDING',
+          status: 'active',
+          broadcastedAt: bRecord.broadcastedAt,
+        };
+
+        // Broadcast specifically to targeted hospital rooms
+        io.to(orgIdStr).emit('emergency-broadcast-incoming', payload);
+        io.to(`org:${orgIdStr}`).emit('emergency-broadcast-incoming', payload);
+        io.to(`facility:${orgIdStr}`).emit('emergency-broadcast-incoming', payload);
+        io.to(`org:${orgIdStr}`).emit('emergency:incoming_beep', payload);
+        if (orgDoc?.slug) {
+          io.to(orgDoc.slug).emit('emergency-broadcast-incoming', payload);
+        }
+
+        // Broadcast universally to hospital rooms
+        io.emit('emergency-broadcast-incoming', payload);
+      }
+
+      io.emit('emergency-broadcast-new', {
+        emergencyRequestId: emergencyRequest._id,
+        requestCode: emergencyRequest.requestCode,
+        patientName,
+        patientPhone,
+        emergencyType: emergencyRequest.emergencyType,
+        severity: emergencyRequest.severity,
+        description: emergencyRequest.description,
+        locationAddress: emergencyRequest.locationAddress,
+        ambulanceRequirement: emergencyRequest.ambulanceRequirement,
+        totalBroadcasted: savedBroadcasts.length,
+        createdAt: emergencyRequest.createdAt,
+      });
+
+      // Notify patient channel
+      io.to(`emergency:${emergencyRequest._id}`).emit('emergency:status_change', {
+        status: 'pending',
+        emergencyRequestId: emergencyRequest._id,
+        totalBroadcasted: savedBroadcasts.length,
+      });
+    }
+
+    return {
+      emergencyRequest,
+      broadcasts: savedBroadcasts,
+      targetedCount: savedBroadcasts.length,
+    };
+  }
+
+  /**
+   * Organization responds to Emergency Beep with ACCEPT / DECLINE / REJECT.
    */
   async handleOrganizationResponse({ emergencyRequestId, organizationId, responseStatus, offeredResources, declineReason }) {
-    if (!['ACCEPTED', 'DECLINED'].includes(responseStatus)) {
+    const normalizedStatus = responseStatus === 'REJECTED' ? 'DECLINED' : responseStatus;
+    if (!['ACCEPTED', 'DECLINED'].includes(normalizedStatus)) {
       throw new Error("Response status must be 'ACCEPTED' or 'DECLINED'");
     }
 
     const updatedBroadcast = await emergencyRepository.updateBroadcastResponse(
       emergencyRequestId,
       organizationId,
-      responseStatus,
+      normalizedStatus,
       offeredResources,
       declineReason
     );

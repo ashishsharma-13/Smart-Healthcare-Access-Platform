@@ -26,7 +26,7 @@ const emergencyBroadcastSchema = new mongoose.Schema(
     },
     responseStatus: {
       type: String,
-      enum: ['PENDING', 'ACCEPTED', 'DECLINED', 'TIMEOUT'],
+      enum: ['PENDING', 'ACCEPTED', 'DECLINED', 'TIMEOUT', 'REJECTED'],
       default: 'PENDING',
       index: true,
     },

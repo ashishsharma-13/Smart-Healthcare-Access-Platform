@@ -3,6 +3,7 @@ import { organizationRepository } from '../repositories/OrganizationRepository.j
 import { resourceRepository } from '../repositories/ResourceRepository.js';
 import { Doctor } from '../models/Doctor.js';
 import { Organization } from '../models/Organization.js';
+import { DoctorAffiliation } from '../models/DoctorAffiliation.js';
 
 export class EmergencyMatchingService {
   /**
@@ -124,13 +125,37 @@ export class EmergencyMatchingService {
       const erAvailable = erResource ? erResource.availableCapacity : 0;
       const ventAvailable = ventResource ? ventResource.availableCapacity : 0;
 
-      // 3. Check doctors present right now
-      const presentDoctors = await Doctor.find({
-        'currentPresence.organizationId': org._id,
-        'currentPresence.isPresent': true,
-      }).populate('userId', 'name');
+      // 3. Identify actively affiliated doctors and check actual presence
+      let presentDoctors = [];
+      try {
+        const activeAffiliations = await DoctorAffiliation.find({
+          organizationId: org._id,
+          status: { $in: ['ACTIVE', 'approved'] },
+        }).select('doctorId');
 
-      const emergencyDoctorsPresent = presentDoctors.filter((d) => d.isAvailableForEmergency);
+        const affiliatedDoctorIds = Array.isArray(activeAffiliations)
+          ? activeAffiliations.map((a) => a.doctorId).filter(Boolean)
+          : [];
+
+        const presentQuery = {
+          'currentPresence.organizationId': org._id,
+          'currentPresence.isPresent': true,
+        };
+        if (affiliatedDoctorIds.length > 0) {
+          presentQuery._id = { $in: affiliatedDoctorIds };
+        }
+
+        presentDoctors = await Doctor.find(presentQuery).populate('userId', 'name');
+      } catch (err) {
+        presentDoctors = await Doctor.find({
+          'currentPresence.organizationId': org._id,
+          'currentPresence.isPresent': true,
+        }).populate('userId', 'name');
+      }
+
+      const emergencyDoctorsPresent = Array.isArray(presentDoctors)
+        ? presentDoctors.filter((d) => d && d.isAvailableForEmergency)
+        : [];
 
       // 4. Calculate suitability score (0 - 100)
       let capabilityScore = 30; // base verified emergency capability
@@ -191,6 +216,52 @@ export class EmergencyMatchingService {
     });
 
     return evaluatedOrgs;
+  }
+
+  /**
+   * Retrieves clean capability cards of nearby emergency facilities for Step 2 of workflow.
+   */
+  async getNearbyFacilities({ patientCoords, condition = 'cardiac', radius = 50 }) {
+    try {
+      const coords = Array.isArray(patientCoords) && patientCoords.length === 2 && !isNaN(patientCoords[0]) && !isNaN(patientCoords[1])
+        ? patientCoords
+        : [77.2090, 28.6139];
+
+      const matches = await this.findSuitableOrganizations(coords, condition, radius);
+      if (!matches || matches.length === 0) {
+        return [];
+      }
+
+      return matches.map((item) => ({
+        _id: item.organization._id,
+        id: item.organization._id,
+        name: item.organization.name,
+        slug: item.organization.slug || '',
+        address: item.organization.operatingAddress || item.organization.address,
+        operatingAddress: item.organization.operatingAddress,
+        registeredAddress: item.organization.registeredAddress,
+        location: item.organization.location,
+        emergencyContactPhone: item.organization.emergencyContactPhone || item.organization.phone || '+1-555-0199',
+        distanceKm: item.distanceKm,
+        estimatedTravelMinutes: item.estimatedTravelMinutes,
+        suitabilityScore: item.suitabilityScore,
+        isTarget: item.isTarget,
+        availableResources: {
+          icuBeds: item.availableResources?.icuBeds ?? 0,
+          erBays: item.availableResources?.erBays ?? 0,
+          ventilators: item.availableResources?.ventilators ?? 0,
+        },
+        presentDoctorCount: item.presentDoctorCount ?? 0,
+        emergencyDoctorCount: item.emergencyDoctorCount ?? 0,
+        specialistOnDuty: (item.emergencyDoctorCount ?? 0) > 0
+          ? 'Trauma & Emergency Specialist On-Site'
+          : ((item.presentDoctorCount ?? 0) > 0 ? 'On-Duty Emergency Physician' : 'Emergency Team On-Call'),
+        traumaStatus: item.organization.emergencyCapable !== false ? 'Verified Level-1 Trauma Ready' : 'Emergency Ready',
+      }));
+    } catch (err) {
+      console.error('[EmergencyMatchingService] getNearbyFacilities error:', err.message);
+      return [];
+    }
   }
 }
 

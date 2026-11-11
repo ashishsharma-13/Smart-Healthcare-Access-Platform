@@ -25,6 +25,10 @@ export class UserRepository {
   async listAll(filter = {}) {
     return await User.find(filter).sort({ createdAt: -1 }).exec();
   }
+
+  async deleteById(id) {
+    return await User.findByIdAndDelete(id).exec();
+  }
 }
 
 export const userRepository = new UserRepository();

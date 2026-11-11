@@ -111,9 +111,13 @@ export const EmergencyReservedPage = () => {
               <h1 className="text-lg font-bold text-slate-900 mt-1 leading-snug">
                 {destination?.name || 'Trauma Center'}
               </h1>
-              <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                <span>{destination?.address?.street}, {destination?.address?.city}</span>
+              <p className="text-xs text-slate-500 flex items-center mt-0.5">
+                <MapPin className="w-3.5 h-3.5 mr-1 text-slate-400" />
+                <span>
+                  {destination?.operatingAddress?.streetName
+                    ? `${destination.operatingAddress.buildingNumber ? destination.operatingAddress.buildingNumber + ', ' : ''}${destination.operatingAddress.streetName}, ${destination.operatingAddress.city}`
+                    : `${destination?.address?.street || ''}, ${destination?.address?.city || ''}`}
+                </span>
               </p>
             </div>
           </div>

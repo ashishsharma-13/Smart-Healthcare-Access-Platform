@@ -5,6 +5,29 @@ import organizationRoutes from './organizationRoutes.js';
 import appointmentRoutes from './appointmentRoutes.js';
 import emergencyRoutes from './emergencyRoutes.js';
 import adminRoutes from './adminRoutes.js';
+import { doctorAffiliationController } from '../controllers/DoctorAffiliationController.js';
+import { authenticate, authorize } from '../middleware/auth.js';
+
+// Dedicated Doctor Affiliation sub-router
+export const doctorAffiliationRoutes = express.Router();
+doctorAffiliationRoutes.get('/', authenticate, authorize('doctor'), (req, res, next) => doctorAffiliationController.getDoctorAffiliations(req, res, next));
+doctorAffiliationRoutes.post('/', authenticate, authorize('doctor'), (req, res, next) => doctorAffiliationController.requestAffiliation(req, res, next));
+doctorAffiliationRoutes.get('/organizations/search', authenticate, authorize('doctor'), (req, res, next) => doctorAffiliationController.searchOrganizations(req, res, next));
+doctorAffiliationRoutes.get('/search-organizations', authenticate, authorize('doctor'), (req, res, next) => doctorAffiliationController.searchOrganizations(req, res, next));
+doctorAffiliationRoutes.post('/:id/accept', authenticate, authorize('doctor'), (req, res, next) => doctorAffiliationController.acceptInvitation(req, res, next));
+doctorAffiliationRoutes.post('/:id/decline', authenticate, authorize('doctor'), (req, res, next) => doctorAffiliationController.declineInvitation(req, res, next));
+doctorAffiliationRoutes.post('/:id/terminate', authenticate, authorize('doctor'), (req, res, next) => doctorAffiliationController.requestTerminationByDoctor(req, res, next));
+
+// Dedicated Organization Affiliation sub-router
+export const organizationAffiliationRoutes = express.Router();
+organizationAffiliationRoutes.get('/', authenticate, authorize('organization'), (req, res, next) => doctorAffiliationController.getOrganizationAffiliations(req, res, next));
+organizationAffiliationRoutes.get('/pending', authenticate, authorize('organization'), (req, res, next) => doctorAffiliationController.getPendingAffiliationsForOrg(req, res, next));
+organizationAffiliationRoutes.get('/doctors/search', authenticate, authorize('organization'), (req, res, next) => doctorAffiliationController.searchDoctorsForOrg(req, res, next));
+organizationAffiliationRoutes.get('/search-doctors', authenticate, authorize('organization'), (req, res, next) => doctorAffiliationController.searchDoctorsForOrg(req, res, next));
+organizationAffiliationRoutes.post('/invite', authenticate, authorize('organization'), (req, res, next) => doctorAffiliationController.inviteDoctor(req, res, next));
+organizationAffiliationRoutes.post('/:id/approve', authenticate, authorize('organization'), (req, res, next) => doctorAffiliationController.approveAffiliation(req, res, next));
+organizationAffiliationRoutes.post('/:id/reject', authenticate, authorize('organization'), (req, res, next) => doctorAffiliationController.rejectAffiliation(req, res, next));
+organizationAffiliationRoutes.post('/:id/terminate', authenticate, authorize('organization'), (req, res, next) => doctorAffiliationController.requestTerminationByOrg(req, res, next));
 
 const router = express.Router();
 
@@ -18,11 +41,16 @@ router.get('/health', (req, res) => {
 });
 
 router.use('/auth', authRoutes);
+router.use('/doctor/affiliations', doctorAffiliationRoutes);
+router.use('/doctors/affiliations', doctorAffiliationRoutes);
 router.use('/doctors', doctorRoutes);
+router.use('/doctor', doctorRoutes);
+router.use('/organization/affiliations', organizationAffiliationRoutes);
+router.use('/organizations/affiliations', organizationAffiliationRoutes);
 router.use('/organizations', organizationRoutes);
+router.use('/organization', organizationRoutes);
 router.use('/appointments', appointmentRoutes);
 router.use('/emergency', emergencyRoutes);
 router.use('/admin', adminRoutes);
 
 export default router;
-

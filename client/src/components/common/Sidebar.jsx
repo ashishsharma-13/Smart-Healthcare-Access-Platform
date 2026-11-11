@@ -67,14 +67,16 @@ export const Sidebar = () => {
     {
       title: 'Practitioner Desk',
       links: [
-        { to: '/doctor/dashboard', label: 'Consultation Queue', icon: LayoutDashboard },
+        { to: '/doctor/dashboard', label: 'Doctor Portal', icon: LayoutDashboard },
         { to: '/doctor/schedule', label: 'Schedule & Slots', icon: Clock },
+        { to: '/doctor/appointments', label: 'Appointments Queue', icon: Calendar },
       ],
     },
     {
-      title: 'Facility Credentials',
+      title: 'Facility & Affiliations',
       links: [
-        { to: '/doctor/presence', label: 'NMC Badge & QR Presence', icon: QrCode },
+        { to: '/doctor/affiliations', label: 'Manage Affiliations', icon: Building2 },
+        { to: '/doctor/presence', label: 'QR Presence & Badge', icon: QrCode },
       ],
     },
   ];
@@ -83,15 +85,15 @@ export const Sidebar = () => {
     {
       title: 'Hospital Command',
       links: [
-        { to: '/organization/dashboard', label: 'Trauma Reception Desk', icon: ShieldAlert, emergency: true },
+        { to: '/organization/dashboard', label: 'Emergency Reception', icon: ShieldAlert, emergency: true },
         { to: '/organization/resources', label: 'Bed & ICU Capacity', icon: BedDouble },
       ],
     },
     {
       title: 'Facility Management',
       links: [
-        { to: '/organization/doctors', label: 'On-Site Doctors', icon: Users },
-        { to: '/organization/qr-code', label: 'Reception QR Desk', icon: QrCode },
+        { to: '/organization/doctors', label: 'Manage Doctors', icon: Users },
+        { to: '/organization/qr-code', label: 'Facility QR Code', icon: QrCode },
       ],
     },
   ];
@@ -184,12 +186,12 @@ export const Sidebar = () => {
                         }`
                       }
                     >
-                      <div className="flex items-center gap-2.5 truncate">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <Icon className="w-4 h-4 flex-shrink-0" />
                         <span className="truncate">{link.label}</span>
                       </div>
                       {link.emergency && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-urgent-500 animate-pulse flex-shrink-0" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-urgent-500 animate-pulse" />
                       )}
                     </NavLink>
                   );
@@ -200,13 +202,15 @@ export const Sidebar = () => {
         </div>
       </div>
 
-      {/* Bottom Compliance Tag */}
-      <div className="pt-4 border-t border-slate-200 text-slate-400 text-[10px] flex items-center justify-between">
-        <span className="flex items-center gap-1 text-slate-500">
-          <ShieldCheck className="w-3.5 h-3.5 text-presence-600" />
-          <span>SHAP Protocol v2.5</span>
-        </span>
-        <span className="font-mono text-[9px] text-slate-400">SECURE</span>
+      {/* Footer System Status / Platform Notice */}
+      <div className="pt-4 border-t border-slate-200/60 space-y-2">
+        <div className="p-2.5 rounded-lg bg-brand-50/60 border border-brand-100 flex items-center justify-between text-[11px]">
+          <div className="flex items-center gap-1.5 text-brand-900 font-medium">
+            <span className="w-2 h-2 rounded-full bg-presence-500 animate-pulse" />
+            <span>SHAP Live Network</span>
+          </div>
+          <span className="text-[10px] text-brand-700 font-mono">v2.4</span>
+        </div>
       </div>
     </div>
   );
@@ -214,35 +218,36 @@ export const Sidebar = () => {
   return (
     <>
       {/* Desktop Persistent Sidebar */}
-      <aside className="hidden md:flex w-64 bg-white border-r border-slate-200 min-h-[calc(100vh-4rem)] flex-col select-none flex-shrink-0">
+      <aside className="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col flex-shrink-0 min-h-[calc(100vh-4rem)]">
         {navContent}
       </aside>
 
-      {/* Mobile Slide-Over Drawer with Accessible Backdrop */}
+      {/* Mobile Slide-over Drawer */}
       {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
-          {/* Backdrop */}
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          {/* Backdrop overlay */}
           <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fade-in"
             onClick={closeMobileSidebar}
             aria-hidden="true"
           />
 
           {/* Drawer Panel */}
-          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white shadow-xl z-50">
-            {/* Header with Close Button */}
-            <div className="h-16 px-4 border-b border-slate-200 flex items-center justify-between">
-              <span className="text-sm font-bold text-slate-900">Portal Navigation</span>
+          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white shadow-elevated z-10 animate-slide-right">
+            {/* Drawer Close Button Header */}
+            <div className="p-3 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Navigation Menu</span>
               <button
+                type="button"
                 onClick={closeMobileSidebar}
-                className="p-2 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
-                aria-label="Close navigation drawer"
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 transition-colors"
+                aria-label="Close navigation"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Scrollable Nav Content */}
+            {/* Nav content inside scrollable view */}
             <div className="flex-1 overflow-y-auto">
               {navContent}
             </div>

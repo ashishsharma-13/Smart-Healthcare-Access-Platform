@@ -22,7 +22,8 @@ export const EmergencyIncomingModal = () => {
   const handleRespond = async (status) => {
     try {
       setSubmitting(true);
-      await api.post(`/emergency/${incomingEmergency.emergencyRequestId}/respond`, {
+      const reqId = incomingEmergency.emergencyRequestId?._id || incomingEmergency.emergencyRequestId || incomingEmergency._id;
+      await api.post(`/emergency/${reqId}/respond`, {
         responseStatus: status,
         offeredResources: status === 'ACCEPTED' ? offeredResources : {},
         declineReason: status === 'DECLINED' ? 'Current hospital capacity constraints' : '',

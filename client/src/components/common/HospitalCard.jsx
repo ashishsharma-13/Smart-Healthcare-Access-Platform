@@ -22,9 +22,13 @@ export const HospitalCard = ({ hospital, onSelect, isEmergencyMode = false }) =>
               <h3 className="font-semibold text-sm text-slate-900 group-hover:text-brand-700 transition-colors leading-snug">
                 {hospital.name}
               </h3>
-              <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                <span className="truncate">{hospital.address?.street}, {hospital.address?.city}</span>
+              <p className="text-xs text-slate-500 flex items-center mt-0.5">
+                <MapPin className="w-3.5 h-3.5 mr-1 text-slate-400 flex-shrink-0" />
+                <span className="truncate">
+                  {hospital.operatingAddress?.streetName
+                    ? `${hospital.operatingAddress.buildingNumber ? hospital.operatingAddress.buildingNumber + ', ' : ''}${hospital.operatingAddress.streetName}, ${hospital.operatingAddress.city}`
+                    : `${hospital.address?.street || ''}, ${hospital.address?.city || ''}`}
+                </span>
               </p>
             </div>
           </div>

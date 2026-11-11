@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { doctorRepository } from '../repositories/DoctorRepository.js';
 import { organizationRepository } from '../repositories/OrganizationRepository.js';
 import { doctorPresenceRepository } from '../repositories/DoctorPresenceRepository.js';
+import { doctorAffiliationRepository } from '../repositories/DoctorAffiliationRepository.js';
 
 export class DoctorService {
   async approveDoctor(doctorId, adminUserId) {
@@ -70,6 +71,12 @@ export class DoctorService {
     const org = await organizationRepository.findByQrCode(orgQrCheckinCode);
     if (!org) {
       throw new Error('Invalid organization QR code or identifier');
+    }
+
+    // Verify active affiliation with the target organization
+    const activeAffiliation = await doctorAffiliationRepository.findActiveAffiliation(doctor._id, org._id);
+    if (!activeAffiliation) {
+      throw new Error(`Doctor does not have an active affiliation with ${org.name}. QR check-in requires an ACTIVE affiliation.`);
     }
 
     // Update doctor presence
