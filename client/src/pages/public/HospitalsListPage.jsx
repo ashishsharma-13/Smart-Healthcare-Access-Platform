@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { HospitalCard } from '../../components/common/HospitalCard';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { HospitalCardSkeleton } from '../../components/ui/Skeleton';
 import { Building2, Search, Filter, ShieldAlert } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 export const HospitalsListPage = () => {
   const [hospitals, setHospitals] = useState([]);
@@ -38,36 +42,41 @@ export const HospitalsListPage = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       
       {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-card">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Hospitals & Clinics Directory</h1>
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant="info" size="xs">
+              National Health Network
+            </Badge>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Emergency Ready Facilities Directory
+          </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Participating healthcare organizations with verified emergency capabilities and managed bed capacity.
+            Participating healthcare organizations with verified trauma capabilities and real-time bed capacity.
           </p>
         </div>
 
-        <Link
-          to="/emergency/activate"
-          className="inline-flex items-center space-x-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all self-start md:self-auto"
-        >
-          <ShieldAlert className="w-4 h-4 animate-bounce" />
-          <span>Emergency Beep Mode</span>
+        <Link to="/emergency/activate">
+          <Button variant="emergency" size="md" icon={ShieldAlert}>
+            Emergency Beep Mode
+          </Button>
         </Link>
       </div>
 
       {/* Search & Filters */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+      <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-card grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
         <div className="sm:col-span-8 relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search facility by name or locality..."
+            placeholder="Search facility by name, locality, or district..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
           />
         </div>
 
@@ -75,27 +84,36 @@ export const HospitalsListPage = () => {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
           >
             <option value="all">All Healthcare Facilities</option>
             <option value="hospital">Hospitals Only</option>
             <option value="clinic">Outpatient Clinics</option>
-            <option value="specialty_center">Specialty Centers</option>
+            <option value="specialty_center">Specialty Trauma Centers</option>
           </select>
         </div>
       </div>
 
       {/* Grid */}
       {loading ? (
-        <div className="p-12 text-center text-xs text-slate-400">Loading facilities...</div>
-      ) : filtered.length === 0 ? (
-        <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
-          <Building2 className="w-10 h-10 text-slate-300 mx-auto" />
-          <h3 className="text-sm font-bold text-slate-800">No facilities found</h3>
-          <p className="text-xs text-slate-500">Try adjusting your search criteria.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <HospitalCardSkeleton key={i} />
+          ))}
         </div>
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={Building2}
+          title="No Facilities Found"
+          description="No healthcare organizations match your search keyword. Try clearing filters or searching another city."
+          actionLabel="Reset Search"
+          onAction={() => {
+            setSearchTerm('');
+            setFilterType('all');
+          }}
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((hosp) => (
             <HospitalCard key={hosp._id} hospital={hosp} />
           ))}
@@ -106,3 +124,4 @@ export const HospitalsListPage = () => {
   );
 };
 
+export default HospitalsListPage;

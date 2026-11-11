@@ -3,37 +3,93 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    color-scheme: light;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
-    @apply bg-slate-50 text-slate-800 antialiased;
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    @apply bg-slate-50 text-slate-900 antialiased font-sans selection:bg-brand-500 selection:text-white;
+  }
+
+  /* Accessible focus indicators */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-600 ring-offset-2 ring-offset-white;
+  }
+
+  /* Refined institutional headings */
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight text-slate-900 font-semibold;
   }
 }
 
-/* Pulsing radar animation for Emergency Beep */
+/* Subtle, sleek scrollbar for clinical dashboards and tables */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full hover:bg-slate-400;
+}
+
+/* Precision radar pulse animation for Emergency Beep broadcast */
 @keyframes radar-pulse {
   0% {
-    transform: scale(0.95);
-    opacity: 0.8;
+    transform: scale(0.92);
+    opacity: 0.85;
   }
   50% {
-    transform: scale(1.3);
-    opacity: 0.3;
+    transform: scale(1.25);
+    opacity: 0.35;
   }
   100% {
-    transform: scale(1.6);
+    transform: scale(1.55);
     opacity: 0;
   }
 }
 
 .animate-radar {
-  animation: radar-pulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  animation: radar-pulse 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
-/* Leaflet map styles */
+/* Subdued pulse for live on-site presence indicator */
+@keyframes presence-ping {
+  75%, 100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.animate-presence-ping {
+  animation: presence-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Precision Leaflet map styling */
 .leaflet-container {
   width: 100%;
   height: 100%;
-  border-radius: 0.75rem;
+  border-radius: 0.625rem;
+  border: 1px solid #E2E8F0;
   z-index: 10;
+  font-family: inherit;
 }
 
+.leaflet-popup-content-wrapper {
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgb(15 23 42 / 0.1);
+  border: 1px solid #E2E8F0;
+  padding: 0;
+}
+
+.leaflet-popup-content {
+  margin: 0.75rem 1rem;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}

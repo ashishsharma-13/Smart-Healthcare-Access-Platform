@@ -14,6 +14,9 @@ import {
   QrCode,
   CheckCircle2,
 } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 export const EmergencyReservedPage = () => {
   const { id } = useParams();
@@ -39,7 +42,6 @@ export const EmergencyReservedPage = () => {
     };
     fetchEmergency();
 
-    // 1-second countdown interval
     const timer = setInterval(() => {
       setTimeLeftSeconds((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
@@ -49,7 +51,6 @@ export const EmergencyReservedPage = () => {
 
   const minutes = Math.floor(timeLeftSeconds / 60);
   const seconds = timeLeftSeconds % 60;
-  const timeProgressPercent = ((timeLeftSeconds / (15 * 60)) * 100).toFixed(0);
 
   const handleStartEnRoute = async () => {
     try {
@@ -65,7 +66,11 @@ export const EmergencyReservedPage = () => {
   };
 
   if (loading) {
-    return <div className="p-12 text-center text-xs text-slate-400">Loading reservation status...</div>;
+    return (
+      <div className="max-w-2xl mx-auto space-y-4 p-8 text-center text-xs text-slate-400">
+        Loading emergency pass...
+      </div>
+    );
   }
 
   const destination = emergency?.selectedOrganizationId;
@@ -73,138 +78,107 @@ export const EmergencyReservedPage = () => {
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-12">
       
-      {/* Top Amber Countdown Alert Banner (Screen 09 Montage) */}
-      <div className="bg-amber-500 rounded-2xl p-4 text-white shadow-md flex items-center justify-between">
-        <div className="flex items-center space-x-2.5">
+      {/* Top Countdown Alert Banner */}
+      <div className="bg-hold-600 rounded-xl p-4 text-white shadow-card flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
           <Clock className="w-5 h-5 animate-spin" />
           <div>
-            <p className="text-xs font-black uppercase tracking-wider">Temporary Bed Hold Active</p>
-            <p className="text-[11px] text-amber-100">Atomic hold automatically expires if arrival is not confirmed</p>
+            <p className="text-xs font-bold uppercase tracking-wider">Temporary 15-Minute Bed Hold Active</p>
+            <p className="text-[11px] text-hold-100">Automatic release occurs if arrival is not registered before expiry</p>
           </div>
         </div>
         <div className="text-right">
-          <span className="text-xl font-mono font-black">
+          <span className="text-xl font-mono font-bold">
             {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
           </span>
-          <span className="block text-[9px] uppercase font-bold text-amber-100">Remaining</span>
+          <span className="block text-[10px] uppercase font-medium text-hold-100">Remaining</span>
         </div>
       </div>
 
-      {/* Main Reservation Digital Ticket Card (Screen 09 Montage) */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xl space-y-6 relative overflow-hidden">
-        {/* Ticket Header */}
-        <div className="flex items-start justify-between border-b border-slate-100 pb-5">
-          <div className="flex items-center space-x-3.5">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold shadow-xs">
-              <ShieldCheck className="w-8 h-8 stroke-[2.5]" />
+      {/* Main Reservation Pass */}
+      <div className="bg-white rounded-xl p-6 sm:p-7 border border-slate-200 shadow-card space-y-5">
+        
+        {/* Pass Header */}
+        <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+          <div className="flex items-start gap-3">
+            <div className="w-11 h-11 rounded-lg bg-presence-50 text-presence-700 border border-presence-200 flex items-center justify-center font-bold flex-shrink-0">
+              <ShieldCheck className="w-6 h-6 stroke-[2]" />
             </div>
             <div>
-              <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
-                Resource Temporarily Locked
-              </span>
-              <h1 className="text-xl font-black text-slate-900 mt-1">
+              <Badge variant="presence" size="xs">
+                Resource Temporarily Reserved
+              </Badge>
+              <h1 className="text-lg font-bold text-slate-900 mt-1 leading-snug">
                 {destination?.name || 'Trauma Center'}
               </h1>
-              <p className="text-xs text-slate-500 flex items-center mt-0.5">
-                <MapPin className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                {destination?.address?.street}, {destination?.address?.city}
+              <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                <span>{destination?.address?.street}, {destination?.address?.city}</span>
               </p>
             </div>
           </div>
 
-          <div className="text-right">
-            <span className="text-[11px] font-bold text-slate-400 block uppercase">Token Code</span>
-            <span className="text-base font-mono font-black text-blue-600">
+          <div className="text-right flex-shrink-0">
+            <span className="text-[10px] font-semibold text-slate-400 block uppercase">Pass Code</span>
+            <span className="text-sm font-mono font-bold text-brand-700">
               {emergency?.requestCode || 'SHAP-EMG-101'}
             </span>
           </div>
         </div>
 
         {/* Reserved Resource Details */}
-        <div className="grid grid-cols-2 gap-3.5 p-4 bg-slate-50 rounded-2xl border border-slate-200/80">
-          <div className="p-3 bg-white rounded-xl border border-slate-100 shadow-xs">
-            <p className="text-[10px] font-bold uppercase text-slate-400">Reserved Resource</p>
-            <p className="text-xs font-black text-slate-900 mt-0.5 flex items-center text-emerald-600">
-              <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-              1x Emergency Bay (Held)
+        <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 rounded-lg border border-slate-200">
+          <div className="p-2.5 bg-white rounded-md border border-slate-100">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Locked Resource</p>
+            <p className="text-xs font-bold text-presence-700 mt-0.5 flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>1x Emergency Bay (Held)</span>
             </p>
           </div>
-          <div className="p-3 bg-white rounded-xl border border-slate-100 shadow-xs">
-            <p className="text-[10px] font-bold uppercase text-slate-400">Emergency Type</p>
-            <p className="text-xs font-black text-red-600 uppercase mt-0.5">
+          <div className="p-2.5 bg-white rounded-md border border-slate-100">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Emergency Protocol</p>
+            <p className="text-xs font-bold text-urgent-700 uppercase mt-0.5">
               {emergency?.emergencyType || 'Cardiac'}
             </p>
           </div>
         </div>
 
         {/* Digital Pass QR & Gate Directions */}
-        <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200/80 flex flex-col sm:flex-row items-center gap-5">
-          {/* QR Code graphic */}
-          <div className="w-28 h-28 bg-white p-2 rounded-2xl border border-blue-200 shadow-sm flex-shrink-0 flex items-center justify-center">
-            <svg viewBox="0 0 100 100" className="w-full h-full text-slate-900 fill-current">
-              {/* QR pattern representation */}
-              <rect x="10" y="10" width="24" height="24" fill="#0F172A" />
-              <rect x="14" y="14" width="16" height="16" fill="#FFFFFF" />
-              <rect x="18" y="18" width="8" height="8" fill="#0F172A" />
-
-              <rect x="66" y="10" width="24" height="24" fill="#0F172A" />
-              <rect x="70" y="14" width="16" height="16" fill="#FFFFFF" />
-              <rect x="74" y="18" width="8" height="8" fill="#0F172A" />
-
-              <rect x="10" y="66" width="24" height="24" fill="#0F172A" />
-              <rect x="14" y="70" width="16" height="16" fill="#FFFFFF" />
-              <rect x="18" y="74" width="8" height="8" fill="#0F172A" />
-
-              <rect x="42" y="15" width="8" height="8" fill="#2563EB" />
-              <rect x="52" y="25" width="8" height="8" fill="#0F172A" />
-              <rect x="42" y="38" width="16" height="8" fill="#0F172A" />
-              <rect x="15" y="44" width="8" height="12" fill="#0F172A" />
-              <rect x="42" y="55" width="10" height="10" fill="#2563EB" />
-              <rect x="65" y="45" width="12" height="10" fill="#0F172A" />
-              <rect x="58" y="68" width="10" height="10" fill="#0F172A" />
-              <rect x="75" y="75" width="15" height="10" fill="#2563EB" />
-            </svg>
+        <div className="p-4 bg-brand-50/60 rounded-lg border border-brand-200/80 flex flex-col sm:flex-row items-center gap-4">
+          <div className="w-24 h-24 bg-white p-2 rounded-lg border border-brand-200 shadow-xs flex-shrink-0 flex items-center justify-center">
+            <QrCode className="w-20 h-20 text-slate-900" />
           </div>
 
-          <div className="space-y-1.5 text-center sm:text-left">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-white px-2 py-0.5 rounded-full border border-blue-200">
-              Arrival Gate Instructions
-            </span>
-            <h4 className="text-sm font-bold text-slate-900">
-              Proceed to Emergency Gate #2
-            </h4>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Show this QR pass to the ER triage nurse at the ambulance entrance for priority triage and immediate bay allocation.
+          <div className="space-y-1 text-xs text-slate-700 text-center sm:text-left">
+            <h4 className="font-bold text-slate-900">Hospital Arrival Instructions</h4>
+            <p className="text-slate-600 text-[11px] leading-relaxed">
+              Proceed directly to <strong>Emergency Gate #2 / Trauma Bay Reception</strong>. Present this pass token to triage desk staff for immediate fast-track admission.
             </p>
+            {destination?.emergencyContactPhone && (
+              <p className="pt-1 text-slate-800 font-semibold flex items-center justify-center sm:justify-start gap-1">
+                <Phone className="w-3.5 h-3.5 text-brand-600" />
+                <span>Direct Hospital Hotline: {destination.emergencyContactPhone}</span>
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Contact and Start Navigation CTAs */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
-          {destination?.emergencyContactPhone && (
-            <a
-              href={`tel:${destination.emergencyContactPhone}`}
-              className="py-3.5 px-5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors flex items-center justify-center space-x-2 border border-slate-200"
-            >
-              <Phone className="w-4 h-4 text-blue-600" />
-              <span>Call ER Desk ({destination.emergencyContactPhone})</span>
-            </a>
-          )}
-
-          <button
-            onClick={handleStartEnRoute}
-            disabled={enRouteLoading}
-            className="flex-1 py-3.5 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold shadow-md shadow-blue-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-2"
-          >
-            <Navigation className="w-4 h-4" />
-            <span>{enRouteLoading ? 'Starting Navigation...' : 'Start En Route Navigation'}</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
+        {/* Primary Action: En-Route Navigation */}
+        <Button
+          variant="primary"
+          size="lg"
+          loading={enRouteLoading}
+          className="w-full"
+          icon={Navigation}
+          onClick={handleStartEnRoute}
+        >
+          {enRouteLoading ? 'Updating Telemetry...' : 'MARK EN ROUTE & OPEN LIVE MAP NAVIGATION'}
+        </Button>
 
       </div>
 
     </div>
   );
 };
+
 export default EmergencyReservedPage;

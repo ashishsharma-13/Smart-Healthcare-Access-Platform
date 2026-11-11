@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
+import { UIProvider } from './context/UIContext';
 import { PublicLayout } from './layouts/PublicLayout';
 import { DashboardLayout } from './layouts/DashboardLayout';
 
@@ -60,8 +61,9 @@ export default function App() {
   return (
     <AuthProvider>
       <SocketProvider>
-        <Router>
-          <Routes>
+        <UIProvider>
+          <Router>
+            <Routes>
             {/* Public Layout */}
             <Route element={<PublicLayout />}>
               <Route path="/" element={<LandingPage />} />
@@ -257,7 +259,8 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
-      </SocketProvider>
-    </AuthProvider>
+      </UIProvider>
+    </SocketProvider>
+  </AuthProvider>
   );
 }

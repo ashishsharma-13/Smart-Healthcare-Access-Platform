@@ -13,13 +13,12 @@ import {
   ShieldCheck,
   ArrowRight,
   X,
+  FileCheck,
+  Building,
 } from 'lucide-react';
-
-const sanitizePhone = (value) => {
-  const compact = value.replace(/\s+/g, '');
-  const digits = compact.replace(/\D/g, '');
-  return compact.startsWith('+') ? `+${digits}` : digits;
-};
+import { Button } from '../components/ui/Button';
+import { Toast } from '../components/ui/Toast';
+import { Badge } from '../components/ui/Badge';
 
 export const RegisterPage = () => {
   const { register } = useAuth();
@@ -60,7 +59,7 @@ export const RegisterPage = () => {
     const cleanPhone = phone.trim();
 
     if (!trimmedName) {
-      setError(role === 'organization' ? 'Please enter hospital / organization name.' : 'Please enter your full name.');
+      setError(role === 'organization' ? 'Please enter hospital / facility name.' : 'Please enter your full name.');
       return;
     }
 
@@ -75,16 +74,15 @@ export const RegisterPage = () => {
     }
 
     if (role === 'doctor' && !licenseNumber.trim()) {
-      setError('Please enter your doctor license / registration number.');
+      setError('Please enter your NMC doctor license / registration number.');
       return;
     }
 
     if (role === 'organization' && !regNumber.trim()) {
-      setError('Please enter your facility registration number.');
+      setError('Please enter your health facility registration number.');
       return;
     }
 
-    // Determine target for OTP verification (prioritizes email if provided)
     const targetType = trimmedEmail ? 'email' : 'phone';
     const targetVal = targetType === 'email' ? trimmedEmail : cleanPhone;
 
@@ -105,7 +103,7 @@ export const RegisterPage = () => {
     }
   };
 
-  // Step 2: Verify OTP -> Register User -> Redirect to Dashboard
+  // Step 2: Verify OTP -> Register User -> Redirect
   const handleVerifyAndRegister = async (e) => {
     if (e) e.preventDefault();
 
@@ -147,7 +145,7 @@ export const RegisterPage = () => {
 
       await register(payload);
 
-      // 3. Close modal & redirect to /dashboard
+      // 3. Close modal & redirect
       setOtpModalOpen(false);
       navigate('/dashboard');
     } catch (err) {
@@ -157,7 +155,6 @@ export const RegisterPage = () => {
     }
   };
 
-  // Step 2: Resend OTP
   const handleResendOtp = async () => {
     setModalError('');
     setResendingOtp(true);
@@ -173,332 +170,317 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div className="relative min-h-[90vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
-      {/* Ambient blurred gradient shapes in the background for depth */}
-      <div className="absolute top-10 -left-20 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute bottom-10 -right-20 w-88 h-88 bg-indigo-400/20 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[34rem] h-[34rem] bg-cyan-200/20 rounded-full blur-3xl pointer-events-none -z-10" />
-
-      {/* Main Registration Card */}
-      <div className="max-w-xl w-full bg-white/70 backdrop-blur-xl border border-white/80 p-8 sm:p-12 rounded-3xl shadow-2xl space-y-6 relative z-10">
+    <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-xl w-full bg-white border border-slate-200 p-6 sm:p-8 rounded-xl shadow-card space-y-6">
         
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-blue-500/25 mb-4">
-            <Activity className="w-7 h-7" />
+          <div className="w-11 h-11 rounded-lg bg-brand-950 text-white flex items-center justify-center mx-auto shadow-xs">
+            <Activity className="w-6 h-6 text-brand-400 stroke-[2.25]" />
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Create your SHAP Account</h2>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium">Smart Healthcare Access & Emergency Coordination</p>
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+            Create your SHAP Account
+          </h2>
+          <p className="text-xs text-slate-500">
+            Select your clinical role to initiate credentialed onboarding
+          </p>
         </div>
 
         {/* 3-Tab Segmented Role Selector */}
-        <div className="grid grid-cols-3 gap-2 p-1.5 bg-slate-100/80 backdrop-blur-md rounded-2xl border border-slate-200/50">
+        <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-lg border border-slate-200">
           <button
             type="button"
             onClick={() => setRole('patient')}
-            className={`py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center justify-center space-x-2 ${
+            className={`py-2 px-3 rounded-md text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
               role === 'patient'
-                ? 'bg-white text-blue-600 shadow-sm border border-slate-200/60'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                ? 'bg-white text-brand-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <User className="w-4 h-4" />
+            <User className="w-3.5 h-3.5" />
             <span>Patient</span>
           </button>
 
           <button
             type="button"
             onClick={() => setRole('doctor')}
-            className={`py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center justify-center space-x-2 ${
+            className={`py-2 px-3 rounded-md text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
               role === 'doctor'
-                ? 'bg-white text-blue-600 shadow-sm border border-slate-200/60'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                ? 'bg-white text-brand-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Stethoscope className="w-4 h-4" />
+            <Stethoscope className="w-3.5 h-3.5" />
             <span>Doctor</span>
           </button>
 
           <button
             type="button"
             onClick={() => setRole('organization')}
-            className={`py-3 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center justify-center space-x-2 ${
+            className={`py-2 px-3 rounded-md text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
               role === 'organization'
-                ? 'bg-white text-blue-600 shadow-sm border border-slate-200/60'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                ? 'bg-white text-brand-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Building2 className="w-4 h-4" />
+            <Building2 className="w-3.5 h-3.5" />
             <span>Hospital</span>
           </button>
         </div>
 
-        {/* Error Notification */}
         {error && (
-          <div className="p-3.5 bg-red-50/90 border border-red-200 text-red-700 text-xs sm:text-sm rounded-2xl font-medium">
-            {error}
-          </div>
+          <Toast type="error" message={error} onClose={() => setError('')} />
         )}
 
-        {/* Step 1 Form */}
-        <form onSubmit={handleContinueToVerification} className="space-y-6">
-          {/* Full Name */}
+        {/* Registration Form */}
+        <form onSubmit={handleContinueToVerification} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              {role === 'organization' ? 'Organization / Hospital Name' : 'Full Name'}
+            <label htmlFor="reg-name" className="block text-xs font-medium text-slate-700 mb-1">
+              {role === 'organization' ? 'Hospital / Facility Legal Name' : 'Full Name'}
             </label>
-            <div className="relative">
-              {role === 'organization' ? (
-                <Building2 className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-              ) : (
-                <User className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-              )}
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={role === 'doctor' ? 'Dr. John Doe' : role === 'organization' ? 'Central Medical Hospital' : 'John Doe'}
-                className="w-full py-3.5 pl-12 pr-4 rounded-2xl bg-white/60 border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-xs"
-              />
-            </div>
+            <input
+              id="reg-name"
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={role === 'organization' ? 'e.g. Apollo Multi-Speciality Hospital' : 'e.g. Dr. Rajesh Kumar or Priya Sharma'}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
+            />
           </div>
 
-          {/* Email & Phone Responsive Grid (Clean inputs without inline buttons) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+              <label htmlFor="reg-email" className="block text-xs font-medium text-slate-700 mb-1">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
+                  id="reg-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@domain.com"
-                  className="w-full py-3.5 pl-12 pr-4 rounded-2xl bg-white/60 border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-xs"
+                  placeholder="contact@domain.com"
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+              <label htmlFor="reg-phone" className="block text-xs font-medium text-slate-700 mb-1">
                 Phone Number
               </label>
               <div className="relative">
-                <Phone className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
-                  type="tel"
+                  id="reg-phone"
+                  type="text"
                   value={phone}
-                  onChange={(e) => setPhone(sanitizePhone(e.target.value))}
+                  onChange={(e) => setPhone(e.target.value)}
                   placeholder="+919956257068"
-                  className="w-full py-3.5 pl-12 pr-4 rounded-2xl bg-white/60 border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-xs"
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
                 />
               </div>
             </div>
           </div>
 
-          {/* Password */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Password
+            <label htmlFor="reg-password" className="block text-xs font-medium text-slate-700 mb-1">
+              Password (min. 6 characters)
             </label>
             <div className="relative">
-              <Lock className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
+                id="reg-password"
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimum 6 characters"
-                className="w-full py-3.5 pl-12 pr-4 rounded-2xl bg-white/60 border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-xs"
+                placeholder="••••••••••••"
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
               />
             </div>
           </div>
 
-          {/* Doctor Professional Fields */}
+          {/* Role Conditioned Fields */}
           {role === 'doctor' && (
-            <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-200/70 space-y-3">
-              <p className="text-xs font-bold text-blue-900 uppercase tracking-wider">Doctor Professional Credentials</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Specialization</label>
-                  <select
-                    value={specialization}
-                    onChange={(e) => setSpecialization(e.target.value)}
-                    className="w-full py-2.5 px-3 bg-white/80 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Cardiology">Cardiology</option>
-                    <option value="Emergency Medicine">Emergency Medicine</option>
-                    <option value="Neurology">Neurology</option>
-                    <option value="Pediatrics">Pediatrics</option>
-                    <option value="Orthopedics">Orthopedics</option>
-                    <option value="General Physician">General Physician</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">License / Reg #</label>
-                  <input
-                    type="text"
-                    required
-                    value={licenseNumber}
-                    onChange={(e) => setLicenseNumber(e.target.value)}
-                    placeholder="MED-REG-XXXX"
-                    className="w-full py-2.5 px-3 bg-white/80 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+              <div>
+                <label htmlFor="reg-spec" className="block text-xs font-medium text-slate-700 mb-1">
+                  Primary Specialization
+                </label>
+                <select
+                  id="reg-spec"
+                  value={specialization}
+                  onChange={(e) => setSpecialization(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
+                >
+                  <option value="General Physician">General Physician</option>
+                  <option value="Cardiology">Cardiology</option>
+                  <option value="Neurology">Neurology</option>
+                  <option value="Pediatrics">Pediatrics</option>
+                  <option value="Orthopedics">Orthopedics</option>
+                  <option value="Ophthalmology">Ophthalmology</option>
+                  <option value="Emergency Medicine">Emergency Medicine</option>
+                </select>
               </div>
-              <p className="text-[11px] text-blue-700">
-                *Doctor credentials will enter Pending Verification for Web Administrator review.
-              </p>
+
+              <div>
+                <label htmlFor="reg-license" className="block text-xs font-medium text-slate-700 mb-1">
+                  NMC Registration / License #
+                </label>
+                <input
+                  id="reg-license"
+                  type="text"
+                  required
+                  value={licenseNumber}
+                  onChange={(e) => setLicenseNumber(e.target.value)}
+                  placeholder="e.g. MCI-2019-84729"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white font-mono"
+                />
+              </div>
             </div>
           )}
 
           {role === 'organization' && (
-            <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-200/70 space-y-3">
-              <p className="text-xs font-bold text-blue-900 uppercase tracking-wider">Facility Registration Info</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Facility Type</label>
-                  <select
-                    value={orgType}
-                    onChange={(e) => setOrgType(e.target.value)}
-                    className="w-full py-2.5 px-3 bg-white/80 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="hospital">Hospital / Medical Center</option>
-                    <option value="clinic">Outpatient Clinic</option>
-                    <option value="specialty_center">Specialty Center</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Registration #</label>
-                  <input
-                    type="text"
-                    required
-                    value={regNumber}
-                    onChange={(e) => setRegNumber(e.target.value)}
-                    placeholder="HOSP-REG-XXXX"
-                    className="w-full py-2.5 px-3 bg-white/80 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+              <div>
+                <label htmlFor="reg-orgtype" className="block text-xs font-medium text-slate-700 mb-1">
+                  Facility Classification
+                </label>
+                <select
+                  id="reg-orgtype"
+                  value={orgType}
+                  onChange={(e) => setOrgType(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
+                >
+                  <option value="hospital">Multi-Speciality Hospital</option>
+                  <option value="trauma_center">Dedicated Trauma Center</option>
+                  <option value="clinic">Outpatient Day Clinic</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="reg-orgreg" className="block text-xs font-medium text-slate-700 mb-1">
+                  Health Facility License #
+                </label>
+                <input
+                  id="reg-orgreg"
+                  type="text"
+                  required
+                  value={regNumber}
+                  onChange={(e) => setRegNumber(e.target.value)}
+                  placeholder="e.g. HOSP-DEL-2024-001"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white font-mono"
+                />
               </div>
             </div>
           )}
 
-          {/* Step 1 Action Button */}
-          <button
+          <Button
             type="submit"
-            disabled={sendingOtp}
-            className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center space-x-2 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            variant="primary"
+            size="md"
+            loading={sendingOtp}
+            className="w-full"
+            icon={ArrowRight}
+            iconPosition="right"
           >
-            <span>{sendingOtp ? 'Sending Verification Code...' : 'Continue to Verification →'}</span>
-          </button>
+            Continue to Verification (OTP)
+          </Button>
         </form>
 
-        {/* Footer Link */}
-        <div className="text-center pt-2 border-t border-slate-200/60 text-xs sm:text-sm text-slate-500">
-          Already have an account?{' '}
-          <Link to="/login" className="font-bold text-blue-600 hover:text-blue-700 transition-colors">
-            Sign In
+        {/* Footer info */}
+        <div className="pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
+          Already registered on SHAP?{' '}
+          <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
+            Sign In Instead
           </Link>
         </div>
 
       </div>
 
-      {/* Step 2: Centered Glass OTP Modal */}
+      {/* Step 2: 2-Step OTP Modal */}
       {otpModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-md bg-white/90 backdrop-blur-2xl border border-white rounded-3xl p-8 shadow-2xl space-y-6">
-            
-            {/* Top-Right Close Button */}
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs"
+        >
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 space-y-4 shadow-modal border border-slate-200 relative">
             <button
-              type="button"
-              onClick={() => {
-                setOtpModalOpen(false);
-                setModalError('');
-              }}
-              className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100/70 transition-colors cursor-pointer"
-              aria-label="Close"
+              onClick={() => setOtpModalOpen(false)}
+              className="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-600 rounded"
+              aria-label="Close modal"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
-            {/* Modal Header */}
-            <div className="text-center space-y-2 pt-2">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center mx-auto shadow-sm mb-3">
-                <ShieldCheck className="w-7 h-7" />
+            <div className="text-center space-y-1">
+              <div className="w-10 h-10 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center mx-auto mb-2 border border-brand-200">
+                <ShieldCheck className="w-5 h-5" />
               </div>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Enter Verification Code</h3>
-              <p className="text-xs sm:text-sm text-slate-500 max-w-xs mx-auto">
-                We've sent a 6-digit one-time code to{' '}
-                <span className="font-semibold text-slate-800 break-all">{otpTarget}</span>
+              <h3 className="text-base font-bold text-slate-900">
+                Verify Your Contact
+              </h3>
+              <p className="text-xs text-slate-500">
+                We sent a 6-digit code to <br />
+                <span className="font-semibold text-slate-900">{otpTarget}</span>
               </p>
             </div>
 
-            {/* OTP Input & Status */}
+            {devOtp && (
+              <div className="p-2 bg-amber-50 border border-amber-200 text-amber-800 rounded text-center text-xs font-mono">
+                Evaluation Test Code: <span className="font-bold tracking-widest">{devOtp}</span>
+              </div>
+            )}
+
+            {modalError && (
+              <Toast type="error" message={modalError} onClose={() => setModalError('')} />
+            )}
+
             <form onSubmit={handleVerifyAndRegister} className="space-y-4">
-              <div className="space-y-3">
+              <div>
                 <input
                   type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
                   maxLength={6}
-                  value={otp}
-                  onChange={(e) => {
-                    setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
-                    setModalError('');
-                  }}
-                  placeholder="••••••"
-                  aria-label="6-digit verification code"
+                  required
                   autoFocus
-                  className="w-full py-3.5 px-4 text-center tracking-[12px] text-2xl font-bold text-slate-900 bg-white/80 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-inner font-mono placeholder:tracking-[8px] placeholder:text-slate-300"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  placeholder="000000"
+                  className="w-full py-2.5 text-center font-mono text-xl tracking-widest bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
                 />
-
-                {/* Subtle Dev Badge */}
-                {devOtp && (
-                  <div className="flex items-center justify-center">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                      Dev Code: <strong className="font-mono">{devOtp}</strong>
-                    </span>
-                  </div>
-                )}
-
-                {modalError && (
-                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium text-center">
-                    {modalError}
-                  </div>
-                )}
               </div>
 
-              {/* Action Button: Verify & Create Account */}
-              <button
+              <Button
                 type="submit"
-                disabled={verifying || otp.length !== 6}
-                className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 text-sm sm:text-base cursor-pointer"
+                variant="primary"
+                size="md"
+                loading={verifying}
+                className="w-full"
               >
-                <span>{verifying ? 'Verifying & Creating Account...' : 'Verify & Create Account'}</span>
-                {!verifying && <ArrowRight className="w-4 h-4" />}
-              </button>
+                Verify & Create Account
+              </Button>
             </form>
 
-            {/* Resend OTP Button */}
-            <div className="text-center pt-1">
+            <div className="text-center text-xs text-slate-500 pt-1">
+              Didn't receive the code?{' '}
               <button
                 type="button"
-                onClick={handleResendOtp}
                 disabled={resendingOtp}
-                className="text-xs font-semibold text-blue-600 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                onClick={handleResendOtp}
+                className="font-semibold text-brand-600 hover:text-brand-700 disabled:opacity-50"
               >
-                {resendingOtp ? 'Sending new code...' : "Didn't receive the code? Resend OTP"}
+                {resendingOtp ? 'Sending...' : 'Resend Code'}
               </button>
             </div>
-
           </div>
         </div>
       )}
-
     </div>
   );
 };
+
+export default RegisterPage;

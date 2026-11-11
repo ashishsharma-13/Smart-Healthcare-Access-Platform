@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { QrCode, Building2, Printer, ShieldCheck } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 export const OrganizationQrDeskPage = () => {
   const [qrData, setQrData] = useState(null);
@@ -24,47 +27,60 @@ export const OrganizationQrDeskPage = () => {
 
   return (
     <div className="max-w-xl mx-auto space-y-6 pb-12 text-center">
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Facility Entrance QR Code</h1>
+      <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-card">
+        <Badge variant="info" size="xs" className="mb-1">
+          Reception Verification Stand
+        </Badge>
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+          Facility Reception QR Code Stand
+        </h1>
         <p className="text-xs text-slate-500 mt-0.5">
-          Print or display this pass at reception for visiting doctors to scan and register their physical presence.
+          Print or mount at the entrance triage desk for medical practitioners to register physical on-site presence.
         </p>
       </div>
 
       {loading ? (
         <div className="p-12 text-xs text-slate-400">Loading facility QR...</div>
       ) : (
-        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl space-y-5">
-          <div className="flex items-center justify-center space-x-2 text-blue-600 font-bold text-xs uppercase tracking-wider">
+        <div className="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-card space-y-5">
+          <div className="flex items-center justify-center gap-1.5 text-brand-700 font-bold text-xs uppercase tracking-wider">
             <Building2 className="w-4 h-4" />
             <span>{qrData?.organizationName}</span>
           </div>
 
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 inline-block mx-auto shadow-inner">
-            <img
-              src={qrData?.qrDataUrl}
-              alt="Facility Presence QR"
-              className="w-56 h-56 object-contain mx-auto"
-            />
-            <p className="text-xs font-mono font-bold text-slate-900 mt-3">
-              {qrData?.qrCheckinCode}
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 inline-block mx-auto">
+            {qrData?.qrDataUrl ? (
+              <img
+                src={qrData.qrDataUrl}
+                alt="Facility Presence QR"
+                className="w-52 h-52 object-contain mx-auto"
+              />
+            ) : (
+              <div className="w-52 h-52 flex items-center justify-center bg-white rounded border border-slate-200">
+                <QrCode className="w-40 h-40 text-slate-900" />
+              </div>
+            )}
+            <p className="text-xs font-mono font-bold text-slate-900 mt-2">
+              CODE: {qrData?.qrCheckinCode}
             </p>
           </div>
 
           <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-            Doctors scanning this code will be recorded as <strong>PRESENT</strong> on-site at this facility.
+            Doctors scanning this terminal QR are marked as <strong className="text-presence-700">PRESENT ON-SITE</strong> on the national platform.
           </p>
 
-          <button
+          <Button
+            size="md"
+            variant="primary"
+            icon={Printer}
             onClick={() => window.print()}
-            className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-colors inline-flex items-center space-x-2"
           >
-            <Printer className="w-4 h-4" />
-            <span>Print Reception Pass</span>
-          </button>
+            Print Reception Stand Poster
+          </Button>
         </div>
       )}
     </div>
   );
 };
 
+export default OrganizationQrDeskPage;

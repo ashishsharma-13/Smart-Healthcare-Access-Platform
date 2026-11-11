@@ -15,6 +15,10 @@ import {
   Calendar,
   Sparkles,
 } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { Toast } from '../../components/ui/Toast';
+import { TableSkeleton } from '../../components/ui/Skeleton';
 
 export const DoctorPresencePage = () => {
   const [profile, setProfile] = useState(null);
@@ -93,7 +97,11 @@ export const DoctorPresencePage = () => {
   };
 
   if (loading) {
-    return <div className="p-12 text-center text-xs text-slate-400">Loading presence desk...</div>;
+    return (
+      <div className="space-y-6">
+        <TableSkeleton rows={4} cols={4} />
+      </div>
+    );
   }
 
   const isPresent = profile?.currentPresence?.isPresent;
@@ -101,230 +109,203 @@ export const DoctorPresencePage = () => {
   const doctorName = profile?.userId?.name || 'Dr. Specialist';
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-12">
+    <div className="max-w-5xl mx-auto space-y-6 pb-12">
       
       {/* Title */}
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-          Doctor QR Credential & On-Site Presence
-        </h1>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Verify your physical presence on-site at participating hospitals via secure QR scan check-in.
-        </p>
+      <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant="presence" size="xs" dot>
+              Physical Presence Protocol
+            </Badge>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Practitioner QR Credential & Presence Desk
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Verify your physical on-site presence at participating healthcare facilities via secure QR check-in.
+          </p>
+        </div>
       </div>
 
       {feedback.message && (
-        <div
-          className={`p-4 rounded-2xl text-xs font-bold flex items-center space-x-2 ${
-            feedback.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}
-        >
-          {feedback.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-          ) : (
-            <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
-          )}
-          <span>{feedback.message}</span>
-        </div>
+        <Toast
+          type={feedback.type === 'success' ? 'success' : 'error'}
+          message={feedback.message}
+          onClose={() => setFeedback({ type: '', message: '' })}
+        />
       )}
 
-      {/* Main Grid: Official Doctor ID Badge (Col 6) + Facility Scanner (Col 6) */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+      {/* Main Grid: ID Badge + Facility Check-In */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
         
-        {/* Left: Official Digital Medical ID Card (Screen 13 Montage) */}
-        <div className="md:col-span-6 bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-slate-800 relative overflow-hidden space-y-5">
-          {/* Hologram aesthetic accent */}
-          <div className="absolute top-0 right-0 w-44 h-44 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
-
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-xs">
-                <ShieldCheck className="w-5 h-5" />
+        {/* Left: Official Digital ID Card */}
+        <div className="md:col-span-6 bg-brand-950 text-white rounded-xl p-5 sm:p-6 shadow-elevated border border-brand-900 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded bg-brand-600 flex items-center justify-center font-bold text-white shadow-xs">
+                <ShieldCheck className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-widest">
-                  Official Practitioner ID
+                <span className="text-[10px] font-semibold text-slate-400 block uppercase tracking-wider">
+                  NMC Practitioner Badge
                 </span>
-                <span className="text-xs font-extrabold text-blue-400">SHAP Medical Registry</span>
+                <span className="text-xs font-bold text-brand-300">SHAP Clinical Credential</span>
               </div>
             </div>
 
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              NMC VALIDATED
-            </span>
+            <Badge variant="presence" size="xs">
+              VALIDATED
+            </Badge>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <DoctorAvatar name={doctorName} specialization={profile?.specialization} className="w-20 h-20" />
-            <div className="space-y-1">
-              <h3 className="text-lg font-black text-white">{doctorName}</h3>
-              <p className="text-xs font-bold text-blue-400">{profile?.specialization}</p>
-              <div className="text-[11px] text-slate-400">
-                <span>Unique ID: </span>
-                <strong className="text-white font-mono">{profile?.uniqueDoctorId || 'DOC-10024'}</strong>
-              </div>
+          <div className="flex items-center gap-3.5">
+            <DoctorAvatar name={doctorName} specialization={profile?.specialization} className="w-16 h-16" />
+            <div className="space-y-0.5">
+              <h3 className="text-base font-bold text-white">{doctorName}</h3>
+              <p className="text-xs font-semibold text-brand-300">{profile?.specialization}</p>
+              <p className="text-[11px] text-slate-400">
+                Doctor ID: <span className="text-white font-mono font-bold">{profile?.uniqueDoctorId || 'DOC-10024'}</span>
+              </p>
             </div>
           </div>
 
           {/* QR Credential Graphic Representation */}
-          <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between gap-4">
+          <div className="p-3.5 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-between gap-3">
             <div className="space-y-1 text-xs">
-              <p className="font-bold text-slate-200">Doctor QR Credential</p>
-              <p className="text-[11px] text-slate-400 leading-tight">
-                Scan at hospital reception QR desk to record on-site physical presence.
+              <p className="font-semibold text-slate-200">Physician QR Credential</p>
+              <p className="text-[11px] text-slate-400 leading-snug">
+                Scan at hospital reception QR stand to record on-site physical presence.
               </p>
-              <span className="inline-block text-[10px] font-mono font-bold text-blue-300 mt-1">
+              <span className="inline-block text-[10px] font-mono font-semibold text-brand-300 mt-0.5">
                 {qrCredential?.qrCodeValue || 'SHAP-DOC-CREDENTIAL'}
               </span>
             </div>
 
-            <div className="w-20 h-20 bg-white p-1.5 rounded-xl flex-shrink-0 flex items-center justify-center shadow-xs">
-              <svg viewBox="0 0 100 100" className="w-full h-full fill-current text-slate-900">
-                <rect x="10" y="10" width="24" height="24" fill="#0F172A" />
-                <rect x="14" y="14" width="16" height="16" fill="#FFFFFF" />
-                <rect x="18" y="18" width="8" height="8" fill="#0F172A" />
-
-                <rect x="66" y="10" width="24" height="24" fill="#0F172A" />
-                <rect x="70" y="14" width="16" height="16" fill="#FFFFFF" />
-                <rect x="74" y="18" width="8" height="8" fill="#0F172A" />
-
-                <rect x="10" y="66" width="24" height="24" fill="#0F172A" />
-                <rect x="14" y="70" width="16" height="16" fill="#FFFFFF" />
-                <rect x="18" y="74" width="8" height="8" fill="#0F172A" />
-
-                <rect x="42" y="15" width="8" height="8" fill="#2563EB" />
-                <rect x="52" y="25" width="8" height="8" fill="#0F172A" />
-                <rect x="42" y="38" width="16" height="8" fill="#0F172A" />
-                <rect x="15" y="44" width="8" height="12" fill="#0F172A" />
-                <rect x="42" y="55" width="10" height="10" fill="#2563EB" />
-              </svg>
+            <div className="w-16 h-16 bg-white p-1 rounded-md flex-shrink-0 flex items-center justify-center shadow-xs">
+              <QrCode className="w-14 h-14 text-slate-900" />
             </div>
           </div>
 
-          <div className="text-[10px] text-slate-500 text-center pt-1">
+          <div className="text-[10px] text-slate-400 text-center pt-1 font-medium">
             Governed by SHAP Strict Non-Simultaneous Presence Protocol
           </div>
         </div>
 
-        {/* Right: Facility Check-In Desk Form (Screen 13 Montage) */}
-        <div className="md:col-span-6 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-6">
-          <div className="flex items-center space-x-2 pb-4 border-b border-slate-100">
-            <Scan className="w-5 h-5 text-blue-600" />
-            <h2 className="text-base font-bold text-slate-900">Hospital Check-In Desk</h2>
+        {/* Right: Hospital Check-In Desk Form */}
+        <div className="md:col-span-6 bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-card space-y-5">
+          <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+            <Scan className="w-4 h-4 text-brand-600" />
+            <h2 className="text-sm font-bold text-slate-900">Hospital Reception Check-In</h2>
           </div>
 
           {/* Current Presence Status Indicator */}
-          <div className="p-4 rounded-2xl border space-y-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Current Physical Status
+          <div className="p-3.5 rounded-lg border border-slate-200 bg-slate-50 space-y-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
+              Current Physical Verification
             </span>
             {isPresent ? (
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2 text-emerald-700 font-extrabold text-sm">
-                  <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>CHECKED IN & PRESENT ON-SITE</span>
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-2 text-presence-800 font-bold text-xs">
+                  <span className="w-2.5 h-2.5 rounded-full bg-presence-500 animate-pulse" />
+                  <span>PRESENT ON-SITE</span>
                 </div>
-                <p className="text-xs text-slate-600">
-                  Facility: <strong>{currentOrg?.name || 'Partner Trauma Center'}</strong>
+                <p className="text-xs text-slate-700">
+                  Facility: <strong className="text-slate-900">{currentOrg?.name || 'Partner Facility'}</strong>
                 </p>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-500">
                   Checked in at: {new Date(profile?.currentPresence?.checkedInAt).toLocaleTimeString()}
                 </p>
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
+                  loading={submitting}
+                  className="w-full text-rose-600 hover:bg-rose-50"
                   onClick={handleCheckOut}
-                  disabled={submitting}
-                  className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
                 >
-                  {submitting ? 'Processing Check-Out...' : 'Check Out From Facility'}
-                </button>
+                  {submitting ? 'Checking Out...' : 'Check Out From Facility'}
+                </Button>
               </div>
             ) : (
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2 text-slate-600 font-bold text-xs">
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-slate-600 font-medium text-xs">
+                  <span className="w-2 h-2 rounded-full bg-slate-400" />
                   <span>NOT CHECKED IN AT ANY FACILITY</span>
                 </div>
-                <p className="text-xs text-slate-500">
-                  To indicate you are on-site and ready for emergency patient reception, enter the facility's check-in code or scan their QR badge below.
+                <p className="text-xs text-slate-500 leading-snug">
+                  Enter the facility check-in code from the hospital reception desk below to mark on-site presence.
                 </p>
               </div>
             )}
           </div>
 
           {!isPresent && (
-            <form onSubmit={handleCheckIn} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Enter Facility Check-In Code</label>
+            <form onSubmit={handleCheckIn} className="space-y-3">
+              <div className="space-y-1">
+                <label htmlFor="checkin-code" className="text-xs font-medium text-slate-700 block">
+                  Enter Facility Reception Check-In Code
+                </label>
                 <input
+                  id="checkin-code"
                   type="text"
                   required
-                  placeholder="e.g. ORG-APEX-METRO-QR or ORG-ST-JUDE-QR"
+                  placeholder="e.g. ORG-APEX-METRO-QR"
                   value={checkinCode}
                   onChange={(e) => setCheckinCode(e.target.value)}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-800 uppercase focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
                 />
                 <span className="text-[10px] text-slate-400 block">
-                  Quick demo codes: <code>ORG-APEX-METRO-QR</code> or <code>ORG-ST-JUDE-QR</code>
+                  Quick demo codes: <code className="text-brand-700 font-bold">ORG-APEX-METRO-QR</code> or <code className="text-brand-700 font-bold">ORG-ST-JUDE-QR</code>
                 </span>
               </div>
 
-              <button
+              <Button
                 type="submit"
-                disabled={submitting}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
+                variant="primary"
+                size="md"
+                loading={submitting}
+                className="w-full"
               >
-                {submitting ? 'Checking In...' : 'Verify Presence & Check In'}
-              </button>
+                {submitting ? 'Verifying Presence...' : 'Verify Presence & Check In'}
+              </Button>
             </form>
           )}
         </div>
 
       </div>
 
-      {/* Presence History Table (Screen 13 Montage) */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center space-x-2 pb-3 border-b border-slate-100">
-          <History className="w-4 h-4 text-slate-500" />
-          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-            Recent Presence Audit Log
+      {/* Presence History Table */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-card space-y-3">
+        <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+          <History className="w-4 h-4 text-slate-400" />
+          <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+            Presence Session Audit Trail
           </h3>
         </div>
 
         {history.length === 0 ? (
-          <p className="text-xs text-slate-400 py-4 text-center">No presence sessions recorded yet.</p>
+          <p className="text-xs text-slate-400 py-3 text-center">No presence sessions recorded yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead>
-                <tr className="border-b text-slate-400 font-bold uppercase text-[10px]">
-                  <th className="py-2.5 px-3">Facility</th>
-                  <th className="py-2.5 px-3">Date</th>
-                  <th className="py-2.5 px-3">Check-In</th>
-                  <th className="py-2.5 px-3">Check-Out</th>
-                  <th className="py-2.5 px-3">Status</th>
+              <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-100">
+                <tr>
+                  <th className="p-2.5">Healthcare Organization</th>
+                  <th className="p-2.5">Check-In Time</th>
+                  <th className="p-2.5">Check-Out Time</th>
+                  <th className="p-2.5">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {history.map((log) => (
-                  <tr key={log._id} className="hover:bg-slate-50">
-                    <td className="py-2.5 px-3 font-bold text-slate-800">{log.organizationId?.name}</td>
-                    <td className="py-2.5 px-3 text-slate-500">{new Date(log.checkInTime).toLocaleDateString()}</td>
-                    <td className="py-2.5 px-3 text-slate-700">{new Date(log.checkInTime).toLocaleTimeString()}</td>
-                    <td className="py-2.5 px-3 text-slate-700">
-                      {log.checkOutTime ? new Date(log.checkOutTime).toLocaleTimeString() : 'Active On-Site'}
-                    </td>
-                    <td className="py-2.5 px-3">
-                      {log.checkOutTime ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-600 font-semibold">
-                          Completed
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
-                          Present
-                        </span>
-                      )}
+              <tbody className="divide-y divide-slate-100">
+                {history.map((h, i) => (
+                  <tr key={i} className="hover:bg-slate-50/60">
+                    <td className="p-2.5 font-medium text-slate-900">{h.organizationId?.name || 'Facility'}</td>
+                    <td className="p-2.5 text-slate-600">{new Date(h.checkedInAt).toLocaleString()}</td>
+                    <td className="p-2.5 text-slate-600">{h.checkedOutAt ? new Date(h.checkedOutAt).toLocaleString() : 'Active On-Site'}</td>
+                    <td className="p-2.5">
+                      <Badge variant={h.checkedOutAt ? 'neutral' : 'presence'} size="xs">
+                        {h.checkedOutAt ? 'Completed' : 'Active'}
+                      </Badge>
                     </td>
                   </tr>
                 ))}
@@ -337,4 +318,5 @@ export const DoctorPresencePage = () => {
     </div>
   );
 };
+
 export default DoctorPresencePage;

@@ -16,6 +16,9 @@ import {
   Phone,
   Activity,
 } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 export const EmergencyBroadcastPage = () => {
   const { id } = useParams();
@@ -29,7 +32,6 @@ export const EmergencyBroadcastPage = () => {
   useEffect(() => {
     fetchBroadcastData();
 
-    // Subscribe to emergency socket room
     if (socket) {
       socket.emit('emergency:subscribe', { emergencyRequestId: id });
 
@@ -75,140 +77,148 @@ export const EmergencyBroadcastPage = () => {
   const pendingCount = broadcasts.filter((b) => b.responseStatus === 'PENDING').length;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-12">
+    <div className="max-w-4xl mx-auto space-y-6 pb-12">
 
-      {/* Radar Signal Card with Graphic Illustration (Screen 07 Montage) */}
-      <div className="bg-slate-900 text-white rounded-3xl p-8 sm:p-10 text-center relative overflow-hidden shadow-2xl border border-slate-800">
+      {/* Radar Signal Card */}
+      <div className="bg-brand-950 text-white rounded-xl p-6 sm:p-8 text-center relative overflow-hidden shadow-elevated border border-brand-900">
 
         {/* Animated Emergency Radar Illustration */}
         <EmergencyRadarIllustration hospitalCount={broadcasts.length} />
 
-        <div className="space-y-2 max-w-lg mx-auto">
-          <span className="inline-block px-3 py-1 bg-red-500/20 text-red-400 text-xs font-black uppercase tracking-widest rounded-full border border-red-500/30">
-            PARALLEL EMERGENCY BEEP BROADCAST
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+        <div className="space-y-1.5 max-w-lg mx-auto">
+          <Badge variant="emergency" size="xs" dot pulseDot>
+            PARALLEL EMERGENCY BEEP ACTIVE
+          </Badge>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white mt-1">
             Pinging {broadcasts.length} Matching Facilities Simultaneously
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400">
-            Real-time ping active for <strong>{emergency?.patientName}</strong> ({emergency?.emergencyType?.toUpperCase()} EMERGENCY)
+          <p className="text-xs text-slate-300">
+            Real-time ping dispatched for <strong className="text-white">{emergency?.patientName}</strong> ({emergency?.emergencyType?.toUpperCase()} EMERGENCY)
           </p>
         </div>
 
         {/* Live Parallel Counters */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-md mx-auto mt-6 pt-6 border-t border-slate-800 text-center">
-          <div className="p-3 bg-slate-800/60 rounded-2xl border border-slate-700/60">
-            <span className="text-xs text-slate-400 block font-bold">Responded</span>
-            <span className="text-xl font-black text-emerald-400">{acceptedCount} Ready</span>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-md mx-auto mt-6 pt-5 border-t border-slate-800 text-center">
+          <div className="p-3 bg-slate-900 rounded-lg border border-slate-800">
+            <span className="text-[11px] text-slate-400 block font-medium">Ready & Responded</span>
+            <span className="text-lg font-bold text-presence-400">{acceptedCount} Accepted</span>
           </div>
 
-          <div className="p-3 bg-slate-800/60 rounded-2xl border border-slate-700/60">
-            <span className="text-xs text-slate-400 block font-bold">Pinging</span>
-            <span className="text-xl font-black text-amber-400">{pendingCount} Awaiting</span>
+          <div className="p-3 bg-slate-900 rounded-lg border border-slate-800">
+            <span className="text-[11px] text-slate-400 block font-medium">Active Pinging</span>
+            <span className="text-lg font-bold text-hold-400">{pendingCount} Awaiting</span>
           </div>
 
-          <div className="p-3 bg-slate-800/60 rounded-2xl border border-slate-700/60 col-span-2 sm:col-span-1">
-            <span className="text-xs text-slate-400 block font-bold">Protocol</span>
-            <span className="text-xl font-black text-blue-400">Parallel</span>
+          <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 col-span-2 sm:col-span-1">
+            <span className="text-[11px] text-slate-400 block font-medium">Dispatch Routing</span>
+            <span className="text-lg font-bold text-brand-400">Parallel</span>
           </div>
         </div>
 
-        {/* Action Button when hospitals have responded */}
+        {/* Primary Action Button when facilities respond */}
         {acceptedCount > 0 && (
-          <div className="mt-8 animate-bounce">
-            <button
+          <div className="mt-6">
+            <Button
+              variant="presence"
+              size="lg"
+              className="mx-auto"
+              icon={ArrowRight}
+              iconPosition="right"
               onClick={() => navigate(`/emergency/responses/${id}`)}
-              className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-emerald-600/30 transition-all hover:scale-105 flex items-center space-x-2 mx-auto"
             >
-              <span>View {acceptedCount} Responding Hospital{acceptedCount > 1 ? 's' : ''} & Select Destination</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+              View {acceptedCount} Responding Hospital{acceptedCount > 1 ? 's' : ''} & Select Destination
+            </Button>
           </div>
         )}
       </div>
 
-      {/* Hospital Status Cards List */}
-      <div className="space-y-4">
+      {/* Facilities Status Feed */}
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-2">
-            <Activity className="w-4 h-4 text-red-600" />
-            <span>Trauma Centers Contacted in Parallel</span>
-          </h2>
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-urgent-600" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              Trauma Centers Alerted in Parallel
+            </h2>
+          </div>
           <button
             onClick={fetchBroadcastData}
-            className="text-xs text-blue-600 hover:text-blue-700 flex items-center space-x-1 font-semibold"
+            className="text-xs text-brand-600 hover:text-brand-800 flex items-center gap-1 font-medium"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Refresh</span>
+            <span>Refresh Telemetry</span>
           </button>
         </div>
 
         {broadcasts.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-2xl border text-xs text-slate-400">
-            No matching facilities found within range.
+          <div className="p-8 text-center bg-white rounded-xl border border-slate-200 text-xs text-slate-400">
+            No matching facilities found within 15 km range.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
             {broadcasts.map((b) => (
               <div
                 key={b._id}
-                className={`p-5 rounded-2xl border transition-all ${b.responseStatus === 'ACCEPTED'
-                    ? 'bg-emerald-50/70 border-emerald-300 shadow-sm'
+                className={`p-4 rounded-xl border transition-colors ${
+                  b.responseStatus === 'ACCEPTED'
+                    ? 'bg-presence-50/70 border-presence-300 shadow-xs'
                     : b.responseStatus === 'DECLINED'
-                      ? 'bg-red-50/50 border-red-200 opacity-60'
-                      : 'bg-white border-slate-200'
-                  }`}
+                    ? 'bg-slate-50 border-slate-200 opacity-60'
+                    : 'bg-white border-slate-200'
+                }`}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center gap-2.5">
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${b.responseStatus === 'ACCEPTED'
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-slate-100 text-slate-700'
-                        }`}
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold flex-shrink-0 ${
+                        b.responseStatus === 'ACCEPTED'
+                          ? 'bg-presence-600 text-white'
+                          : 'bg-slate-100 text-slate-700 border border-slate-200'
+                      }`}
                     >
-                      <Building2 className="w-5 h-5" />
+                      <Building2 className="w-4 h-4" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-sm text-slate-900">{b.organizationId?.name}</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {b.organizationId?.address?.city || 'Local Facility'}
+                      <h3 className="font-semibold text-xs text-slate-900 leading-snug">
+                        {b.organizationId?.name}
+                      </h3>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {b.organizationId?.address?.city || 'Local Area'}
                       </p>
                     </div>
                   </div>
 
                   <div>
                     {b.responseStatus === 'ACCEPTED' ? (
-                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>ACCEPTED</span>
-                      </span>
+                      <Badge variant="presence" size="xs" dot>
+                        ACCEPTED
+                      </Badge>
                     ) : b.responseStatus === 'DECLINED' ? (
-                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
-                        <XCircle className="w-3.5 h-3.5" />
-                        <span>DECLINED</span>
-                      </span>
+                      <Badge variant="neutral" size="xs">
+                        DECLINED
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 animate-pulse">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>PENDING</span>
-                      </span>
+                      <Badge variant="hold" size="xs" dot pulseDot>
+                        PENDING
+                      </Badge>
                     )}
                   </div>
                 </div>
 
                 {b.responseStatus === 'ACCEPTED' && (
-                  <div className="mt-4 pt-3 border-t border-emerald-200 flex items-center justify-between text-xs">
-                    <span className="text-emerald-800 font-semibold">
-                      Bed & Trauma team ready
+                  <div className="mt-3 pt-2.5 border-t border-presence-200 flex items-center justify-between text-xs">
+                    <span className="text-presence-800 font-semibold text-[11px]">
+                      Trauma Bay & Critical Team Ready
                     </span>
-                    <button
+                    <Button
+                      size="sm"
+                      variant="presence"
+                      icon={ArrowRight}
+                      iconPosition="right"
                       onClick={() => navigate(`/emergency/responses/${id}`)}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors flex items-center space-x-1"
                     >
-                      <span>Select</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
+                      Select
+                    </Button>
                   </div>
                 )}
               </div>
@@ -220,4 +230,5 @@ export const EmergencyBroadcastPage = () => {
     </div>
   );
 };
+
 export default EmergencyBroadcastPage;

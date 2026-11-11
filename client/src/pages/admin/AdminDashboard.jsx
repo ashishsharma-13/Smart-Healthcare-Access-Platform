@@ -11,7 +11,13 @@ import {
   FileCheck,
   AlertCircle,
   Activity,
+  ShieldCheck,
 } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { TableSkeleton } from '../../components/ui/Skeleton';
+import { Toast } from '../../components/ui/Toast';
 
 export const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
@@ -19,6 +25,7 @@ export const AdminDashboard = () => {
   const [pendingOrgs, setPendingOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [feedback, setFeedback] = useState({ type: '', message: '' });
 
   useEffect(() => {
     fetchAdminData();
@@ -48,11 +55,11 @@ export const AdminDashboard = () => {
       setActionLoading(true);
       const res = await api.post(`/admin/doctors/${doctorId}/approve`);
       if (res.data.success) {
-        alert('Doctor verified successfully! Unique Doctor ID & QR Credential generated.');
+        setFeedback({ type: 'success', message: 'Doctor verified successfully. Unique ID & QR Credential generated.' });
         fetchAdminData();
       }
     } catch (err) {
-      alert('Approval error: ' + (err.response?.data?.message || err.message));
+      setFeedback({ type: 'error', message: 'Approval error: ' + (err.response?.data?.message || err.message) });
     } finally {
       setActionLoading(false);
     }
@@ -65,9 +72,10 @@ export const AdminDashboard = () => {
     try {
       setActionLoading(true);
       await api.post(`/admin/doctors/${doctorId}/reject`, { reason });
+      setFeedback({ type: 'info', message: 'Doctor application rejected.' });
       fetchAdminData();
     } catch (err) {
-      alert('Error: ' + (err.response?.data?.message || err.message));
+      setFeedback({ type: 'error', message: 'Error: ' + (err.response?.data?.message || err.message) });
     } finally {
       setActionLoading(false);
     }
@@ -78,80 +86,107 @@ export const AdminDashboard = () => {
       setActionLoading(true);
       const res = await api.post(`/admin/organizations/${orgId}/approve`);
       if (res.data.success) {
-        alert('Organization verified successfully!');
+        setFeedback({ type: 'success', message: 'Facility accredited and active for parallel emergency dispatch.' });
         fetchAdminData();
       }
     } catch (err) {
-      alert('Approval error: ' + (err.response?.data?.message || err.message));
+      setFeedback({ type: 'error', message: 'Approval error: ' + (err.response?.data?.message || err.message) });
     } finally {
       setActionLoading(false);
     }
   };
 
   if (loading) {
-    return <div className="p-12 text-center text-xs text-slate-400">Loading system administration...</div>;
+    return (
+      <div className="space-y-6">
+        <TableSkeleton rows={4} cols={4} />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-6 pb-12">
       
       {/* Title */}
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Administrator Governance Portal</h1>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Medical license verification, participating hospital accreditation, and emergency oversight.
-        </p>
+      <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant="neutral" size="xs">
+              System Governance & Accreditation
+            </Badge>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Executive Governance Administration
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            NMC medical license validation, participating hospital accreditation, and emergency oversight.
+          </p>
+        </div>
       </div>
 
-      {/* Overview Metrics Grid matching Screen 17 */}
+      {feedback.message && (
+        <Toast
+          type={feedback.type}
+          message={feedback.message}
+          onClose={() => setFeedback({ type: '', message: '' })}
+        />
+      )}
+
+      {/* Metrics Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Users</span>
-          <p className="text-2xl font-black text-slate-900 mt-1">{stats?.totalUsers || 0}</p>
-          <span className="text-[11px] text-blue-600 font-semibold">Registered Patients & Staff</span>
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-card">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Users</span>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{stats?.totalUsers || 0}</p>
+          <span className="text-[11px] text-brand-600 font-medium">Registered Patients & Staff</span>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Doctors</span>
-          <div className="flex items-baseline space-x-2 mt-1">
-            <span className="text-2xl font-black text-slate-900">{stats?.doctors?.verified || 0}</span>
-            <span className="text-xs text-amber-600 font-bold">({stats?.doctors?.pending || 0} pending)</span>
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-card">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Practitioners</span>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className="text-2xl font-bold text-slate-900">{stats?.doctors?.verified || 0}</span>
+            <span className="text-xs text-hold-700 font-bold">({stats?.doctors?.pending || 0} pending)</span>
           </div>
-          <span className="text-[11px] text-emerald-600 font-semibold">Verified Practitioners</span>
+          <span className="text-[11px] text-presence-700 font-medium">NMC Verified</span>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Hospitals</span>
-          <div className="flex items-baseline space-x-2 mt-1">
-            <span className="text-2xl font-black text-slate-900">{stats?.organizations?.verified || 0}</span>
-            <span className="text-xs text-amber-600 font-bold">({stats?.organizations?.pending || 0} pending)</span>
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-card">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Hospitals</span>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className="text-2xl font-bold text-slate-900">{stats?.organizations?.verified || 0}</span>
+            <span className="text-xs text-hold-700 font-bold">({stats?.organizations?.pending || 0} pending)</span>
           </div>
-          <span className="text-[11px] text-emerald-600 font-semibold">Accredited Facilities</span>
+          <span className="text-[11px] text-presence-700 font-medium">Accredited Trauma Centers</span>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Active Emergencies</span>
-          <p className="text-2xl font-black text-red-600 mt-1">{stats?.activeEmergencies || 0}</p>
-          <span className="text-[11px] text-red-600 font-semibold">Under Active Broadcast</span>
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-card">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active Emergencies</span>
+          <p className="text-2xl font-bold text-urgent-700 mt-1">{stats?.activeEmergencies || 0}</p>
+          <span className="text-[11px] text-urgent-600 font-medium">Parallel Broadcasts Active</span>
         </div>
       </div>
 
       {/* Doctor Verification Queue */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-card space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div className="flex items-center space-x-2">
-            <FileCheck className="w-5 h-5 text-blue-600" />
-            <h2 className="text-base font-black text-slate-900">Doctor Medical License Verification Queue</h2>
+          <div className="flex items-center gap-2">
+            <FileCheck className="w-4 h-4 text-brand-600" />
+            <h2 className="text-sm font-bold text-slate-900">Physician License Verification Queue</h2>
           </div>
-          <span className="text-xs font-bold text-amber-600">Pending Review: {pendingDoctors.length}</span>
+          <Badge variant={pendingDoctors.length > 0 ? 'hold' : 'neutral'} size="xs">
+            Pending Review: {pendingDoctors.length}
+          </Badge>
         </div>
 
         {pendingDoctors.length === 0 ? (
-          <p className="text-xs text-slate-400 py-6 text-center">No pending doctor registrations in queue.</p>
+          <EmptyState
+            icon={FileCheck}
+            title="No Pending Physician Applications"
+            description="All registered doctors have been processed and validated."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[10px] tracking-wider">
+              <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-100">
                 <tr>
                   <th className="p-3">Applicant Name</th>
                   <th className="p-3">Specialization</th>
@@ -162,26 +197,29 @@ export const AdminDashboard = () => {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {pendingDoctors.map((doc) => (
-                  <tr key={doc._id} className="hover:bg-slate-50">
-                    <td className="p-3 font-bold text-slate-900">{doc.userId?.name}</td>
-                    <td className="p-3 text-blue-600 font-semibold">{doc.specialization}</td>
-                    <td className="p-3 font-mono font-bold text-slate-700">{doc.licenseNumber}</td>
+                  <tr key={doc._id} className="hover:bg-slate-50/60">
+                    <td className="p-3 font-semibold text-slate-900">{doc.userId?.name}</td>
+                    <td className="p-3 text-brand-700 font-medium">{doc.specialization}</td>
+                    <td className="p-3 font-mono font-semibold text-slate-700">{doc.licenseNumber}</td>
                     <td className="p-3 text-slate-600">{doc.experienceYears} Years</td>
                     <td className="p-3 text-right space-x-2">
-                      <button
-                        onClick={() => handleApproveDoctor(doc._id)}
+                      <Button
+                        size="sm"
+                        variant="presence"
                         disabled={actionLoading}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs"
+                        onClick={() => handleApproveDoctor(doc._id)}
                       >
                         Approve & Issue ID
-                      </button>
-                      <button
-                        onClick={() => handleRejectDoctor(doc._id)}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-rose-600 hover:bg-rose-50"
                         disabled={actionLoading}
-                        className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs rounded-xl"
+                        onClick={() => handleRejectDoctor(doc._id)}
                       >
                         Reject
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -191,22 +229,28 @@ export const AdminDashboard = () => {
         )}
       </div>
 
-      {/* Hospital Verification Queue */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
+      {/* Hospital Accreditation Queue */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-card space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div className="flex items-center space-x-2">
-            <Building2 className="w-5 h-5 text-blue-600" />
-            <h2 className="text-base font-black text-slate-900">Healthcare Facility Accreditation Queue</h2>
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-brand-600" />
+            <h2 className="text-sm font-bold text-slate-900">Hospital Accreditation Queue</h2>
           </div>
-          <span className="text-xs font-bold text-amber-600">Pending Review: {pendingOrgs.length}</span>
+          <Badge variant={pendingOrgs.length > 0 ? 'hold' : 'neutral'} size="xs">
+            Pending Review: {pendingOrgs.length}
+          </Badge>
         </div>
 
         {pendingOrgs.length === 0 ? (
-          <p className="text-xs text-slate-400 py-6 text-center">No pending facility registrations.</p>
+          <EmptyState
+            icon={Building2}
+            title="No Pending Hospital Accreditations"
+            description="All healthcare facilities in the network have been validated."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[10px] tracking-wider">
+              <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-100">
                 <tr>
                   <th className="p-3">Organization Name</th>
                   <th className="p-3">Type</th>
@@ -217,19 +261,20 @@ export const AdminDashboard = () => {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {pendingOrgs.map((org) => (
-                  <tr key={org._id} className="hover:bg-slate-50">
-                    <td className="p-3 font-bold text-slate-900">{org.name}</td>
+                  <tr key={org._id} className="hover:bg-slate-50/60">
+                    <td className="p-3 font-semibold text-slate-900">{org.name}</td>
                     <td className="p-3 text-slate-700 capitalize">{org.orgType}</td>
-                    <td className="p-3 font-mono font-bold text-slate-700">{org.registrationNumber}</td>
+                    <td className="p-3 font-mono font-semibold text-slate-700">{org.registrationNumber}</td>
                     <td className="p-3 text-slate-600">{org.address?.city || 'Central City'}</td>
                     <td className="p-3 text-right">
-                      <button
-                        onClick={() => handleApproveOrg(org._id)}
+                      <Button
+                        size="sm"
+                        variant="primary"
                         disabled={actionLoading}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs"
+                        onClick={() => handleApproveOrg(org._id)}
                       >
                         Approve Facility
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -243,3 +288,4 @@ export const AdminDashboard = () => {
   );
 };
 
+export default AdminDashboard;
