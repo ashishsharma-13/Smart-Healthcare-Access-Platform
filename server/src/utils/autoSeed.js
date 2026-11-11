@@ -22,6 +22,18 @@ export default async function autoSeed() {
     password: 'password123',
     role: 'patient',
     phone: '+1-555-0199',
+    dateOfBirth: '1988-06-14',
+    gender: 'Male',
+    bloodGroup: 'O+',
+    allergies: ['Penicillin', 'Peanuts'],
+    chronicConditions: ['Hypertension'],
+    currentMedications: ['Lisinopril 10mg'],
+    emergencyContact: {
+      name: 'Sarah Mercer',
+      relationship: 'Spouse',
+      phone: '+1-555-0144',
+    },
+    medicalNotes: 'Mild exercise-induced asthma in spring. Regular cardio monitoring.',
     address: {
       street: '42 Connaught Place',
       city: 'Central City',

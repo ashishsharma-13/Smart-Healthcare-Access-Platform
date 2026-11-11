@@ -17,6 +17,8 @@ import { DoctorSearchPage } from './pages/patient/DoctorSearchPage';
 import { DoctorProfilePage } from './pages/patient/DoctorProfilePage';
 import { PatientDashboard } from './pages/patient/PatientDashboard';
 import { AppointmentsPage } from './pages/patient/AppointmentsPage';
+import { PatientProfilePage } from './pages/patient/PatientProfilePage';
+import { CareActivityPage } from './pages/patient/CareActivityPage';
 import { EmergencyActivatePage } from './pages/patient/EmergencyActivatePage';
 import { EmergencyBroadcastPage } from './pages/patient/EmergencyBroadcastPage';
 import { EmergencyResponsesPage } from './pages/patient/EmergencyResponsesPage';
@@ -70,13 +72,15 @@ export default function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+            </Route>
+
+            {/* Authenticated Dashboard / Portal Layout */}
+            <Route element={<DashboardLayout />}>
+              {/* Doctor & Hospital Discovery */}
               <Route path="/doctors" element={<DoctorSearchPage />} />
               <Route path="/doctors/:id" element={<DoctorProfilePage />} />
               <Route path="/hospitals" element={<HospitalsListPage />} />
-            </Route>
 
-            {/* Authenticated Dashboard Layout */}
-            <Route element={<DashboardLayout />}>
               {/* General Dashboard Redirect */}
               <Route
                 path="/dashboard"
@@ -101,6 +105,22 @@ export default function App() {
                 element={
                   <ProtectedRoute allowedRoles={['patient']}>
                     <AppointmentsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patient/profile"
+                element={
+                  <ProtectedRoute allowedRoles={['patient', 'admin']}>
+                    <PatientProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patient/activity"
+                element={
+                  <ProtectedRoute allowedRoles={['patient', 'admin']}>
+                    <CareActivityPage />
                   </ProtectedRoute>
                 }
               />

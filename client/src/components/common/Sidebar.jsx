@@ -1,31 +1,33 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useUI } from '../../context/UIContext';
 import {
-  LayoutDashboard,
+  LayoutGrid,
+  Stethoscope,
+  Building2,
   Calendar,
-  Search,
-  ShieldAlert,
+  Siren,
+  ClipboardList,
+  MessageCircle,
+  Settings,
+  ChevronDown,
+  LayoutDashboard,
   Clock,
   QrCode,
   Users,
-  Building2,
   BedDouble,
   FileCheck,
   Activity,
-  History,
   X,
-  Stethoscope,
-  ChevronRight,
-  ShieldCheck,
 } from 'lucide-react';
-import { Badge } from '../ui/Badge';
+import { HelpCenterModal } from './HelpCenterModal';
 
 export const Sidebar = () => {
   const { user, profile } = useAuth();
   const { mobileSidebarOpen, closeMobileSidebar } = useUI();
   const location = useLocation();
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -45,31 +47,160 @@ export const Sidebar = () => {
 
   if (!user) return null;
 
-  const patientSections = [
-    {
-      title: 'Clinical Services',
-      links: [
-        { to: '/patient/dashboard', label: 'Patient Overview', icon: LayoutDashboard },
-        { to: '/doctors', label: 'Find Verified Doctors', icon: Search },
-        { to: '/patient/appointments', label: 'My Appointments', icon: Calendar },
-      ],
-    },
-    {
-      title: 'Emergency Protocol',
-      links: [
-        { to: '/emergency/activate', label: 'Emergency Beep', icon: ShieldAlert, emergency: true },
-        { to: '/emergency/history', label: 'Emergency Logs', icon: History },
-      ],
-    },
-  ];
+  // 1. Patient Portal Sidebar (Strictly matches Image 1)
+  const patientNavContent = (
+    <div className="flex flex-col h-full justify-between p-4 space-y-6 select-none">
+      <div className="space-y-5">
+        {/* Workspace Dropdown */}
+        <div>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5 px-1">
+            WORKSPACE
+          </span>
+          <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200/80 bg-white shadow-xs text-slate-900 font-bold text-xs">
+            <span>Patient portal</span>
+            <ChevronDown className="w-4 h-4 text-slate-400" />
+          </div>
+        </div>
 
+        {/* Primary Patient Links */}
+        <div className="space-y-1">
+          {/* 1. Overview */}
+          <NavLink
+            to="/patient/dashboard"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <LayoutGrid className="w-4 h-4 shrink-0" />
+            <span>Overview</span>
+          </NavLink>
+
+          {/* 2. Find doctors */}
+          <NavLink
+            to="/doctors"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <Stethoscope className="w-4 h-4 shrink-0" />
+            <span>Find doctors</span>
+          </NavLink>
+
+          {/* 3. Find hospitals */}
+          <NavLink
+            to="/hospitals"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <Building2 className="w-4 h-4 shrink-0" />
+            <span>Find hospitals</span>
+          </NavLink>
+
+          {/* 4. Appointments */}
+          <NavLink
+            to="/patient/appointments"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <Calendar className="w-4 h-4 shrink-0" />
+            <span>Appointments</span>
+          </NavLink>
+
+          {/* 5. Emergency Beep */}
+          <NavLink
+            to="/emergency/activate"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-rose-50 text-rose-600 font-bold'
+                  : 'text-slate-600 hover:text-rose-600 hover:bg-rose-50/60 font-medium'
+              }`
+            }
+          >
+            <Siren className="w-4 h-4 text-rose-500 shrink-0" />
+            <span>Emergency Beep</span>
+          </NavLink>
+
+          {/* 6. Care activity */}
+          <NavLink
+            to="/patient/activity"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <ClipboardList className="w-4 h-4 shrink-0" />
+            <span>Care activity</span>
+          </NavLink>
+        </div>
+      </div>
+
+      {/* Support Callout Box */}
+      <div className="space-y-4">
+        <div className="p-4 rounded-2xl bg-[#F0F6FE] border border-blue-100/70 space-y-2">
+          <MessageCircle className="w-5 h-5 text-blue-600" />
+          <h4 className="text-xs font-bold text-slate-900">Here to help</h4>
+          <p className="text-[11px] text-slate-500 leading-relaxed">
+            Find answers and support for using SHAP.
+          </p>
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            className="text-[11px] font-bold text-blue-600 hover:underline flex items-center space-x-1 cursor-pointer pt-0.5"
+          >
+            <span>Visit help center</span>
+            <span>&rarr;</span>
+          </button>
+        </div>
+
+        {/* Bottom Settings Link */}
+        <div className="pt-2 border-t border-slate-100">
+          <NavLink
+            to="/patient/profile"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-slate-100 text-slate-900 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <Settings className="w-4 h-4 text-slate-400 shrink-0" />
+            <span>Settings & privacy</span>
+          </NavLink>
+        </div>
+      </div>
+    </div>
+  );
+
+  // 2. Doctor / Organization / Admin Nav Content
   const doctorSections = [
     {
       title: 'Practitioner Desk',
       links: [
         { to: '/doctor/dashboard', label: 'Doctor Portal', icon: LayoutDashboard },
         { to: '/doctor/schedule', label: 'Schedule & Slots', icon: Clock },
-        { to: '/doctor/appointments', label: 'Appointments Queue', icon: Calendar },
       ],
     },
     {
@@ -85,7 +216,7 @@ export const Sidebar = () => {
     {
       title: 'Hospital Command',
       links: [
-        { to: '/organization/dashboard', label: 'Emergency Reception', icon: ShieldAlert, emergency: true },
+        { to: '/organization/dashboard', label: 'Emergency Reception', icon: Siren },
         { to: '/organization/resources', label: 'Bed & ICU Capacity', icon: BedDouble },
       ],
     },
@@ -115,54 +246,20 @@ export const Sidebar = () => {
     },
   ];
 
-  let sections = patientSections;
-  if (user.role === 'doctor') sections = doctorSections;
-  else if (user.role === 'organization') sections = orgSections;
-  else if (user.role === 'admin') sections = adminSections;
+  let otherSections = doctorSections;
+  if (user.role === 'organization') otherSections = orgSections;
+  else if (user.role === 'admin') otherSections = adminSections;
 
-  const roleMeta = {
-    patient: { label: 'Patient Access', color: 'info' },
-    doctor: { label: 'NMC Practitioner', color: 'presence' },
-    organization: { label: 'Trauma Center', color: 'info' },
-    admin: { label: 'System Admin', color: 'neutral' },
-  };
-
-  const navContent = (
+  const defaultNavContent = (
     <div className="flex flex-col h-full justify-between p-4 space-y-6">
       <div className="space-y-6">
-        
-        {/* User Identity Card */}
-        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-brand-950 text-white font-bold text-sm flex items-center justify-center flex-shrink-0 shadow-xs">
-              {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-            </div>
-            <div className="overflow-hidden flex-1">
-              <h4 className="text-xs font-semibold text-slate-900 truncate">
-                {user.name}
-              </h4>
-              <p className="text-[11px] text-slate-500 truncate">
-                {user.email || user.phone}
-              </p>
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
-            <Badge size="xs" variant={roleMeta[user.role]?.color || 'neutral'} dot>
-              {roleMeta[user.role]?.label || user.role}
-            </Badge>
-
-            {user.role === 'doctor' && profile?.currentPresence?.isPresent && (
-              <span className="text-[10px] font-semibold text-presence-700 bg-presence-50 px-1.5 py-0.5 rounded border border-presence-200">
-                On-Site
-              </span>
-            )}
-          </div>
+        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+          <h4 className="text-xs font-semibold text-slate-900 truncate">{user.name}</h4>
+          <p className="text-[11px] text-slate-500 truncate">{user.email || user.phone}</p>
         </div>
 
-        {/* Navigation Sections */}
         <div className="space-y-5">
-          {sections.map((section, idx) => (
+          {otherSections.map((section, idx) => (
             <div key={idx} className="space-y-1">
               <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                 {section.title}
@@ -175,24 +272,15 @@ export const Sidebar = () => {
                       key={link.to}
                       to={link.to}
                       className={({ isActive }) =>
-                        `flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                        `flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
                           isActive
-                            ? link.emergency
-                              ? 'bg-urgent-600 text-white font-semibold shadow-xs'
-                              : 'bg-brand-50 text-brand-800 font-semibold border border-brand-200/60'
-                            : link.emergency
-                            ? 'text-urgent-700 hover:bg-urgent-50 font-medium'
-                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                            ? 'bg-blue-50 text-blue-700 font-bold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                         }`
                       }
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Icon className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">{link.label}</span>
-                      </div>
-                      {link.emergency && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-urgent-500 animate-pulse" />
-                      )}
+                      <Icon className="w-4 h-4" />
+                      <span>{link.label}</span>
                     </NavLink>
                   );
                 })}
@@ -201,59 +289,44 @@ export const Sidebar = () => {
           ))}
         </div>
       </div>
-
-      {/* Footer System Status / Platform Notice */}
-      <div className="pt-4 border-t border-slate-200/60 space-y-2">
-        <div className="p-2.5 rounded-lg bg-brand-50/60 border border-brand-100 flex items-center justify-between text-[11px]">
-          <div className="flex items-center gap-1.5 text-brand-900 font-medium">
-            <span className="w-2 h-2 rounded-full bg-presence-500 animate-pulse" />
-            <span>SHAP Live Network</span>
-          </div>
-          <span className="text-[10px] text-brand-700 font-mono">v2.4</span>
-        </div>
-      </div>
     </div>
   );
+
+  const activeContent = user.role === 'patient' ? patientNavContent : defaultNavContent;
 
   return (
     <>
       {/* Desktop Persistent Sidebar */}
       <aside className="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col flex-shrink-0 min-h-[calc(100vh-4rem)]">
-        {navContent}
+        {activeContent}
       </aside>
 
       {/* Mobile Slide-over Drawer */}
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
-          {/* Backdrop overlay */}
           <div
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fade-in"
             onClick={closeMobileSidebar}
             aria-hidden="true"
           />
-
-          {/* Drawer Panel */}
-          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white shadow-elevated z-10 animate-slide-right">
-            {/* Drawer Close Button Header */}
+          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white shadow-xl z-10 animate-slide-right">
             <div className="p-3 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Navigation Menu</span>
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Navigation</span>
               <button
                 type="button"
                 onClick={closeMobileSidebar}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 transition-colors"
-                aria-label="Close navigation"
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-200/60"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-
-            {/* Nav content inside scrollable view */}
-            <div className="flex-1 overflow-y-auto">
-              {navContent}
-            </div>
+            <div className="flex-1 overflow-y-auto">{activeContent}</div>
           </div>
         </div>
       )}
+
+      {/* Help Center Modal */}
+      <HelpCenterModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
     </>
   );
 };

@@ -516,24 +516,90 @@ export const getMe = async (req, res) => {
       profile = await Organization.findOne({ userId: user._id });
     }
 
-    const userResponse = {
-      id: user._id,
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-    };
-
     return res.status(200).json({
       success: true,
-      user: userResponse,
+      user,
       data: {
-        user: userResponse,
+        user,
         profile,
       },
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Error retrieving user profile.' });
+  }
+};
+
+// 6. Authenticated Profile Update (Manage Profile)
+export const updateMe = async (req, res) => {
+  try {
+    const userId = req.user.id || req.user._id;
+    const {
+      name,
+      phone,
+      avatar,
+      address,
+      dateOfBirth,
+      gender,
+      bloodGroup,
+      allergies,
+      chronicConditions,
+      currentMedications,
+      emergencyContact,
+      medicalNotes,
+    } = req.body;
+
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (phone !== undefined) updates.phone = phone;
+    if (avatar !== undefined) updates.avatar = avatar;
+    if (address !== undefined) updates.address = address;
+    if (dateOfBirth !== undefined) updates.dateOfBirth = dateOfBirth;
+    if (gender !== undefined) updates.gender = gender;
+    if (bloodGroup !== undefined) updates.bloodGroup = bloodGroup;
+    if (allergies !== undefined) {
+      updates.allergies = Array.isArray(allergies)
+        ? allergies
+        : typeof allergies === 'string'
+        ? allergies.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+    }
+    if (chronicConditions !== undefined) {
+      updates.chronicConditions = Array.isArray(chronicConditions)
+        ? chronicConditions
+        : typeof chronicConditions === 'string'
+        ? chronicConditions.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+    }
+    if (currentMedications !== undefined) {
+      updates.currentMedications = Array.isArray(currentMedications)
+        ? currentMedications
+        : typeof currentMedications === 'string'
+        ? currentMedications.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+    }
+    if (emergencyContact !== undefined) updates.emergencyContact = emergencyContact;
+    if (medicalNotes !== undefined) updates.medicalNotes = medicalNotes;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: updatedUser,
+      data: {
+        user: updatedUser,
+      },
+    });
+  } catch (error) {
+    console.error('Update Profile Error:', error);
+    return res.status(500).json({ success: false, message: error.message || 'Error updating user profile.' });
   }
 };

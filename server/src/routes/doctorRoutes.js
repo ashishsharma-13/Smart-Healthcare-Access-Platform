@@ -8,6 +8,7 @@ const router = express.Router();
 // Public doctor discovery (verified doctors only)
 router.get('/', (req, res, next) => doctorController.searchDoctors(req, res, next));
 router.get('/profile/:id', (req, res, next) => doctorController.getDoctorById(req, res, next));
+router.get('/:id', (req, res, next) => doctorController.getDoctorById(req, res, next));
 router.get('/:id/organizations', (req, res, next) => doctorAffiliationController.getAffiliatedOrgsForDoctor(req, res, next));
 
 // Authenticated doctor profile & presence endpoints

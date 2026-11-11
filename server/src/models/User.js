@@ -42,6 +42,39 @@ const userSchema = new mongoose.Schema(
       state: String,
       postalCode: String,
     },
+    dateOfBirth: {
+      type: String,
+      default: '',
+    },
+    gender: {
+      type: String,
+      default: '',
+    },
+    bloodGroup: {
+      type: String,
+      default: '',
+    },
+    allergies: {
+      type: [String],
+      default: [],
+    },
+    chronicConditions: {
+      type: [String],
+      default: [],
+    },
+    currentMedications: {
+      type: [String],
+      default: [],
+    },
+    emergencyContact: {
+      name: { type: String, default: '' },
+      relationship: { type: String, default: '' },
+      phone: { type: String, default: '' },
+    },
+    medicalNotes: {
+      type: String,
+      default: '',
+    },
     isActive: {
       type: Boolean,
       default: true,
