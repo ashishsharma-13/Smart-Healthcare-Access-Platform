@@ -31,6 +31,8 @@ import { DoctorDashboard } from './pages/doctor/DoctorDashboard';
 import { DoctorPresencePage } from './pages/doctor/DoctorPresencePage';
 import { DoctorSchedulePage } from './pages/doctor/DoctorSchedulePage';
 import { DoctorAffiliationsPage } from './pages/doctor/DoctorAffiliationsPage';
+import { DoctorProfilePage as DoctorManageProfilePage } from './pages/doctor/DoctorProfilePage';
+import { DoctorAvailabilityPage } from './pages/doctor/DoctorAvailabilityPage';
 
 // Organization Pages
 import { OrganizationDashboard } from './pages/organization/OrganizationDashboard';
@@ -211,6 +213,22 @@ export default function App() {
                 element={
                   <ProtectedRoute allowedRoles={['doctor']}>
                     <DoctorDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/doctor/availability"
+                element={
+                  <ProtectedRoute allowedRoles={['doctor']}>
+                    <DoctorAvailabilityPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/doctor/profile"
+                element={
+                  <ProtectedRoute allowedRoles={['doctor']}>
+                    <DoctorManageProfilePage />
                   </ProtectedRoute>
                 }
               />
