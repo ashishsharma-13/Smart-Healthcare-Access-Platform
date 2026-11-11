@@ -16,6 +16,7 @@ import {
   Clock,
   QrCode,
   Users,
+  User,
   BedDouble,
   FileCheck,
   Activity,
@@ -228,7 +229,173 @@ export const Sidebar = () => {
     </div>
   );
 
-  // 2. Doctor / Organization / Admin Nav Content
+  // 2. Doctor Portal Sidebar (Strictly matches Doctor reference image)
+  const doctorNavContent = (
+    <div className="flex flex-col h-full justify-between p-4 space-y-6 select-none">
+      <div className="space-y-5">
+        {/* Workspace Dropdown */}
+        <div>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5 px-1">
+            WORKSPACE
+          </span>
+          <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200/80 bg-white shadow-xs text-slate-900 font-bold text-xs">
+            <span>Doctor portal</span>
+            <ChevronDown className="w-4 h-4 text-slate-400" />
+          </div>
+        </div>
+
+        {/* Primary Doctor Links */}
+        <div className="space-y-1">
+          {/* 1. Overview */}
+          <NavLink
+            to="/doctor/dashboard"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <LayoutGrid className="w-4 h-4 shrink-0" />
+            <span>Overview</span>
+          </NavLink>
+
+          {/* 2. Schedule */}
+          <NavLink
+            to="/doctor/schedule"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <Calendar className="w-4 h-4 shrink-0" />
+            <span>Schedule</span>
+          </NavLink>
+
+          {/* 3. Appointments */}
+          <NavLink
+            to="/doctor/appointments"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <ClipboardList className="w-4 h-4 shrink-0" />
+            <span>Appointments</span>
+          </NavLink>
+
+          {/* 4. Availability */}
+          <NavLink
+            to="/doctor/availability"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <Clock className="w-4 h-4 shrink-0" />
+            <span>Availability</span>
+          </NavLink>
+
+          {/* 5. Profile */}
+          <NavLink
+            to="/doctor/profile"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <User className="w-4 h-4 shrink-0" />
+            <span>Profile</span>
+          </NavLink>
+        </div>
+
+        {/* Facility & Affiliations strictly per media_1794416780094_69267bc6.png */}
+        <div className="pt-3 border-t border-slate-100 space-y-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 px-3">
+            FACILITY & AFFILIATIONS
+          </span>
+          <NavLink
+            to="/doctor/affiliations"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <Building2 className="w-4 h-4 shrink-0 text-slate-500" />
+            <span>Manage Affiliations</span>
+          </NavLink>
+
+          <NavLink
+            to="/doctor/presence"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <QrCode className="w-4 h-4 shrink-0 text-slate-500" />
+            <span>QR Presence & Badge</span>
+          </NavLink>
+        </div>
+      </div>
+
+      {/* Support Callout Box */}
+      <div className="space-y-4">
+        <div className="p-4 rounded-2xl bg-[#F0F6FE] border border-blue-100/70 space-y-2">
+          <MessageCircle className="w-5 h-5 text-blue-600" />
+          <h4 className="text-xs font-bold text-slate-900">Here to help</h4>
+          <p className="text-[11px] text-slate-500 leading-relaxed">
+            Find answers and support for using SHAP.
+          </p>
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            className="text-[11px] font-bold text-blue-600 hover:underline flex items-center space-x-1 cursor-pointer pt-0.5"
+          >
+            <span>Visit help center</span>
+            <span>&rarr;</span>
+          </button>
+        </div>
+
+        {/* Bottom Settings Link */}
+        <div className="pt-2 border-t border-slate-100">
+          <NavLink
+            to="/doctor/profile"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-slate-100 text-slate-900 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <Settings className="w-4 h-4 text-slate-400 shrink-0" />
+            <span>Settings & privacy</span>
+          </NavLink>
+        </div>
+      </div>
+    </div>
+  );
+
+  // 3. Organization / Admin Nav Content
   const doctorSections = [
     {
       title: 'Practitioner Desk',
@@ -326,7 +493,9 @@ export const Sidebar = () => {
     </div>
   );
 
-  const activeContent = user.role === 'patient' ? patientNavContent : defaultNavContent;
+  let activeContent = defaultNavContent;
+  if (user.role === 'patient') activeContent = patientNavContent;
+  else if (user.role === 'doctor') activeContent = doctorNavContent;
 
   return (
     <>

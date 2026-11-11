@@ -53,6 +53,13 @@ export const Navbar = () => {
     if (location.pathname.includes('/emergency/activate')) return 'Emergency Beep';
     if (location.pathname.includes('/patient/activity')) return 'Care activity';
     if (location.pathname.includes('/patient/profile')) return 'Settings & privacy';
+    if (location.pathname.includes('/doctor/dashboard')) return 'Overview';
+    if (location.pathname.includes('/doctor/schedule')) return 'Schedule';
+    if (location.pathname.includes('/doctor/appointments')) return 'Appointments';
+    if (location.pathname.includes('/doctor/availability')) return 'Availability';
+    if (location.pathname.includes('/doctor/profile')) return 'Profile';
+    if (location.pathname.includes('/doctor/presence')) return 'Presence & Badge';
+    if (location.pathname.includes('/doctor/affiliations')) return 'Affiliations';
     if (location.pathname.includes('/doctor')) return 'Doctor Portal';
     if (location.pathname.includes('/organization')) return 'Facility Portal';
     if (location.pathname.includes('/admin')) return 'Admin Portal';
@@ -224,10 +231,14 @@ export const Navbar = () => {
                   </div>
                   <div className="text-left hidden md:block">
                     <div className="text-xs font-bold text-slate-900 leading-tight truncate max-w-[120px]">
-                      {user.name}
+                      {user.role === 'doctor' && !user.name.startsWith('Dr.') ? `Dr. ${user.name}` : user.name}
                     </div>
                     <div className="text-[10px] text-slate-400 capitalize leading-tight">
-                      {user.role === 'patient' ? 'Personal account' : `${user.role} account`}
+                      {user.role === 'patient'
+                        ? 'Personal account'
+                        : user.role === 'doctor'
+                        ? 'Cardiology'
+                        : `${user.role} account`}
                     </div>
                   </div>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden md:block" />
@@ -237,12 +248,14 @@ export const Navbar = () => {
                 {profileDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-50 animate-fade-in text-xs">
                     <div className="px-4 py-2 border-b border-slate-100">
-                      <p className="font-bold text-slate-900 truncate">{user.name}</p>
+                      <p className="font-bold text-slate-900 truncate">
+                        {user.role === 'doctor' && !user.name.startsWith('Dr.') ? `Dr. ${user.name}` : user.name}
+                      </p>
                       <p className="text-[10px] text-slate-400 truncate">{user.email || user.phone}</p>
                     </div>
 
                     <Link
-                      to="/patient/profile"
+                      to={user.role === 'doctor' ? '/doctor/profile' : '/patient/profile'}
                       onClick={() => setProfileDropdownOpen(false)}
                       className="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:bg-slate-50 font-medium"
                     >
@@ -251,7 +264,7 @@ export const Navbar = () => {
                     </Link>
 
                     <Link
-                      to="/patient/profile"
+                      to={user.role === 'doctor' ? '/doctor/profile' : '/patient/profile'}
                       onClick={() => setProfileDropdownOpen(false)}
                       className="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:bg-slate-50 font-medium"
                     >

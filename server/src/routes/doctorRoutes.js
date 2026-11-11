@@ -13,6 +13,7 @@ router.get('/:id/organizations', (req, res, next) => doctorAffiliationController
 
 // Authenticated doctor profile & presence endpoints
 router.get('/me', authenticate, authorize('doctor'), (req, res, next) => doctorController.getMyDoctorProfile(req, res, next));
+router.put('/me', authenticate, authorize('doctor'), (req, res, next) => doctorController.updateMyDoctorProfile(req, res, next));
 router.get('/qr-credential', authenticate, authorize('doctor'), (req, res, next) => doctorController.getQrCredential(req, res, next));
 router.post('/presence/check-in', authenticate, authorize('doctor'), (req, res, next) => doctorController.checkIn(req, res, next));
 router.post('/presence/check-out', authenticate, authorize('doctor'), (req, res, next) => doctorController.checkOut(req, res, next));

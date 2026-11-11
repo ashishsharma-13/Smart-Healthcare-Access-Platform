@@ -62,6 +62,16 @@ const doctorSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    languages: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    workingHours: {
+      type: String,
+      default: 'Mon–Fri · 9:00 AM–4:00 PM',
+    },
     rating: {
       type: Number,
       default: 4.8,
