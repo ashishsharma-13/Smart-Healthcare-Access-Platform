@@ -495,9 +495,14 @@ export const DoctorSearchPage = () => {
                       </span>
                     </div>
 
-                    {/* Hospital & Distance */}
-                    <div className="text-xs text-slate-500">
-                      {hospital} &bull; {distText}
+                    {/* Hospital & Affiliations */}
+                    <div className="text-xs text-slate-600 flex items-center space-x-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">
+                        {doc.activeAffiliations && doc.activeAffiliations.length > 0
+                          ? doc.activeAffiliations.map((a) => a.organizationId?.name).filter(Boolean).join(' · ')
+                          : hospital}
+                      </span>
                     </div>
 
                     {/* Bottom Row: Next Available + View Profile Button */}

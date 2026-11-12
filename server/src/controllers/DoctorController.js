@@ -1,16 +1,68 @@
 import mongoose from 'mongoose';
 import { doctorRepository } from '../repositories/DoctorRepository.js';
 import { doctorService } from '../services/DoctorService.js';
+import { doctorAffiliationRepository } from '../repositories/DoctorAffiliationRepository.js';
 import { User } from '../models/User.js';
 
 export class DoctorController {
   async searchDoctors(req, res, next) {
     try {
       const doctors = await doctorRepository.searchDoctors(req.query);
+      const querySearch = (req.query.search || req.query.name || req.query.q || '').toLowerCase();
+
+      // Attach active hospital affiliations to each doctor
+      const resultsWithAffiliations = await Promise.all(
+        doctors.map(async (doc) => {
+          const docObj = doc.toObject();
+          const affiliations = await doctorAffiliationRepository.listByDoctor(doc._id, {
+            status: { $in: ['ACTIVE', 'approved'] },
+          });
+          docObj.activeAffiliations = affiliations;
+          return docObj;
+        })
+      );
+
+      let filtered = resultsWithAffiliations;
+      if (querySearch) {
+        filtered = resultsWithAffiliations.filter(
+          (d) =>
+            d.userId?.name?.toLowerCase().includes(querySearch) ||
+            d.specialization?.toLowerCase().includes(querySearch) ||
+            d.activeAffiliations?.some((a) => a.organizationId?.name?.toLowerCase().includes(querySearch))
+        );
+      }
+
       res.json({
         success: true,
-        count: doctors.length,
-        data: doctors,
+        count: filtered.length,
+        data: filtered,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getDoctorAffiliationsForPatient(req, res, next) {
+    try {
+      const { id } = req.params;
+      let doctor = null;
+      if (mongoose.Types.ObjectId.isValid(id) && String(id).length === 24) {
+        doctor = await doctorRepository.findById(id);
+      } else {
+        doctor = await doctorRepository.findByUniqueId(id);
+      }
+      if (!doctor) {
+        return res.status(404).json({ success: false, message: 'Doctor not found.' });
+      }
+
+      const affiliations = await doctorAffiliationRepository.listByDoctor(doctor._id, {
+        status: { $in: ['ACTIVE', 'approved'] },
+      });
+
+      res.json({
+        success: true,
+        count: affiliations.length,
+        data: affiliations,
       });
     } catch (err) {
       next(err);

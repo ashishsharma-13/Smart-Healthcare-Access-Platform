@@ -1,15 +1,19 @@
+import mongoose from 'mongoose';
 import { Organization } from '../models/index.js';
 
 export class OrganizationRepository {
   async findByUserId(userId) {
+    if (!userId || !mongoose.connection?.readyState) return null;
     return await Organization.findOne({ userId }).populate('userId', 'name email phone').exec();
   }
 
   async findById(id) {
+    if (!id || !mongoose.connection?.readyState) return null;
     return await Organization.findById(id).populate('userId', 'name email phone').exec();
   }
 
   async findByQrCode(qrCheckinCode) {
+    if (!qrCheckinCode || !mongoose.connection?.readyState) return null;
     return await Organization.findOne({ qrCheckinCode }).exec();
   }
 

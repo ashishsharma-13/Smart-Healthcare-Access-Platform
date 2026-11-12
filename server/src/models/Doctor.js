@@ -161,6 +161,16 @@ const doctorSchema = new mongoose.Schema(
         ref: 'Organization',
         default: null,
       },
+      affiliationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'DoctorAffiliation',
+        default: null,
+      },
+      activePresenceId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'DoctorPresenceLog',
+        default: null,
+      },
       checkedInAt: {
         type: Date,
         default: null,

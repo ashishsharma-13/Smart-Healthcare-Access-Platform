@@ -11,8 +11,9 @@ import {
   ShieldCheck,
   Building2,
   ChevronRight,
-  ToggleLeft,
-  ToggleRight,
+  Plane,
+  AlertTriangle,
+  Flame,
 } from 'lucide-react';
 import { Toast } from '../../components/ui/Toast';
 
@@ -29,17 +30,35 @@ export const DoctorAvailabilityPage = () => {
   const [slotDuration, setSlotDuration] = useState('30');
   const [leadTimeHours, setLeadTimeHours] = useState('2');
 
-  const daysList = [
-    { key: 'mon', label: 'Monday', enabled: true, start: '09:00 AM', end: '04:00 PM' },
-    { key: 'tue', label: 'Tuesday', enabled: true, start: '09:00 AM', end: '04:00 PM' },
-    { key: 'wed', label: 'Wednesday', enabled: true, start: '09:00 AM', end: '04:00 PM' },
-    { key: 'thu', label: 'Thursday', enabled: true, start: '09:00 AM', end: '04:00 PM' },
-    { key: 'fri', label: 'Friday', enabled: true, start: '09:00 AM', end: '04:00 PM' },
-    { key: 'sat', label: 'Saturday', enabled: false, start: '10:00 AM', end: '01:00 PM' },
-    { key: 'sun', label: 'Sunday', enabled: false, start: 'Closed', end: 'Closed' },
-  ];
+  // Leave Management State
+  const [leaves, setLeaves] = useState([]);
+  const [leaveStartDate, setLeaveStartDate] = useState('');
+  const [leaveEndDate, setLeaveEndDate] = useState('');
+  const [leaveType, setLeaveType] = useState('VACATION');
+  const [leaveReason, setLeaveReason] = useState('');
+  const [submittingLeave, setSubmittingLeave] = useState(false);
 
-  const [days, setDays] = useState(daysList);
+  // Emergency Capabilities
+  const [affiliations, setAffiliations] = useState([]);
+  const [selectedAffiliationId, setSelectedAffiliationId] = useState('');
+  const [emergencyCapabilities, setEmergencyCapabilities] = useState(['Trauma Care', 'Critical Resuscitation']);
+
+  // Weekly Operating Schedule Days
+  const [days, setDays] = useState([
+    { key: 'monday', label: 'Monday', enabled: true, start: '09:00 AM', end: '05:00 PM' },
+    { key: 'tuesday', label: 'Tuesday', enabled: true, start: '09:00 AM', end: '05:00 PM' },
+    { key: 'wednesday', label: 'Wednesday', enabled: true, start: '09:00 AM', end: '05:00 PM' },
+    { key: 'thursday', label: 'Thursday', enabled: true, start: '09:00 AM', end: '05:00 PM' },
+    { key: 'friday', label: 'Friday', enabled: true, start: '09:00 AM', end: '05:00 PM' },
+    { key: 'saturday', label: 'Saturday', enabled: false, start: '10:00 AM', end: '02:00 PM' },
+    { key: 'sunday', label: 'Sunday', enabled: false, start: '10:00 AM', end: '01:00 PM' },
+  ]);
+
+  const handleToggleDay = (dayKey) => {
+    setDays((prev) =>
+      prev.map((d) => (d.key === dayKey ? { ...d, enabled: !d.enabled } : d))
+    );
+  };
 
   useEffect(() => {
     fetchDoctorAvailability();
@@ -48,24 +67,33 @@ export const DoctorAvailabilityPage = () => {
   const fetchDoctorAvailability = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/doctors/me');
-      if (res.data.success) {
-        const doc = res.data.data;
+      const [docRes, leaveRes, affRes] = await Promise.allSettled([
+        api.get('/doctors/me'),
+        api.get('/doctors/me/leave'),
+        api.get('/doctors/me/affiliations?status=active'),
+      ]);
+
+      if (docRes.status === 'fulfilled' && docRes.value.data.success) {
+        const doc = docRes.value.data.data;
         setIsAvailableForAppointments(doc.isAvailableForAppointments ?? true);
         setIsAvailableForEmergency(doc.isAvailableForEmergency ?? false);
         if (doc.workingHours) setWorkingHours(doc.workingHours);
+      }
+
+      if (leaveRes.status === 'fulfilled' && leaveRes.value.data.success) {
+        setLeaves(leaveRes.value.data.data || []);
+      }
+
+      if (affRes.status === 'fulfilled' && affRes.value.data.success) {
+        const activeAffs = affRes.value.data.data || [];
+        setAffiliations(activeAffs);
+        if (activeAffs.length > 0) setSelectedAffiliationId(activeAffs[0]._id);
       }
     } catch (err) {
       console.warn('Could not fetch doctor availability', err);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleToggleDay = (key) => {
-    setDays(
-      days.map((d) => (d.key === key ? { ...d, enabled: !d.enabled } : d))
-    );
   };
 
   const handleSaveAvailability = async () => {
@@ -78,8 +106,18 @@ export const DoctorAvailabilityPage = () => {
       };
 
       const res = await api.put('/doctors/me', payload);
+
+      // Save emergency availability if affiliation selected
+      if (selectedAffiliationId) {
+        await api.post('/doctors/me/emergency-availability', {
+          affiliationId: selectedAffiliationId,
+          participationStatus: isAvailableForEmergency,
+          emergencyCapabilities,
+        });
+      }
+
       if (res.data.success) {
-        setToast({ type: 'success', message: 'Availability schedule saved successfully!' });
+        setToast({ type: 'success', message: 'Availability and on-call settings published successfully!' });
       }
     } catch (err) {
       console.error('Error updating availability', err);
@@ -90,6 +128,43 @@ export const DoctorAvailabilityPage = () => {
     } finally {
       setSaving(false);
       setTimeout(() => setToast({ type: '', message: '' }), 4000);
+    }
+  };
+
+  const handleSubmitLeave = async (e) => {
+    e.preventDefault();
+    if (!leaveStartDate || !leaveEndDate) {
+      alert('Please specify leave dates.');
+      return;
+    }
+
+    try {
+      setSubmittingLeave(true);
+      const res = await api.post('/doctors/me/leave', {
+        startDate: leaveStartDate,
+        endDate: leaveEndDate,
+        leaveType,
+        reason: leaveReason,
+        isFullDay: true,
+      });
+
+      if (res.data.success) {
+        setToast({
+          type: res.data.data.hasConflicts ? 'warning' : 'success',
+          message: res.data.message,
+        });
+        setLeaveStartDate('');
+        setLeaveEndDate('');
+        setLeaveReason('');
+        // Refresh leaves
+        const updated = await api.get('/doctors/me/leave');
+        if (updated.data.success) setLeaves(updated.data.data || []);
+      }
+    } catch (err) {
+      alert('Failed to register leave: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setSubmittingLeave(false);
+      setTimeout(() => setToast({ type: '', message: '' }), 6000);
     }
   };
 
@@ -262,6 +337,137 @@ export const DoctorAvailabilityPage = () => {
               <option value="24">24 hours in advance</option>
             </select>
           </div>
+        </div>
+      </div>
+
+      {/* Emergency On-Call Facility Duty Routing Card */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-4">
+        <div className="flex items-center space-x-2 pb-3 border-b border-slate-100">
+          <Flame className="w-4 h-4 text-rose-600" />
+          <h2 className="text-sm font-bold text-slate-900">Emergency On-Call Duty & Facility Routing</h2>
+        </div>
+
+        <p className="text-xs text-slate-500">
+          Select which affiliated facility your emergency on-call status routes to when you are placed on active duty standby.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div className="space-y-1">
+            <label className="block font-bold text-slate-700">Active Affiliation</label>
+            <select
+              value={selectedAffiliationId}
+              onChange={(e) => setSelectedAffiliationId(e.target.value)}
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white font-medium"
+            >
+              {affiliations.length === 0 ? (
+                <option value="">No Active Affiliations Found</option>
+              ) : (
+                affiliations.map((aff) => (
+                  <option key={aff._id} value={aff._id}>
+                    {aff.organizationId?.name || aff.organizationId?.legalName} ({aff.department})
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block font-bold text-slate-700">Clinical Emergency Capabilities</label>
+            <input
+              type="text"
+              value={emergencyCapabilities.join(', ')}
+              onChange={(e) => setEmergencyCapabilities(e.target.value.split(',').map((s) => s.trim()))}
+              placeholder="e.g. Trauma Care, Cardiac Arrest, Stroke, ICU"
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-200"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Doctor Leave & Exceptions Card */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-5">
+        <div className="flex items-center space-x-2 pb-3 border-b border-slate-100">
+          <Plane className="w-4 h-4 text-[#0B4F9C]" />
+          <h2 className="text-sm font-bold text-slate-900">Doctor Leave & Schedule Exceptions</h2>
+        </div>
+
+        <p className="text-xs text-slate-500">
+          Register planned vacation, conference, or emergency leave. The platform automatically blocks patient slot reservations and verifies if any existing appointments require resolution.
+        </p>
+
+        {/* Leave Request Form */}
+        <form onSubmit={handleSubmitLeave} className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div className="space-y-1">
+            <label className="block font-bold text-slate-700">Start Date</label>
+            <input
+              type="date"
+              required
+              value={leaveStartDate}
+              onChange={(e) => setLeaveStartDate(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block font-bold text-slate-700">End Date</label>
+            <input
+              type="date"
+              required
+              value={leaveEndDate}
+              onChange={(e) => setLeaveEndDate(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block font-bold text-slate-700">Leave Type</label>
+            <select
+              value={leaveType}
+              onChange={(e) => setLeaveType(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white"
+            >
+              <option value="VACATION">Vacation</option>
+              <option value="SICK">Sick Leave</option>
+              <option value="CONFERENCE">Medical Conference</option>
+              <option value="PERSONAL">Personal</option>
+              <option value="EMERGENCY">Emergency</option>
+            </select>
+          </div>
+
+          <div className="flex items-end">
+            <button
+              type="submit"
+              disabled={submittingLeave}
+              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition cursor-pointer disabled:opacity-50"
+            >
+              {submittingLeave ? 'Checking...' : 'Register Leave'}
+            </button>
+          </div>
+        </form>
+
+        {/* Existing Leaves List */}
+        <div className="space-y-2">
+          <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Registered Leaves ({leaves.length})</h3>
+          {leaves.length === 0 ? (
+            <p className="text-xs text-slate-400 italic">No scheduled leaves registered.</p>
+          ) : (
+            <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+              {leaves.map((l) => (
+                <div key={l._id} className="p-3 bg-white flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-slate-900">{l.leaveType}</span>
+                    <span className="text-slate-500 ml-2">
+                      {l.startDate} to {l.endDate}
+                    </span>
+                    {l.reason && <p className="text-[11px] text-slate-400">{l.reason}</p>}
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800">
+                    {l.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

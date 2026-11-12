@@ -32,6 +32,7 @@ import { EmergencyHistoryPage } from './pages/patient/EmergencyHistoryPage';
 
 // Doctor Pages
 import { DoctorDashboard } from './pages/doctor/DoctorDashboard';
+import { DoctorAppointmentsPage } from './pages/doctor/DoctorAppointmentsPage';
 import { DoctorPresencePage } from './pages/doctor/DoctorPresencePage';
 import { DoctorSchedulePage } from './pages/doctor/DoctorSchedulePage';
 import { DoctorAffiliationsPage } from './pages/doctor/DoctorAffiliationsPage';
@@ -40,6 +41,7 @@ import { DoctorAvailabilityPage } from './pages/doctor/DoctorAvailabilityPage';
 
 // Organization Pages
 import { OrganizationDashboard } from './pages/organization/OrganizationDashboard';
+import { OrganizationProfilePage } from './pages/organization/OrganizationProfilePage';
 import { OrganizationResourcesPage } from './pages/organization/OrganizationResourcesPage';
 import { OrganizationQrDeskPage } from './pages/organization/OrganizationQrDeskPage';
 import { OrganizationDoctorsPage } from './pages/organization/OrganizationDoctorsPage';
@@ -254,7 +256,7 @@ export default function App() {
                 path="/doctor/appointments"
                 element={
                   <ProtectedRoute allowedRoles={['doctor']}>
-                    <DoctorDashboard />
+                    <DoctorAppointmentsPage />
                   </ProtectedRoute>
                 }
               />
@@ -281,6 +283,14 @@ export default function App() {
                 element={
                   <ProtectedRoute allowedRoles={['organization']}>
                     <OrganizationDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/organization/profile"
+                element={
+                  <ProtectedRoute allowedRoles={['organization']}>
+                    <OrganizationProfilePage />
                   </ProtectedRoute>
                 }
               />

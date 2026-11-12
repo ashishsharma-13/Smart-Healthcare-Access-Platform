@@ -75,7 +75,7 @@ const appointmentAvailabilitySchema = new mongoose.Schema(
     },
     bufferDuration: {
       type: Number, // in minutes
-      default: 5,
+      default: 0,
     },
     maxDailyAppointments: {
       type: Number,
@@ -175,3 +175,4 @@ doctorScheduleSchema.pre('save', function (next) {
 doctorScheduleSchema.index({ doctorId: 1, affiliationId: 1, status: 1 });
 
 export const DoctorSchedule = mongoose.model('DoctorSchedule', doctorScheduleSchema);
+

@@ -15,6 +15,7 @@ import {
   XCircle,
   AlertTriangle,
   ArrowRight,
+  Loader2,
 } from 'lucide-react';
 
 export const DoctorProfilePage = () => {
@@ -23,30 +24,36 @@ export const DoctorProfilePage = () => {
   const { user } = useAuth();
 
   const [doctor, setDoctor] = useState(null);
+  const [affiliations, setAffiliations] = useState([]);
+  const [selectedAffiliation, setSelectedAffiliation] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState([]);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
 
   // Selected Date & Time Slot
   const today = new Date();
-  const [selectedDayIndex, setSelectedDayIndex] = useState(1); // Default to Tue 10 (index 1)
-  const [selectedSlot, setSelectedSlot] = useState('10:30 AM');
+  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+  const [selectedSlot, setSelectedSlot] = useState('');
   const [reasonForVisit, setReasonForVisit] = useState('Heart-health follow-up');
 
-  // Generate 7 consecutive days starting from Monday
+  // Generate 7 consecutive days starting from today
   const daysList = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
-    // Align to Monday of this week or tomorrow
-    const dayOfWeek = d.getDay(); // 0 is Sun
-    const distanceToMon = (dayOfWeek + 6) % 7;
-    d.setDate(d.getDate() - distanceToMon + i);
+    d.setDate(d.getDate() + i);
+
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const fullDateString = `${year}-${month}-${day}`;
 
     return {
       index: i,
       dayName: d.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase(),
       dayNum: String(d.getDate()).padStart(2, '0'),
-      fullDateString: d.toISOString().split('T')[0],
+      fullDateString,
       formattedDate: d.toLocaleDateString('en-GB', {
         weekday: 'short',
         day: 'numeric',
@@ -61,16 +68,21 @@ export const DoctorProfilePage = () => {
     };
   });
 
-  const availableSlotsList = ['9:00 AM', '10:30 AM', '11:30 AM', '2:00 PM'];
+  const selectedDay = daysList[selectedDayIndex] || daysList[0];
 
   useEffect(() => {
     fetchDoctor();
   }, [id]);
 
+  useEffect(() => {
+    if (doctor?._id) {
+      fetchSlots();
+    }
+  }, [doctor, selectedDayIndex, selectedAffiliation]);
+
   const fetchDoctor = async () => {
     try {
       setLoading(true);
-      // Try fetching by ID
       let foundDoc = null;
       try {
         const res = await api.get(`/doctors/${id}`);
@@ -82,7 +94,6 @@ export const DoctorProfilePage = () => {
       }
 
       if (!foundDoc) {
-        // Fallback to doctors list
         try {
           const listRes = await api.get('/doctors');
           if (listRes.data?.success && Array.isArray(listRes.data?.data) && listRes.data.data.length > 0) {
@@ -101,21 +112,32 @@ export const DoctorProfilePage = () => {
 
       if (foundDoc) {
         setDoctor(foundDoc);
+        // Fetch doctor active affiliations
+        try {
+          const affRes = await api.get(`/doctors/${foundDoc._id}/affiliations`);
+          if (affRes.data?.success && Array.isArray(affRes.data?.data)) {
+            setAffiliations(affRes.data.data);
+            if (affRes.data.data.length > 0) {
+              setSelectedAffiliation(affRes.data.data[0]);
+            }
+          }
+        } catch (affErr) {
+          console.warn('Affiliations fetch failed:', affErr.message);
+        }
       } else {
-        // Fallback default matching Reference Image 2
         setDoctor({
-          _id: id || 'doc-mira-patel',
+          _id: id || 'doc-sample',
           name: 'Dr. Mira Patel',
           specialization: 'Cardiologist',
           subSpecialty: 'MD, Internal Medicine',
           experienceYears: 12,
           experienceDesc: '12 years · Adult cardiology',
           languages: 'English, Hindi',
-          hospitalName: 'Riverside Medical Center',
+          hospitalName: 'Apex Heart Hospital',
           location: '120 River Avenue, Brookfield · 3.2 km',
           consultationFee: 85,
           about:
-            'Dr. Patel sees adults for cardiovascular consultations, preventive care and ongoing heart-health follow-ups. Her approach emphasizes clear explanations and shared care planning.',
+            'Specialist in cardiovascular consultations, preventive care and ongoing heart-health follow-ups.',
           verificationStatus: 'verified',
         });
       }
@@ -126,11 +148,51 @@ export const DoctorProfilePage = () => {
     }
   };
 
-  const selectedDay = daysList[selectedDayIndex] || daysList[0];
+  const fetchSlots = async () => {
+    if (!doctor?._id) return;
+    try {
+      setSlotsLoading(true);
+      const orgId = selectedAffiliation?.organizationId?._id || selectedAffiliation?.organizationId;
+      const res = await api.get('/appointments/available-slots', {
+        params: {
+          doctorId: doctor._id,
+          date: selectedDay.fullDateString,
+          organizationId: orgId,
+        },
+      });
+
+      if (res.data?.success && Array.isArray(res.data?.data)) {
+        setAvailableSlots(res.data.data);
+        const firstAvailable = res.data.data.find((s) => s.isAvailable);
+        if (firstAvailable) {
+          setSelectedSlot(firstAvailable.time);
+        } else {
+          setSelectedSlot('');
+        }
+      }
+    } catch (err) {
+      console.warn('Slots fetch warning:', err.message);
+      // Fallback slots
+      const defaultSlots = [
+        { time: '09:00 AM', isAvailable: true },
+        { time: '10:00 AM', isAvailable: true },
+        { time: '11:30 AM', isAvailable: true },
+        { time: '02:00 PM', isAvailable: true },
+      ];
+      setAvailableSlots(defaultSlots);
+      setSelectedSlot(defaultSlots[0].time);
+    } finally {
+      setSlotsLoading(false);
+    }
+  };
 
   const handleCompleteBooking = async () => {
     if (!user) {
       navigate('/login');
+      return;
+    }
+    if (!selectedSlot) {
+      setErrorMessage('Please select an available consultation slot.');
       return;
     }
 
@@ -139,6 +201,8 @@ export const DoctorProfilePage = () => {
       setErrorMessage('');
 
       const resolvedOrgId =
+        selectedAffiliation?.organizationId?._id ||
+        selectedAffiliation?.organizationId ||
         doctor?.currentPresence?.organizationId?._id ||
         doctor?.currentPresence?.organizationId ||
         doctor?.organizationId?._id ||
@@ -148,15 +212,24 @@ export const DoctorProfilePage = () => {
       const payload = {
         doctorId: doctor?._id,
         organizationId: resolvedOrgId,
-        slotDate: selectedDay.formattedDate,
+        affiliationId: selectedAffiliation?._id,
+        slotDate: selectedDay.fullDateString,
         slotTime: selectedSlot,
         patientNotes: reasonForVisit,
+        reason: reasonForVisit,
       };
 
-      // Call booking endpoint
       const res = await api.post('/appointments/book', payload);
       if (res.data?.success) {
-        setBookingSuccess(res.data.data);
+        setBookingSuccess({
+          ...res.data.data.appointment,
+          qrPassUrl: res.data.data.qrPassUrl,
+          doctorName: docName,
+          hospitalName:
+            selectedAffiliation?.organizationId?.name ||
+            doctor?.currentPresence?.organizationId?.name ||
+            'Healthcare Facility',
+        });
       } else {
         throw new Error(res.data?.message || 'Could not complete booking.');
       }
@@ -170,9 +243,9 @@ export const DoctorProfilePage = () => {
     }
   };
 
-  const docName = doctor?.userId?.name || doctor?.name || 'Dr. Mira Patel';
+  const docName = doctor?.userId?.name || doctor?.name || 'Dr. Specialist';
   const getInitials = (name) => {
-    if (!name) return 'MP';
+    if (!name) return 'DR';
     const parts = name.replace(/^Dr\.\s*/i, '').trim().split(' ');
     if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     return name.slice(0, 2).toUpperCase();
@@ -180,17 +253,17 @@ export const DoctorProfilePage = () => {
 
   return (
     <div className="space-y-6 pb-12 select-none">
-      {/* 1. Header with Breadcrumb & Back Button strictly per Reference Image 2 */}
+      {/* 1. Header with Breadcrumb & Back Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest block mb-0.5">
             FIND DOCTORS / PROVIDER PROFILE
           </span>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            A confident next step in your care
+            Consultation & Slot Booking
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Review your provider and choose a visit. Your booking is not confirmed yet.
+            Select verified provider, affiliated hospital, and preferred consultation timing.
           </p>
         </div>
 
@@ -198,39 +271,46 @@ export const DoctorProfilePage = () => {
           onClick={() => navigate('/doctors')}
           className="self-start sm:self-auto px-4 py-2 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
         >
-          Back to results
+          &larr; Back to search
         </button>
       </div>
 
+      {/* Error Alert */}
       {errorMessage && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-800 text-xs rounded-2xl font-bold flex items-center space-x-2 animate-fade-in shadow-xs">
-          <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start space-x-2">
+          <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
           <span>{errorMessage}</span>
         </div>
       )}
 
-      {/* 2. Main Two-Column Layout (Left Col 8, Right Col 4) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* 2. Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Doctor Profile & Appointment Picker (Col 8) */}
         <div className="lg:col-span-8 space-y-6">
-          {/* Provider Card strictly per Reference Image 2 */}
+          {/* Doctor Info Card */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
-            {/* Doctor Info Row */}
-            <div className="flex items-start space-x-4">
-              <div className="w-14 h-14 rounded-full bg-[#EBF3FE] text-blue-700 font-bold text-base flex items-center justify-center border border-blue-100 shrink-0">
-                {getInitials(docName)}
-              </div>
-              <div className="space-y-1">
-                <h2 className="text-xl font-bold text-slate-900">{docName}</h2>
-                <p className="text-xs text-slate-500">
-                  {doctor?.specialization || 'Cardiologist'} &bull;{' '}
-                  {doctor?.subSpecialty || doctor?.qualifications?.join(', ') || 'MD, Internal Medicine'}
-                </p>
-                <div>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-block">
-                    Verified provider
-                  </span>
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="flex items-start space-x-4">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-blue-600 text-white flex items-center justify-center text-xl sm:text-2xl font-black shrink-0 shadow-md">
+                  {getInitials(docName)}
                 </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                    {docName}
+                  </h2>
+                  <p className="text-xs font-bold text-blue-700 mt-0.5">
+                    {doctor?.specialization || 'Clinical Specialist'}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {doctor?.subSpecialty || doctor?.qualifications?.join(', ') || 'Board Certified'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="sm:text-right">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-block">
+                  Verified provider
+                </span>
               </div>
             </div>
 
@@ -239,70 +319,74 @@ export const DoctorProfilePage = () => {
               <div className="flex justify-between sm:justify-start sm:space-x-4">
                 <span className="text-slate-400 font-medium w-24">Experience</span>
                 <span className="text-slate-800 font-semibold">
-                  {doctor?.experienceDesc || `${doctor?.experienceYears || 12} years · Adult cardiology`}
+                  {doctor?.experienceDesc || `${doctor?.experienceYears || 10} years in clinical practice`}
                 </span>
               </div>
               <div className="flex justify-between sm:justify-start sm:space-x-4">
                 <span className="text-slate-400 font-medium w-24">Languages</span>
                 <span className="text-slate-800 font-semibold">
-                  {doctor?.languages || 'English, Hindi'}
+                  {doctor?.languages || 'English, Regional'}
                 </span>
               </div>
               <div className="flex justify-between sm:justify-start sm:space-x-4">
-                <span className="text-slate-400 font-medium w-24">Practice</span>
-                <span className="text-slate-800 font-semibold">
-                  {doctor?.currentPresence?.organizationId?.name ||
-                    doctor?.hospitalName ||
-                    'Riverside Medical Center'}
+                <span className="text-slate-400 font-medium w-24">License Ref</span>
+                <span className="text-slate-800 font-mono font-semibold">
+                  {doctor?.licenseNumber || doctor?.doctorUniqueId || 'N/A'}
                 </span>
               </div>
               <div className="flex justify-between sm:justify-start sm:space-x-4">
-                <span className="text-slate-400 font-medium w-24">Location</span>
+                <span className="text-slate-400 font-medium w-24">Affiliations</span>
                 <span className="text-slate-800 font-semibold">
-                  {doctor?.location || '120 River Avenue, Brookfield · 3.2 km'}
+                  {affiliations.length > 0 ? `${affiliations.length} Active Hospital(s)` : 'General Outpatient'}
                 </span>
               </div>
             </div>
 
-            {/* About Doctor Section */}
-            <div className="pt-4 border-t border-slate-100 space-y-2">
-              <h3 className="text-sm font-bold text-slate-900">About {docName}</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                {doctor?.about ||
-                  `${docName} sees adults for cardiovascular consultations, preventive care and ongoing heart-health follow-ups. Her approach emphasizes clear explanations and shared care planning.`}
-              </p>
-              <p className="text-[11px] text-slate-400 pt-1">
-                Credentials reviewed by SHAP &bull; Updated 02 Nov 2026
-              </p>
-            </div>
+            {/* Affiliated Organization Selector */}
+            {affiliations.length > 0 && (
+              <div className="pt-4 border-t border-slate-100 space-y-2">
+                <label className="block text-xs font-bold text-slate-700">
+                  Select Affiliated Healthcare Facility
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {affiliations.map((aff) => {
+                    const isSelected = selectedAffiliation?._id === aff._id;
+                    return (
+                      <button
+                        key={aff._id}
+                        type="button"
+                        onClick={() => setSelectedAffiliation(aff)}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-blue-600 bg-blue-50/50 shadow-xs ring-1 ring-blue-600'
+                            : 'border-slate-200 bg-white hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Building2 className={`w-4 h-4 ${isSelected ? 'text-blue-600' : 'text-slate-400'}`} />
+                          <span className="text-xs font-bold text-slate-900 truncate">
+                            {aff.organizationId?.name || 'Healthcare Facility'}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-1 pl-6">
+                          {aff.department || 'Outpatient'} &bull; {aff.designation || 'Consultant'}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* "Choose an appointment" Card strictly per Reference Image 2 */}
+          {/* Appointment Date & Slot Selector */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Choose an appointment</h2>
+              <h2 className="text-base font-bold text-slate-900">Choose consultation timing</h2>
+              <span className="text-xs text-slate-500">Live Schedule</span>
             </div>
 
-            {/* Month Navigation */}
-            <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
-              <button
-                type="button"
-                className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
-                aria-label="Previous month"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span>November 2026</span>
-              <button
-                type="button"
-                className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
-                aria-label="Next month"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* 7-Day Day Selector strictly per Reference Image 2 */}
+            {/* 7-Day Day Selector */}
             <div className="grid grid-cols-7 gap-2">
               {daysList.map((day) => {
                 const isSelected = selectedDayIndex === day.index;
@@ -327,41 +411,63 @@ export const DoctorProfilePage = () => {
             </div>
 
             {/* Selected Day Banner */}
-            <div className="text-xs font-bold text-slate-800 pt-1">
-              {selectedDay.weekdayAndDay} &bull; In-person consultation
+            <div className="text-xs font-bold text-slate-800 pt-1 flex items-center justify-between">
+              <span>{selectedDay.weekdayAndDay} &bull; Outpatient In-Person</span>
+              {slotsLoading && (
+                <span className="text-slate-400 flex items-center space-x-1 font-normal text-[11px]">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Checking slots...</span>
+                </span>
+              )}
             </div>
 
-            {/* Time Slots Grid strictly per Reference Image 2 */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {availableSlotsList.map((slot) => {
-                const isSlotSelected = selectedSlot === slot;
-                return (
-                  <button
-                    key={slot}
-                    type="button"
-                    onClick={() => setSelectedSlot(slot)}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      isSlotSelected
-                        ? 'bg-blue-50 border-2 border-blue-600 text-blue-700 shadow-xs'
-                        : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'
-                    }`}
-                  >
-                    {slot}
-                  </button>
-                );
-              })}
-            </div>
+            {/* Dynamic Time Slots Grid */}
+            {availableSlots.length === 0 && !slotsLoading ? (
+              <div className="p-6 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-xs text-slate-500">
+                No slots available on this date. Doctor may be off duty, on leave, or facility closed.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {availableSlots.map((slot) => {
+                  const isSlotSelected = selectedSlot === slot.time;
+                  const isAvailable = slot.isAvailable !== false;
+                  return (
+                    <button
+                      key={slot.time}
+                      type="button"
+                      disabled={!isAvailable}
+                      onClick={() => setSelectedSlot(slot.time)}
+                      className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+                        !isAvailable
+                          ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                          : isSlotSelected
+                          ? 'bg-blue-50 border-2 border-blue-600 text-blue-700 shadow-xs cursor-pointer'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 cursor-pointer'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{slot.time}</span>
+                        {!isAvailable && (
+                          <span className="text-[9px] uppercase px-1 rounded bg-slate-200 text-slate-600">
+                            {slot.reason || 'Booked'}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             <p className="text-[11px] text-slate-400">
-              Selecting a slot does not confirm your appointment.
+              Selecting a slot does not reserve it. Final slot confirmation occurs upon booking submission.
             </p>
           </div>
         </div>
 
-        {/* Right Column: "Your booking summary" Card (Col 4) strictly per Reference Image 2 */}
+        {/* Right Column: "Your booking summary" Card (Col 4) */}
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-5">
-            {/* Header */}
             <div>
               <h2 className="text-base font-bold text-slate-900">Your booking summary</h2>
               <div className="mt-2">
@@ -378,9 +484,18 @@ export const DoctorProfilePage = () => {
                 <span className="text-slate-900 font-bold">{docName}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-400 font-medium">Visit</span>
+                <span className="text-slate-400 font-medium">Specialty</span>
                 <span className="text-slate-700 font-medium">
-                  {doctor?.specialization || 'Cardiology'} &bull; In person
+                  {doctor?.specialization || 'Cardiology'}
+                </span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-400 font-medium">Facility</span>
+                <span className="text-slate-700 font-medium truncate max-w-[150px]">
+                  {selectedAffiliation?.organizationId?.name ||
+                    doctor?.currentPresence?.organizationId?.name ||
+                    doctor?.hospitalName ||
+                    'Outpatient Clinic'}
                 </span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-50">
@@ -388,8 +503,10 @@ export const DoctorProfilePage = () => {
                 <span className="text-slate-700 font-medium">{selectedDay.formattedDate}</span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-slate-400 font-medium">Time</span>
-                <span className="text-slate-700 font-medium">{selectedSlot}</span>
+                <span className="text-slate-400 font-medium">Time Slot</span>
+                <span className="text-slate-900 font-bold text-blue-700">
+                  {selectedSlot || 'Please select'}
+                </span>
               </div>
             </div>
 
@@ -414,43 +531,32 @@ export const DoctorProfilePage = () => {
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                Pay at the clinic. Additional services, if needed, are discussed separately.
+                Pay at the clinic desk upon arrival.
               </p>
             </div>
 
-            {/* "One step left" Callout Box */}
+            {/* Callout */}
             <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-100 text-xs flex items-start space-x-2.5">
               <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-bold text-slate-900 text-xs">One step left</h4>
+                <h4 className="font-bold text-slate-900 text-xs">Slot Revalidation</h4>
                 <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                  Complete booking to receive your appointment confirmation.
+                  The backend performs real-time transactional conflict checks to guarantee your reservation.
                 </p>
               </div>
             </div>
 
-            {/* "Complete booking" Button */}
+            {/* Complete booking Button */}
             <button
               type="button"
-              disabled={bookingLoading}
+              disabled={bookingLoading || !selectedSlot}
               onClick={handleCompleteBooking}
               className="w-full py-3 bg-[#0B4F9C] hover:bg-blue-800 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-xs transition active:scale-95 cursor-pointer disabled:opacity-50"
             >
-              {bookingLoading ? 'Processing Booking...' : 'Complete booking'}
+              {bookingLoading ? 'Reserving Appointment...' : 'Complete booking'}
             </button>
-
-            <p className="text-[10px] text-slate-400 text-center leading-normal pt-1">
-              By booking, you agree to share relevant details with this provider. Reschedule or cancel
-              from Appointments.
-            </p>
           </div>
         </div>
-      </div>
-
-      {/* 3. Minimal Footer strictly per Reference Image 2 */}
-      <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-400 border-t border-slate-100">
-        <div>SHAP &bull; Smart Healthcare Access Platform</div>
-        <div>Conceptual sample data &bull; Privacy & support</div>
       </div>
 
       {/* Booking Success Confirmation Modal */}
@@ -468,11 +574,17 @@ export const DoctorProfilePage = () => {
               </p>
             </div>
 
+            {bookingSuccess.qrPassUrl && (
+              <div className="p-3 bg-white border border-slate-100 rounded-2xl inline-block mx-auto shadow-xs">
+                <img src={bookingSuccess.qrPassUrl} alt="QR Pass" className="w-32 h-32 mx-auto" />
+              </div>
+            )}
+
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-xs text-left space-y-2">
               <div className="flex justify-between">
-                <span className="text-slate-400">Token Pass:</span>
+                <span className="text-slate-400">Appointment ID:</span>
                 <span className="font-mono font-bold text-blue-600">
-                  {bookingSuccess.appointmentNumber}
+                  {bookingSuccess.appointmentNumber || bookingSuccess.appointmentId}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -499,7 +611,7 @@ export const DoctorProfilePage = () => {
                 to="/patient/appointments"
                 className="flex-1 py-2.5 px-3 bg-[#0B4F9C] hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center space-x-1"
               >
-                <span>View in Passes</span>
+                <span>View My Appointments</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>

@@ -22,8 +22,10 @@ import {
 export const OrganizationDoctorsPage = () => {
   const [affiliations, setAffiliations] = useState([]);
   const [doctorsPresent, setDoctorsPresent] = useState([]);
+  const [presenceHistory, setPresenceHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('active'); // 'active' | 'incoming' | 'invitations' | 'present' | 'history'
+  const [historyView, setHistoryView] = useState('presence'); // 'presence' | 'affiliations'
   const [actionLoading, setActionLoading] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
 
@@ -52,10 +54,12 @@ export const OrganizationDoctorsPage = () => {
   const fetchAffiliationData = async () => {
     try {
       setLoading(true);
-      const [affRes, reqRes, orgRes] = await Promise.allSettled([
+      const [affRes, reqRes, orgRes, livePresRes, presHistRes] = await Promise.allSettled([
         api.get('/organizations/me/affiliations'),
         api.get('/organizations/me/affiliation-requests'),
         api.get('/organizations/portal/me'),
+        api.get('/organizations/me/doctors/presence').catch(() => api.get('/organizations/doctors/presence')),
+        api.get('/organizations/me/doctors/presence/history').catch(() => api.get('/organizations/doctors/presence/history')),
       ]);
 
       if (affRes.status === 'fulfilled' && affRes.value?.data?.success) {
@@ -72,8 +76,17 @@ export const OrganizationDoctorsPage = () => {
         setAffiliationRequests(reqRes.value.data.data || []);
       }
 
-      if (orgRes.status === 'fulfilled' && orgRes.value?.data?.success) {
+      // Live doctors present on-site from Module 7 API or portal fallback
+      if (livePresRes.status === 'fulfilled' && livePresRes.value?.data?.success) {
+        const liveData = livePresRes.value.data.data || [];
+        setDoctorsPresent(liveData);
+      } else if (orgRes.status === 'fulfilled' && orgRes.value?.data?.success) {
         setDoctorsPresent(orgRes.value.data.data?.doctorsPresent || []);
+      }
+
+      // Historical presence sessions
+      if (presHistRes.status === 'fulfilled' && presHistRes.value?.data?.success) {
+        setPresenceHistory(presHistRes.value.data.data || []);
       }
     } catch (err) {
       console.error('Error fetching organization doctor affiliations', err);
@@ -548,7 +561,7 @@ export const OrganizationDoctorsPage = () => {
             </div>
           )}
 
-          {/* 4. DOCTORS PRESENT ON-SITE (PRESERVED VIEW) */}
+          {/* 4. DOCTORS PRESENT ON-SITE (REAL-TIME QR ATTENDANCE) */}
           {activeTab === 'present' && (
             <div className="space-y-4">
               {doctorsPresent.length === 0 ? (
@@ -561,88 +574,203 @@ export const OrganizationDoctorsPage = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {doctorsPresent.map((doc) => (
-                    <div
-                      key={doc._id}
-                      className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-start space-x-3.5"
-                    >
-                      <img
-                        src={
-                          doc.userId?.avatar ||
-                          'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150&auto=format&fit=crop&q=80'
-                        }
-                        alt={doc.userId?.name}
-                        className="w-12 h-12 rounded-xl object-cover border border-slate-100 shrink-0"
-                      />
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-1.5">
-                          <h3 className="text-sm font-bold text-slate-900">{doc.userId?.name}</h3>
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        </div>
-                        <p className="text-xs font-semibold text-blue-600">{doc.specialization}</p>
+                  {doctorsPresent.map((item, idx) => {
+                    const doc = item.doctor || item;
+                    const department = item.department || doc.specialization;
+                    const checkInAt = item.checkInAt || doc.currentPresence?.checkedInAt;
+                    const isEmergency = item.isAvailableForEmergency ?? doc.isAvailableForEmergency;
+                    const method = item.checkInMethod || 'QR_SCAN';
 
-                        <div className="flex items-center space-x-2 pt-1 text-[11px]">
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
-                            PRESENT ON-SITE
-                          </span>
-                          {doc.isAvailableForEmergency && (
-                            <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">
-                              EMERGENCY DUTY
+                    return (
+                      <div
+                        key={doc._id || idx}
+                        className="p-5 bg-white rounded-2xl border border-emerald-200/80 shadow-xs flex items-start space-x-3.5"
+                      >
+                        <img
+                          src={
+                            doc.userId?.avatar ||
+                            'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150&auto=format&fit=crop&q=80'
+                          }
+                          alt={doc.userId?.name}
+                          className="w-12 h-12 rounded-xl object-cover border border-slate-100 shrink-0"
+                        />
+                        <div className="space-y-1 w-full">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-1.5">
+                              <h3 className="text-sm font-bold text-slate-900">{doc.userId?.name || 'Physician'}</h3>
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                            </div>
+                            <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                              {method}
                             </span>
+                          </div>
+
+                          <p className="text-xs font-semibold text-blue-600">{doc.specialization} &bull; {department}</p>
+                          
+                          {checkInAt && (
+                            <p className="text-[11px] text-slate-500">
+                              Checked in: <strong className="text-slate-700">{new Date(checkInAt).toLocaleTimeString()}</strong>
+                            </p>
                           )}
+
+                          <div className="flex items-center space-x-2 pt-1 text-[11px]">
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                              PRESENT ON-SITE
+                            </span>
+                            {isEmergency && (
+                              <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">
+                                EMERGENCY DUTY
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
           )}
 
-          {/* 5. HISTORY / TERMINATED */}
+          {/* 5. HISTORY (PRESENCE AUDIT LOGS & AFFILIATION LIFECYCLE) */}
           {activeTab === 'history' && (
-            <div className="space-y-3">
-              {historyAffiliations.length === 0 ? (
-                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-xs text-slate-400">
-                  No historical affiliation logs.
-                </div>
-              ) : (
-                historyAffiliations.map((aff) => {
-                  const doc = aff.doctorId;
-                  return (
-                    <div
-                      key={aff._id}
-                      className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <h4 className="font-bold text-slate-800">{doc?.userId?.name || 'Doctor'}</h4>
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                              aff.status === 'TERMINATION_REQUESTED'
-                                ? 'bg-amber-100 text-amber-800'
-                                : aff.status === 'REJECTED'
-                                ? 'bg-red-100 text-red-700'
-                                : 'bg-slate-100 text-slate-600'
-                            }`}
-                          >
-                            {aff.status}
-                          </span>
-                        </div>
-                        <p className="text-slate-400 text-[11px] mt-0.5">
-                          ID: {aff.affiliationId} &bull; {doc?.specialization} &bull; Logged on{' '}
-                          {new Date(aff.updatedAt).toLocaleDateString()}
-                        </p>
-                      </div>
+            <div className="space-y-4">
+              {/* History Sub-tabs */}
+              <div className="flex gap-2 pb-2 border-b border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setHistoryView('presence')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                    historyView === 'presence'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  On-Site Presence Logs ({presenceHistory.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHistoryView('affiliations')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                    historyView === 'affiliations'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Affiliation History ({historyAffiliations.length})
+                </button>
+              </div>
 
-                      {aff.rejectionReason && (
-                        <p className="text-red-600 text-[11px] max-w-xs truncate">
-                          Reason: {aff.rejectionReason}
-                        </p>
-                      )}
+              {historyView === 'presence' && (
+                <div className="space-y-3">
+                  {presenceHistory.length === 0 ? (
+                    <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-xs text-slate-400">
+                      No on-site presence attendance logs recorded yet.
                     </div>
-                  );
-                })
+                  ) : (
+                    <div className="overflow-x-auto bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-100">
+                          <tr>
+                            <th className="p-2.5">Doctor</th>
+                            <th className="p-2.5">Check-In Time</th>
+                            <th className="p-2.5">Check-Out Time</th>
+                            <th className="p-2.5">Duration</th>
+                            <th className="p-2.5">Method</th>
+                            <th className="p-2.5">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {presenceHistory.map((log) => {
+                            const checkInTime = log.checkInAt ? new Date(log.checkInAt) : log.timestamp ? new Date(log.timestamp) : null;
+                            const checkOutTime = log.checkOutAt ? new Date(log.checkOutAt) : null;
+                            const duration = log.durationMinutes ? `${log.durationMinutes} min` : checkOutTime && checkInTime ? `${Math.round((checkOutTime - checkInTime) / 60000)} min` : 'In progress';
+                            const status = log.status || (log.checkOutAt ? 'CHECKED_OUT' : 'CHECKED_IN');
+
+                            return (
+                              <tr key={log._id} className="hover:bg-slate-50/70">
+                                <td className="p-2.5">
+                                  <span className="font-bold text-slate-900 block">{log.doctorId?.userId?.name || 'Physician'}</span>
+                                  <span className="text-[10px] text-slate-500">{log.doctorId?.specialization || 'Consultant'}</span>
+                                </td>
+                                <td className="p-2.5 text-slate-600">
+                                  {checkInTime ? checkInTime.toLocaleString() : 'N/A'}
+                                </td>
+                                <td className="p-2.5 text-slate-600">
+                                  {checkOutTime ? checkOutTime.toLocaleString() : <span className="text-emerald-600 font-bold">Active On-Site</span>}
+                                </td>
+                                <td className="p-2.5 font-mono text-slate-700">
+                                  {duration}
+                                </td>
+                                <td className="p-2.5">
+                                  <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                                    {log.checkInMethod || log.method || 'QR_SCAN'}
+                                  </span>
+                                </td>
+                                <td className="p-2.5">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    status === 'CHECKED_IN' ? 'bg-emerald-100 text-emerald-800' :
+                                    status === 'MANUAL_CORRECTED' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
+                                  }`}>
+                                    {status}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {historyView === 'affiliations' && (
+                <div className="space-y-3">
+                  {historyAffiliations.length === 0 ? (
+                    <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-xs text-slate-400">
+                      No historical affiliation logs.
+                    </div>
+                  ) : (
+                    historyAffiliations.map((aff) => {
+                      const doc = aff.doctorId;
+                      return (
+                        <div
+                          key={aff._id}
+                          className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between text-xs"
+                        >
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <h4 className="font-bold text-slate-800">{doc?.userId?.name || 'Doctor'}</h4>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                  aff.status === 'TERMINATION_REQUESTED'
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : aff.status === 'REJECTED'
+                                    ? 'bg-red-100 text-red-700'
+                                    : 'bg-slate-100 text-slate-600'
+                                }`}
+                              >
+                                {aff.status}
+                              </span>
+                            </div>
+                            <p className="text-slate-400 text-[11px] mt-0.5">
+                              ID: {aff.affiliationId} &bull; {doc?.specialization} &bull; Logged on{' '}
+                              {new Date(aff.updatedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+
+                          {aff.rejectionReason && (
+                            <p className="text-red-600 text-[11px] max-w-xs truncate">
+                              Reason: {aff.rejectionReason}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               )}
             </div>
           )}

@@ -4,6 +4,7 @@ import { doctorRepository } from '../repositories/DoctorRepository.js';
 import { organizationRepository } from '../repositories/OrganizationRepository.js';
 import { doctorPresenceRepository } from '../repositories/DoctorPresenceRepository.js';
 import { doctorAffiliationRepository } from '../repositories/DoctorAffiliationRepository.js';
+import { doctorPresenceService } from './DoctorPresenceService.js';
 import {
   User,
   Doctor,
@@ -530,80 +531,15 @@ export class DoctorService {
   async checkIn(doctorId, orgQrCheckinCode) {
     const doctor = await doctorRepository.findById(doctorId);
     if (!doctor) throw new Error('Doctor not found');
-    if (doctor.verificationStatus !== 'verified') {
-      throw new Error('Only verified doctors can check in');
-    }
-
-    // Check if already checked in somewhere
-    if (doctor.currentPresence && doctor.currentPresence.isPresent) {
-      throw new Error('Doctor is already checked in at an organization. Check out first before checking in elsewhere.');
-    }
-
-    const org = await organizationRepository.findByQrCode(orgQrCheckinCode);
-    if (!org) {
-      throw new Error('Invalid organization QR code or identifier');
-    }
-
-    // Verify active affiliation with the target organization
-    const activeAffiliation = await doctorAffiliationRepository.findActiveAffiliation(doctor._id, org._id);
-    if (!activeAffiliation) {
-      throw new Error(`Doctor does not have an active affiliation with ${org.name}. QR check-in requires an ACTIVE affiliation.`);
-    }
-
-    // Update doctor presence
-    const updated = await doctorRepository.updateById(doctorId, {
-      'currentPresence.isPresent': true,
-      'currentPresence.organizationId': org._id,
-      'currentPresence.checkedInAt': new Date(),
-    });
-
-    // Record presence log
-    await doctorPresenceRepository.logPresence({
-      doctorId: doctor._id,
-      organizationId: org._id,
-      action: 'CHECK_IN',
-      method: 'QR_SCAN',
-      tokenUsed: orgQrCheckinCode,
-    });
-
-    return {
-      success: true,
-      message: `Checked in successfully at ${org.name}`,
-      doctor: updated,
-      organization: org,
-    };
+    const doctorUserId = doctor.userId?._id || doctor.userId;
+    return await doctorPresenceService.checkIn({ doctor, doctorId, doctorUserId, orgQrCode: orgQrCheckinCode });
   }
 
-  async checkOut(doctorId) {
+  async checkOut(doctorId, orgQrCode = null) {
     const doctor = await doctorRepository.findById(doctorId);
     if (!doctor) throw new Error('Doctor not found');
-
-    if (!doctor.currentPresence || !doctor.currentPresence.isPresent) {
-      throw new Error('Doctor is not currently checked in anywhere.');
-    }
-
-    const orgId = doctor.currentPresence.organizationId;
-
-    const updated = await doctorRepository.updateById(doctorId, {
-      'currentPresence.isPresent': false,
-      'currentPresence.organizationId': null,
-      'currentPresence.checkedInAt': null,
-    });
-
-    if (orgId) {
-      await doctorPresenceRepository.logPresence({
-        doctorId: doctor._id,
-        organizationId: orgId,
-        action: 'CHECK_OUT',
-        method: 'QR_SCAN',
-      });
-    }
-
-    return {
-      success: true,
-      message: 'Checked out successfully',
-      doctor: updated,
-    };
+    const doctorUserId = doctor.userId?._id || doctor.userId;
+    return await doctorPresenceService.checkOut({ doctor, doctorId, doctorUserId, orgQrCode });
   }
 
   async updateAvailability(doctorId, { isAvailableForAppointments, isAvailableForEmergency }) {

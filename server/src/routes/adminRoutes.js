@@ -1,6 +1,8 @@
 import express from 'express';
 import { adminController } from '../controllers/AdminController.js';
 import { doctorAffiliationController } from '../controllers/DoctorAffiliationController.js';
+import { appointmentController } from '../controllers/AppointmentController.js';
+import { doctorPresenceController } from '../controllers/DoctorPresenceController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -24,6 +26,15 @@ router.post('/organizations/:id/reject', (req, res, next) => adminController.rej
 
 // Module 4: Admin overview of doctor affiliations
 router.get('/affiliations', (req, res, next) => doctorAffiliationController.getAdminAffiliations(req, res, next));
+
+// Module 6: Admin overview of appointments and reporting
+router.get('/appointments/reports', (req, res, next) => appointmentController.getAdminAppointmentReports(req, res, next));
+router.get('/appointments', (req, res, next) => appointmentController.getAdminAppointments(req, res, next));
+router.get('/appointments/:id', (req, res, next) => appointmentController.getAppointmentById(req, res, next));
+
+// Module 7: Admin Doctor Presence Monitoring & Auditable Correction
+router.get('/presence', (req, res, next) => doctorPresenceController.getAdminPresenceLogs(req, res, next));
+router.post('/presence/:id/correct', (req, res, next) => doctorPresenceController.correctPresenceLog(req, res, next));
 
 export default router;
 

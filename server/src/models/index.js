@@ -21,4 +21,11 @@ export { OrganizationAdmin } from './OrganizationAdmin.js';
 export { OrganizationSpecialization } from './OrganizationSpecialization.js';
 export { OrganizationVerificationApplication } from './OrganizationVerificationApplication.js';
 export { AffiliationRequest } from './AffiliationRequest.js';
+export { DoctorSchedule } from './DoctorSchedule.js';
+export { EmergencyAvailability } from './EmergencyAvailability.js';
+export { DoctorLeave } from './DoctorLeave.js';
+export { OrganizationHoliday } from './OrganizationHoliday.js';
+export { AppointmentStatusHistory } from './AppointmentStatusHistory.js';
+export { AppointmentNotification } from './AppointmentNotification.js';
+export { OrganizationQRCode } from './OrganizationQRCode.js';
 

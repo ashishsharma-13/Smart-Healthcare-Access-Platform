@@ -193,8 +193,8 @@ export const Navbar = () => {
   const getProfileRoute = () => {
     if (user?.role === 'doctor') return '/doctor/profile';
     if (user?.role === 'patient') return '/patient/profile';
-    if (user?.role === 'organization') return '/organization/dashboard';
-    if (user?.role === 'admin') return '/admin/dashboard';
+    if (user?.role === 'organization') return '/organization/profile';
+    if (user?.role === 'admin' || user?.role === 'web_admin') return '/admin/dashboard';
     return '/patient/profile';
   };
 
@@ -237,6 +237,7 @@ export const Navbar = () => {
     if (location.pathname.includes('/doctor/presence')) return 'Presence & Badge';
     if (location.pathname.includes('/doctor/affiliations')) return 'Affiliations';
     if (location.pathname.includes('/doctor')) return 'Doctor Portal';
+    if (location.pathname.includes('/organization/profile')) return 'Manage profile';
     if (location.pathname.includes('/organization')) return 'Facility Portal';
     if (location.pathname.includes('/admin')) return 'Admin Portal';
     return 'Portal';

@@ -70,3 +70,4 @@ emergencyAvailabilitySchema.pre('save', function (next) {
 emergencyAvailabilitySchema.index({ doctorId: 1, organizationId: 1, status: 1 });
 
 export const EmergencyAvailability = mongoose.model('EmergencyAvailability', emergencyAvailabilitySchema);
+

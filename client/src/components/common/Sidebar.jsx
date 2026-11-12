@@ -364,6 +364,7 @@ export const Sidebar = () => {
       links: [
         { to: '/organization/doctors', label: 'Manage Doctors', icon: Users },
         { to: '/organization/qr-code', label: 'Facility QR Code', icon: QrCode },
+        { to: '/organization/profile', label: 'Facility Profile', icon: Building2 },
       ],
     },
   ];

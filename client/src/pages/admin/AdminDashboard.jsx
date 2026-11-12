@@ -32,6 +32,7 @@ import {
   MapPin,
   Building,
   Navigation,
+  Scan,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -48,12 +49,14 @@ export const AdminDashboard = () => {
   const [pendingOrgs, setPendingOrgs] = useState([]);
   const [verifiedOrgs, setVerifiedOrgs] = useState([]);
   const [rejectedOrgs, setRejectedOrgs] = useState([]);
+  const [presenceLogs, setPresenceLogs] = useState([]);
+  const [presenceFilter, setPresenceFilter] = useState('ALL');
   
   // UI States
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'verified' | 'rejected' | 'organizations'
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'verified' | 'rejected' | 'organizations' | 'presence'
   const [orgSubTab, setOrgSubTab] = useState('pending'); // 'pending' | 'verified' | 'rejected'
   const [searchQuery, setSearchQuery] = useState('');
   const [specializationFilter, setSpecializationFilter] = useState('ALL');
@@ -88,6 +91,13 @@ export const AdminDashboard = () => {
   const [orgRejectionReason, setOrgRejectionReason] = useState('');
   const [orgRejectionError, setOrgRejectionError] = useState('');
 
+  // Presence Manual Correction Modal State
+  const [correctionModalOpen, setCorrectionModalOpen] = useState(false);
+  const [logToCorrect, setLogToCorrect] = useState(null);
+  const [newCorrectionStatus, setNewCorrectionStatus] = useState('CHECKED_OUT');
+  const [correctionReason, setCorrectionReason] = useState('Physician forgot to scan terminal on departure');
+  const [correctionNotes, setCorrectionNotes] = useState('');
+
   // Document Preview Modal State
   const [previewDoc, setPreviewDoc] = useState(null);
 
@@ -106,6 +116,7 @@ export const AdminDashboard = () => {
         orgPendingRes,
         orgVerifiedRes,
         orgRejectedRes,
+        presenceRes,
       ] = await Promise.all([
         api.get('/admin/stats'),
         api.get('/admin/doctors/pending'),
@@ -114,6 +125,7 @@ export const AdminDashboard = () => {
         api.get('/admin/organizations/pending'),
         api.get('/admin/organizations/verified'),
         api.get('/admin/organizations/rejected'),
+        api.get('/admin/presence').catch(() => ({ data: { success: false, data: [] } })),
       ]);
 
       if (statsRes.data?.success) setStats(statsRes.data.data);
@@ -123,6 +135,9 @@ export const AdminDashboard = () => {
       if (orgPendingRes.data?.success) setPendingOrgs(orgPendingRes.data.data || []);
       if (orgVerifiedRes.data?.success) setVerifiedOrgs(orgVerifiedRes.data.data || []);
       if (orgRejectedRes.data?.success) setRejectedOrgs(orgRejectedRes.data.data || []);
+      if (presenceRes.data?.success) {
+        setPresenceLogs(presenceRes.data.data?.logs || presenceRes.data.data || []);
+      }
     } catch (err) {
       console.error('Error loading admin portal data', err);
       setFeedback({
@@ -131,6 +146,35 @@ export const AdminDashboard = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConfirmCorrection = async (e) => {
+    e.preventDefault();
+    if (!logToCorrect) return;
+    try {
+      setActionLoading(true);
+      const res = await api.post(`/admin/presence/${logToCorrect._id}/correct`, {
+        newStatus: newCorrectionStatus,
+        reason: correctionReason,
+        notes: correctionNotes,
+      });
+      if (res.data?.success) {
+        setFeedback({
+          type: 'success',
+          message: 'Presence record manually corrected with audit trail.',
+        });
+        setCorrectionModalOpen(false);
+        setLogToCorrect(null);
+        await fetchAdminData();
+      }
+    } catch (err) {
+      setFeedback({
+        type: 'error',
+        message: 'Correction failed: ' + (err.response?.data?.message || err.message),
+      });
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -551,6 +595,25 @@ export const AdminDashboard = () => {
               {pendingOrgs.length}
             </span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('presence')}
+            className={`flex items-center gap-2 py-3 px-3.5 text-xs font-semibold border-b-2 transition-all ${
+              activeTab === 'presence'
+                ? 'border-brand-600 text-brand-700 bg-white shadow-xs rounded-t-lg'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Scan className="w-3.5 h-3.5" />
+            <span>Presence Monitoring</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+              presenceLogs.filter(p => p.status === 'CHECKED_IN').length > 0
+                ? 'bg-emerald-100 text-emerald-800'
+                : 'bg-slate-200 text-slate-600'
+            }`}>
+              {presenceLogs.filter(p => p.status === 'CHECKED_IN').length}
+            </span>
+          </button>
         </div>
 
         {/* Filter and Search Bar */}
@@ -562,6 +625,8 @@ export const AdminDashboard = () => {
               placeholder={
                 activeTab === 'organizations'
                   ? 'Search by hospital, license, unique code, or city...'
+                  : activeTab === 'presence'
+                  ? 'Search presence by doctor, facility, or method...'
                   : 'Search by physician, license, or ref...'
               }
               value={searchQuery}
@@ -1081,6 +1146,160 @@ export const AdminDashboard = () => {
                     </table>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 5: Real-Time Presence & Attendance Governance (Module 7) */}
+        {activeTab === 'presence' && (
+          <div className="space-y-4">
+            {/* Presence Sub-Filters */}
+            <div className="px-4 pt-3 pb-1 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {[
+                  { id: 'ALL', label: `All Sessions (${presenceLogs.length})` },
+                  { id: 'CHECKED_IN', label: `Active On-Site (${presenceLogs.filter(p => p.status === 'CHECKED_IN').length})` },
+                  { id: 'CHECKED_OUT', label: `Completed (${presenceLogs.filter(p => p.status === 'CHECKED_OUT').length})` },
+                  { id: 'MANUAL_CORRECTED', label: `Corrected (${presenceLogs.filter(p => p.status === 'MANUAL_CORRECTED').length})` },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setPresenceFilter(f.id)}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                      presenceFilter === f.id
+                        ? 'bg-brand-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="text-[11px] text-slate-400 font-mono">
+                Real-Time Physician Attendance Matrix
+              </div>
+            </div>
+
+            {/* Presence Table */}
+            {presenceLogs.length === 0 ? (
+              <EmptyState
+                icon={Scan}
+                title="No Presence Sessions Recorded"
+                description="Doctors will appear here as they scan reception QR codes upon arrival at participating facilities."
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-100">
+                    <tr>
+                      <th className="p-3.5">Doctor & Specialty</th>
+                      <th className="p-3.5">Healthcare Facility</th>
+                      <th className="p-3.5">Check-In Time</th>
+                      <th className="p-3.5">Check-Out Time</th>
+                      <th className="p-3.5">Duration</th>
+                      <th className="p-3.5">Method</th>
+                      <th className="p-3.5">Status</th>
+                      <th className="p-3.5 text-right">Administrative Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {presenceLogs
+                      .filter((log) => {
+                        if (presenceFilter !== 'ALL' && log.status !== presenceFilter) return false;
+                        if (searchQuery.trim()) {
+                          const q = searchQuery.toLowerCase();
+                          const docName = log.doctorId?.userId?.name?.toLowerCase() || '';
+                          const docSpec = log.doctorId?.specialization?.toLowerCase() || '';
+                          const orgName = log.organizationId?.name?.toLowerCase() || '';
+                          return docName.includes(q) || docSpec.includes(q) || orgName.includes(q);
+                        }
+                        return true;
+                      })
+                      .map((log) => {
+                        const checkInDate = log.checkInAt ? new Date(log.checkInAt) : log.timestamp ? new Date(log.timestamp) : null;
+                        const checkOutDate = log.checkOutAt ? new Date(log.checkOutAt) : null;
+                        const duration = log.durationMinutes ? `${log.durationMinutes} min` : checkOutDate && checkInDate ? `${Math.round((checkOutDate - checkInDate) / 60000)} min` : 'In progress';
+                        const isActive = log.status === 'CHECKED_IN';
+
+                        return (
+                          <tr key={log._id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="p-3.5">
+                              <div className="font-bold text-slate-900">
+                                {log.doctorId?.userId?.name || 'Physician'}
+                              </div>
+                              <div className="text-[11px] text-blue-600 font-medium">
+                                {log.doctorId?.specialization || 'Specialist'}
+                              </div>
+                              <div className="text-[10px] font-mono text-slate-400">
+                                ID: {log.doctorId?.doctorUniqueId || log.doctorId?._id || 'N/A'}
+                              </div>
+                            </td>
+                            <td className="p-3.5">
+                              <div className="font-semibold text-slate-900">
+                                {log.organizationId?.name || 'Healthcare Facility'}
+                              </div>
+                              <div className="text-[10px] text-slate-400">
+                                {log.organizationId?.orgType?.replace(/_/g, ' ') || 'Medical Center'}
+                              </div>
+                            </td>
+                            <td className="p-3.5 text-slate-600">
+                              {checkInDate ? checkInDate.toLocaleString() : 'N/A'}
+                            </td>
+                            <td className="p-3.5 text-slate-600">
+                              {checkOutDate ? (
+                                checkOutDate.toLocaleString()
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 text-emerald-700 font-bold">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                                  Present On-Site
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3.5 font-mono text-slate-700 font-medium">
+                              {duration}
+                            </td>
+                            <td className="p-3.5">
+                              <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold">
+                                {log.checkInMethod || log.method || 'QR_SCAN'}
+                              </span>
+                            </td>
+                            <td className="p-3.5">
+                              <Badge
+                                variant={
+                                  log.status === 'CHECKED_IN'
+                                    ? 'presence'
+                                    : log.status === 'MANUAL_CORRECTED'
+                                    ? 'warning'
+                                    : 'neutral'
+                                }
+                                size="xs"
+                              >
+                                {log.status || 'CHECKED_IN'}
+                              </Badge>
+                            </td>
+                            <td className="p-3.5 text-right whitespace-nowrap">
+                              <Button
+                                size="xs"
+                                variant="outline"
+                                onClick={() => {
+                                  setLogToCorrect(log);
+                                  setNewCorrectionStatus(log.status === 'CHECKED_IN' ? 'CHECKED_OUT' : 'MANUAL_CORRECTED');
+                                  setCorrectionReason('Physician forgot to scan terminal on departure');
+                                  setCorrectionNotes('');
+                                  setCorrectionModalOpen(true);
+                                }}
+                              >
+                                Manual Correction
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -1931,6 +2150,112 @@ export const AdminDashboard = () => {
                 Confirm Rejection
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 7: Doctor Presence Manual Correction Modal (Module 7) */}
+      {correctionModalOpen && logToCorrect && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+        >
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-modal border border-slate-200 animate-scale-up">
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Scan className="w-5 h-5 text-brand-600" />
+                <h3 className="text-base font-bold text-slate-900">
+                  Manual Presence Override / Correction
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCorrectionModalOpen(false);
+                  setLogToCorrect(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1">
+              <p className="font-bold text-slate-900">
+                {logToCorrect.doctorId?.userId?.name || 'Physician'}
+              </p>
+              <p className="text-slate-600">
+                Facility: <strong>{logToCorrect.organizationId?.name || 'Healthcare Facility'}</strong>
+              </p>
+              <p className="text-slate-500 font-mono text-[10px]">
+                Session ID: {logToCorrect.presenceId || logToCorrect._id}
+              </p>
+            </div>
+
+            <form onSubmit={handleConfirmCorrection} className="space-y-3.5 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">New Corrected Status *</label>
+                <select
+                  value={newCorrectionStatus}
+                  onChange={(e) => setNewCorrectionStatus(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600"
+                >
+                  <option value="CHECKED_OUT">CHECKED_OUT (Physician has left facility)</option>
+                  <option value="MANUAL_CORRECTED">MANUAL_CORRECTED (Administrative adjustment)</option>
+                  <option value="CANCELLED">CANCELLED (Erroneous or invalid check-in)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Mandatory Reason *</label>
+                <input
+                  type="text"
+                  required
+                  value={correctionReason}
+                  onChange={(e) => setCorrectionReason(e.target.value)}
+                  placeholder="e.g. Doctor left without scanning out, reception phone confirmation"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Additional Audit Notes</label>
+                <textarea
+                  rows={2}
+                  value={correctionNotes}
+                  onChange={(e) => setCorrectionNotes(e.target.value)}
+                  placeholder="Optional explanatory notes for compliance audit logs..."
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 resize-none"
+                />
+              </div>
+
+              <p className="text-[10px] text-slate-400">
+                This modification is permanently recorded with your admin ID and timestamp in the audit log.
+              </p>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  onClick={() => {
+                    setCorrectionModalOpen(false);
+                    setLogToCorrect(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  type="submit"
+                  loading={actionLoading}
+                >
+                  Apply Correction
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -17,6 +17,9 @@ import {
   Info,
   CalendarPlus,
   Check,
+  History,
+  Building2,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -27,10 +30,24 @@ export const AppointmentsPage = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterTab, setFilterTab] = useState('upcoming'); // 'upcoming', 'past', 'cancelled'
+
+  // Modals state
   const [selectedPass, setSelectedPass] = useState(null);
   const [rescheduleApt, setRescheduleApt] = useState(null);
-  const [newDate, setNewDate] = useState('2026-11-12');
-  const [newTime, setNewTime] = useState('11:00 AM');
+  const [cancelModalApt, setCancelModalApt] = useState(null);
+  const [cancelReason, setCancelReason] = useState('Schedule conflict');
+  const [historyModalApt, setHistoryModalApt] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [appointmentHistoryData, setAppointmentHistoryData] = useState(null);
+
+  // Reschedule slots state
+  const [newDate, setNewDate] = useState(
+    new Date(Date.now() + 86400000).toISOString().split('T')[0]
+  );
+  const [newTime, setNewTime] = useState('');
+  const [rescheduleSlots, setRescheduleSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -39,58 +56,36 @@ export const AppointmentsPage = () => {
   const defaultUpcomingApt = {
     _id: 'apt-sample-2041',
     appointmentNumber: '#AP-2041',
-    status: 'booked',
-    slotDate: 'Tue, 10 Nov 2026',
-    slotTime: '10:30–11:00 AM',
-    reasonForVisit: 'Heart-health follow-up',
+    status: 'CONFIRMED',
+    slotDate: '2026-11-16',
+    slotTime: '10:30 AM',
+    reason: 'Heart-health follow-up',
     fee: '$85 · Pay at clinic',
     doctorId: {
       userId: { name: 'Dr. Mira Patel' },
       specialization: 'Cardiology',
-      consultationType: 'In person',
     },
     organizationId: {
-      name: 'Riverside Medical Center',
+      name: 'Apex Heart Hospital',
       address: { street: '120 River Avenue', city: 'Brookfield' },
     },
   };
-
-  const defaultPastAppointments = [
-    {
-      _id: 'past-1',
-      provider: 'Dr. Sofia Chen',
-      specialty: 'Cardiology',
-      date: '28 Oct 2026',
-      facility: 'Lakeside Specialty',
-      status: 'Completed',
-    },
-    {
-      _id: 'past-2',
-      provider: 'Dr. Ethan Ross',
-      specialty: 'Primary care',
-      date: '14 Sep 2026',
-      facility: 'Cedar Community',
-      status: 'Completed',
-    },
-    {
-      _id: 'past-3',
-      provider: 'Dr. Mira Patel',
-      specialty: 'Cardiology',
-      date: '03 Aug 2026',
-      facility: 'Riverside Medical',
-      status: 'Completed',
-    },
-  ];
 
   useEffect(() => {
     fetchAppointments();
   }, []);
 
+  useEffect(() => {
+    if (rescheduleApt) {
+      fetchRescheduleSlots();
+    }
+  }, [rescheduleApt, newDate]);
+
   const fetchAppointments = async () => {
     try {
       setLoading(true);
       const res = await api.get('/appointments/my');
-      if (res.data.success && Array.isArray(res.data.data)) {
+      if (res.data?.success && Array.isArray(res.data?.data)) {
         setAppointments(res.data.data);
       }
     } catch (err) {
@@ -100,33 +95,70 @@ export const AppointmentsPage = () => {
     }
   };
 
-  const handleCancel = async (apt) => {
-    if (!window.confirm('Are you sure you want to cancel this appointment reservation?')) return;
+  const fetchRescheduleSlots = async () => {
+    if (!rescheduleApt) return;
+    try {
+      setSlotsLoading(true);
+      const docId = rescheduleApt.doctorId?._id || rescheduleApt.doctorId;
+      const orgId = rescheduleApt.organizationId?._id || rescheduleApt.organizationId;
+      const res = await api.get('/appointments/available-slots', {
+        params: {
+          doctorId: docId,
+          date: newDate,
+          organizationId: orgId,
+        },
+      });
+
+      if (res.data?.success && Array.isArray(res.data?.data)) {
+        setRescheduleSlots(res.data.data);
+        const firstAvail = res.data.data.find((s) => s.isAvailable);
+        if (firstAvail) {
+          setNewTime(firstAvail.time);
+        } else {
+          setNewTime('');
+        }
+      }
+    } catch (err) {
+      console.warn('Could not load slots for reschedule:', err.message);
+      const defaults = [
+        { time: '09:00 AM', isAvailable: true },
+        { time: '10:00 AM', isAvailable: true },
+        { time: '11:00 AM', isAvailable: true },
+        { time: '02:00 PM', isAvailable: true },
+      ];
+      setRescheduleSlots(defaults);
+      setNewTime(defaults[0].time);
+    } finally {
+      setSlotsLoading(false);
+    }
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!cancelModalApt) return;
     try {
       setActionLoading(true);
       setError('');
 
-      const aptId = apt._id;
-      if (aptId && aptId.length === 24) {
-        await api.put(`/appointments/${aptId}/cancel`, {
-          reason: 'Cancelled by patient from portal',
-        });
-      }
+      const aptId = cancelModalApt._id;
+      await api.post(`/appointments/${aptId}/cancel`, {
+        reason: cancelReason,
+      });
 
       setAppointments((prev) =>
         prev.map((a) =>
-          a._id === aptId || a.appointmentNumber === apt.appointmentNumber
-            ? { ...a, status: 'cancelled', cancellationReason: 'Cancelled by patient from portal' }
+          a._id === aptId
+            ? { ...a, status: 'CANCELLED', cancellationReason: cancelReason }
             : a
         )
       );
 
-      setSuccessMessage('Appointment cancelled successfully');
+      setCancelModalApt(null);
+      setSuccessMessage('Appointment cancelled successfully.');
       setTimeout(() => setSuccessMessage(''), 5000);
       await fetchAppointments();
     } catch (err) {
       console.error('Failed to cancel appointment', err);
-      setError(err.response?.data?.message || 'Failed to cancel appointment');
+      setError(err.response?.data?.message || err.message || 'Failed to cancel appointment');
     } finally {
       setActionLoading(false);
     }
@@ -135,76 +167,96 @@ export const AppointmentsPage = () => {
   const handleRescheduleSubmit = async (e) => {
     e.preventDefault();
     if (!rescheduleApt) return;
+    if (!newTime) {
+      setError('Please select an available replacement slot.');
+      return;
+    }
 
     try {
       setActionLoading(true);
       setError('');
 
-      if (rescheduleApt._id && rescheduleApt._id.length === 24) {
-        await api.put(`/appointments/${rescheduleApt._id}/reschedule`, {
-          newDate,
-          newTime,
-        });
-      }
-
-      setAppointments((prev) =>
-        prev.map((a) =>
-          a._id === rescheduleApt._id
-            ? { ...a, slotDate: newDate, slotTime: newTime, status: 'rescheduled' }
-            : a
-        )
-      );
+      const aptId = rescheduleApt._id;
+      const res = await api.post(`/appointments/${aptId}/reschedule`, {
+        newDate,
+        newTime,
+        reason: 'Rescheduled by patient',
+      });
 
       setRescheduleApt(null);
-      setSuccessMessage('Appointment rescheduled successfully');
+      setSuccessMessage('Appointment rescheduled successfully.');
       setTimeout(() => setSuccessMessage(''), 5000);
       await fetchAppointments();
     } catch (err) {
       console.error('Failed to reschedule appointment', err);
-      setError(err.response?.data?.message || 'Failed to reschedule appointment');
+      setError(err.response?.data?.message || err.message || 'Failed to reschedule appointment');
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Derive counts
-  const realUpcoming = appointments.filter((a) => a.status === 'booked' || a.status === 'rescheduled');
-  const realPast = appointments.filter((a) => a.status === 'completed');
-  const realCancelled = appointments.filter((a) => a.status === 'cancelled');
+  const handleOpenHistory = async (apt) => {
+    setHistoryModalApt(apt);
+    setAppointmentHistoryData(null);
+    try {
+      setHistoryLoading(true);
+      const res = await api.get(`/appointments/${apt._id}`);
+      if (res.data?.success) {
+        setAppointmentHistoryData(res.data.data);
+      }
+    } catch (err) {
+      console.warn('Could not fetch status history:', err.message);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  // Status mapping helpers
+  const isUpcoming = (status) => {
+    const s = (status || '').toUpperCase();
+    return s === 'CONFIRMED' || s === 'BOOKED' || s === 'RESCHEDULED';
+  };
+  const isPast = (status) => {
+    const s = (status || '').toUpperCase();
+    return s === 'COMPLETED' || s === 'NO_SHOW';
+  };
+  const isCancelled = (status) => {
+    const s = (status || '').toUpperCase();
+    return s === 'CANCELLED';
+  };
+
+  const realUpcoming = appointments.filter((a) => isUpcoming(a.status));
+  const realPast = appointments.filter((a) => isPast(a.status));
+  const realCancelled = appointments.filter((a) => isCancelled(a.status));
 
   const upcomingCount = realUpcoming.length > 0 ? realUpcoming.length : 1;
-  const pastCount = realPast.length > 0 ? realPast.length : 3;
+  const pastCount = realPast.length;
   const cancelledCount = realCancelled.length;
 
-  // Display upcoming list (real or fallback)
   const displayUpcomingList = realUpcoming.length > 0 ? realUpcoming : [defaultUpcomingApt];
 
-  // Past items list
-  const pastList = realPast.length > 0
-    ? realPast.map((a) => ({
-        _id: a._id,
-        provider: a.doctorId?.userId?.name || 'Specialist',
-        specialty: a.doctorId?.specialization || 'Clinical care',
-        date: a.slotDate || 'Recent',
-        facility: a.organizationId?.name || 'Healthcare Facility',
-        status: 'Completed',
-      }))
-    : defaultPastAppointments;
-
-  const initials = (name) => {
-    if (!name) return 'MP';
-    return name
-      .replace(/^Dr\.\s*/i, '')
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .substring(0, 2)
-      .toUpperCase();
+  const getStatusBadge = (status) => {
+    const s = (status || '').toUpperCase();
+    switch (s) {
+      case 'CONFIRMED':
+      case 'BOOKED':
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Confirmed</span>;
+      case 'RESCHEDULED':
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">Rescheduled</span>;
+      case 'COMPLETED':
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">Completed</span>;
+      case 'NO_SHOW':
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">No-Show</span>;
+      case 'CANCELLED':
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700 border border-red-200">Cancelled</span>;
+      default:
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600">{status}</span>;
+    }
   };
 
   return (
     <div className="space-y-6 pb-12 select-none">
-      {/* 1. Header Section strictly per Reference Image 2 */}
+      {/* 1. Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
@@ -235,7 +287,7 @@ export const AppointmentsPage = () => {
         <Toast type="error" message={error} onClose={() => setError('')} />
       )}
 
-      {/* 2. Tabs Row strictly per Reference Image 2 */}
+      {/* 2. Tabs Row */}
       <div className="flex items-center space-x-1 pb-1">
         <button
           type="button"
@@ -248,7 +300,6 @@ export const AppointmentsPage = () => {
         >
           Upcoming ({upcomingCount})
         </button>
-
         <button
           type="button"
           onClick={() => setFilterTab('past')}
@@ -260,7 +311,6 @@ export const AppointmentsPage = () => {
         >
           Past ({pastCount})
         </button>
-
         <button
           type="button"
           onClick={() => setFilterTab('cancelled')}
@@ -274,255 +324,203 @@ export const AppointmentsPage = () => {
         </button>
       </div>
 
-      {/* 3. Main Body - Two Columns (Upcoming Appointment Card + Before your visit Card) */}
+      {/* 3. Tab Contents */}
       {filterTab === 'upcoming' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Upcoming Appointments Cards (Col 8) */}
-          <div className="lg:col-span-8 space-y-4">
-            {displayUpcomingList.map((apt) => {
-              const docName = apt.doctorId?.userId?.name || apt.doctorId?.name || 'Dr. Mira Patel';
-              const specialty = apt.doctorId?.specialization || 'Cardiology';
-              const consultType = apt.doctorId?.consultationType || 'In person';
-              const aptNum = apt.appointmentNumber || '#AP-2041';
-              const slotDt = apt.slotDate || 'Tue, 10 Nov 2026';
-              const slotTm = apt.slotTime || '10:30–11:00 AM';
-              const hospital = apt.organizationId?.name || 'Riverside Medical Center';
-              const street = apt.organizationId?.address?.street || '120 River Avenue';
-              const reason = apt.reasonForVisit || apt.patientNotes || 'Heart-health follow-up';
-              const fee = apt.fee || `$${apt.consultationFee || 85} · Pay at clinic`;
-
-              return (
-                <div
-                  key={apt._id}
-                  className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-5"
-                >
-                  {/* Top row: Avatar + Name + Confirmed badge */}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center space-x-3.5">
-                      <div className="w-11 h-11 rounded-full bg-[#EBF3FE] text-[#0B4F9C] font-bold text-sm flex items-center justify-center shrink-0">
-                        {initials(docName)}
-                      </div>
-                      <div>
-                        <h2 className="text-base font-bold text-slate-900">{docName}</h2>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {specialty} &bull; {consultType}
-                        </p>
-                      </div>
-                    </div>
-
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      Confirmed
-                    </span>
-                  </div>
-
-                  {/* Appointment Details Grid strictly per Reference Image 2 */}
-                  <div className="space-y-2.5 text-xs pt-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-1 py-0.5">
-                      <span className="sm:col-span-3 text-slate-400 font-medium">Appointment</span>
-                      <span className="sm:col-span-9 font-bold text-slate-800">{aptNum}</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-1 py-0.5">
-                      <span className="sm:col-span-3 text-slate-400 font-medium">Date & time</span>
-                      <span className="sm:col-span-9 font-bold text-slate-800">
-                        {slotDt} &bull; {slotTm}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-1 py-0.5">
-                      <span className="sm:col-span-3 text-slate-400 font-medium">Location</span>
-                      <span className="sm:col-span-9 font-bold text-slate-800">
-                        {hospital} &bull; {street}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-1 py-0.5">
-                      <span className="sm:col-span-3 text-slate-400 font-medium">Reason for visit</span>
-                      <span className="sm:col-span-9 font-bold text-slate-800">{reason}</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-1 py-0.5">
-                      <span className="sm:col-span-3 text-slate-400 font-medium">Consultation fee</span>
-                      <span className="sm:col-span-9 font-bold text-slate-800">{fee}</span>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons Row */}
-                  <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedPass(apt)}
-                      className="px-4 py-2 bg-[#0B4F9C] hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
-                    >
-                      View details
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRescheduleApt(apt);
-                        setNewDate(apt.slotDate || '2026-11-12');
-                      }}
-                      className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition cursor-pointer shadow-xs"
-                    >
-                      Reschedule
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleCancel(apt)}
-                      disabled={actionLoading}
-                      className="px-3 py-2 text-slate-500 hover:text-red-600 font-bold text-xs transition cursor-pointer"
-                    >
-                      Cancel appointment
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Right Column: Before your visit Card (Col 4) strictly per Reference Image 2 */}
-          <div className="lg:col-span-4 bg-[#F0F6FE] border border-blue-100 rounded-2xl p-6 shadow-xs space-y-4">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">Before your visit</h2>
-              <p className="text-xs text-slate-600 mt-1">Arrive 15 minutes early for check-in.</p>
-            </div>
-
-            <div className="space-y-2.5 text-xs text-slate-700 font-medium">
-              <div className="flex items-center space-x-2">
-                <Check className="w-3.5 h-3.5 text-slate-800 shrink-0" />
-                <span>Bring a photo ID</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Check className="w-3.5 h-3.5 text-slate-800 shrink-0" />
-                <span>Bring current medication details</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Check className="w-3.5 h-3.5 text-slate-800 shrink-0" />
-                <span>Have previous reports ready</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Check className="w-3.5 h-3.5 text-slate-800 shrink-0" />
-                <span>Write down questions for your doctor</span>
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-blue-200/50 text-[11px] text-slate-500 leading-relaxed">
-              Need to change plans? Reschedule or cancel here so the clinic can update its schedule.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 4. Recent Past Appointments Card strictly per Reference Image 2 */}
-      {(filterTab === 'upcoming' || filterTab === 'past') && (
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-            <h2 className="text-base font-bold text-slate-900">Recent past appointments</h2>
-            <button
-              type="button"
-              onClick={() => setFilterTab('past')}
-              className="text-xs font-bold text-[#0B4F9C] hover:underline flex items-center space-x-1 cursor-pointer"
+        <div className="space-y-4">
+          {displayUpcomingList.map((apt) => (
+            <div
+              key={apt._id || apt.appointmentNumber}
+              className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs hover:border-slate-300 transition-all space-y-4"
             >
-              <span>View full history</span>
-              <span>&rarr;</span>
-            </button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                  <th className="py-2.5 pr-4">Provider</th>
-                  <th className="py-2.5 px-4">Specialty</th>
-                  <th className="py-2.5 px-4">Date</th>
-                  <th className="py-2.5 px-4">Facility</th>
-                  <th className="py-2.5 pl-4 text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-800">
-                {pastList.map((item) => (
-                  <tr key={item._id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-3.5 pr-4 font-bold text-slate-900">{item.provider}</td>
-                    <td className="py-3.5 px-4 text-slate-600">{item.specialty}</td>
-                    <td className="py-3.5 px-4 text-slate-600">{item.date}</td>
-                    <td className="py-3.5 px-4 text-slate-600">{item.facility}</td>
-                    <td className="py-3.5 pl-4 text-right font-medium text-slate-700">
-                      {item.status}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Cancelled Tab Content */}
-      {filterTab === 'cancelled' && (
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-4">
-          <h2 className="text-base font-bold text-slate-900">Cancelled appointments</h2>
-          {realCancelled.length === 0 ? (
-            <div className="text-xs text-slate-400 py-8 text-center">
-              No cancelled consultations on record.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {realCancelled.map((apt) => (
-                <div
-                  key={apt._id}
-                  className="p-4 rounded-xl border border-slate-200/80 flex items-center justify-between"
-                >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">
+                    <Calendar className="w-5 h-5" />
+                  </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">
-                      {apt.doctorId?.userId?.name || 'Assigned Specialist'}
+                    <h3 className="text-base font-bold text-slate-900">
+                      {apt.doctorId?.userId?.name || 'Dr. Specialist'}
                     </h3>
                     <p className="text-xs text-slate-500">
-                      {apt.slotDate} &bull; {apt.slotTime}
+                      {apt.doctorId?.specialization || 'Clinical Specialist'} &bull; In-Person Consultation
                     </p>
-                    {apt.cancellationReason && (
-                      <p className="text-[11px] text-rose-600 mt-1">
-                        Reason: {apt.cancellationReason}
-                      </p>
-                    )}
                   </div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                    Cancelled
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  {getStatusBadge(apt.status)}
+                  <span className="font-mono text-xs font-bold text-slate-500">
+                    {apt.appointmentNumber || apt.appointmentId}
                   </span>
                 </div>
-              ))}
+              </div>
+
+              {/* Timing & Facility Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div className="flex items-center space-x-2.5 text-slate-700">
+                  <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                  <div>
+                    <span className="font-bold text-slate-900 block">{apt.slotDate}</span>
+                    <span className="text-slate-500">{apt.slotTime}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2.5 text-slate-700">
+                  <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
+                  <div>
+                    <span className="font-bold text-slate-900 block">
+                      {apt.organizationId?.name || 'Healthcare Facility'}
+                    </span>
+                    <span className="text-slate-500">
+                      {apt.organizationId?.address?.street || 'Main Clinical Campus'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2.5 text-slate-700">
+                  <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                  <div>
+                    <span className="font-bold text-slate-900 block">Reason for Visit</span>
+                    <span className="text-slate-500 truncate max-w-[180px] block">
+                      {apt.reason || apt.patientNotes || 'General consultation'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100">
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPass(apt)}
+                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-lg transition flex items-center space-x-1 cursor-pointer"
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    <span>View QR Pass</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleOpenHistory(apt)}
+                    className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-lg transition flex items-center space-x-1 cursor-pointer"
+                  >
+                    <History className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Audit Trail</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setRescheduleApt(apt)}
+                    className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-lg transition flex items-center space-x-1 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Reschedule</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCancelModalApt(apt)}
+                    className="px-3 py-1.5 border border-red-200 hover:bg-red-50 text-red-600 font-bold text-xs rounded-lg transition flex items-center space-x-1 cursor-pointer"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    <span>Cancel</span>
+                  </button>
+                </div>
+              </div>
             </div>
+          ))}
+        </div>
+      )}
+
+      {filterTab === 'past' && (
+        <div className="space-y-3">
+          {realPast.length === 0 ? (
+            <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-xs text-slate-500">
+              No completed consultation history recorded yet.
+            </div>
+          ) : (
+            realPast.map((apt) => (
+              <div
+                key={apt._id}
+                className="bg-white border border-slate-200/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+              >
+                <div>
+                  <div className="font-bold text-slate-900">
+                    {apt.doctorId?.userId?.name || 'Dr. Specialist'}
+                  </div>
+                  <div className="text-slate-500 text-[11px]">
+                    {apt.doctorId?.specialization || 'Outpatient'} &bull; {apt.slotDate} ({apt.slotTime})
+                  </div>
+                  <div className="text-slate-400 text-[11px] mt-0.5">
+                    {apt.organizationId?.name || 'Healthcare Facility'}
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  {getStatusBadge(apt.status)}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenHistory(apt)}
+                    className="px-2.5 py-1 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-semibold cursor-pointer"
+                  >
+                    View History
+                  </button>
+                </div>
+              </div>
+            ))
           )}
         </div>
       )}
 
-      {/* 5. Regular booking and Emergency Beep are separate Callout strictly per Reference Image 2 */}
-      <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-100 flex items-start space-x-2.5 text-xs">
-        <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-        <div>
-          <span className="font-bold text-blue-950 mr-1.5">
-            Regular booking and Emergency Beep are separate
-          </span>
-          <span className="text-slate-600 text-[11px] leading-relaxed">
-            A confirmed appointment reserves your consultation slot. Emergency resource holds require
-            a finalized destination and confirmation from the selected facility.
-          </span>
-        </div>
-      </div>
+      {filterTab === 'cancelled' && (
+        <div className="space-y-3">
+          {realCancelled.length === 0 ? (
+            <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-xs text-slate-500">
+              No cancelled appointments.
+            </div>
+          ) : (
+            realCancelled.map((apt) => (
+              <div
+                key={apt._id}
+                className="bg-white border border-slate-200/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs opacity-75"
+              >
+                <div>
+                  <div className="font-bold text-slate-800 line-through">
+                    {apt.doctorId?.userId?.name || 'Dr. Specialist'}
+                  </div>
+                  <div className="text-slate-500 text-[11px]">
+                    Scheduled for {apt.slotDate} ({apt.slotTime})
+                  </div>
+                  <div className="text-red-500 text-[11px] mt-0.5">
+                    Reason: {apt.cancellationReason || 'Cancelled by user'}
+                  </div>
+                </div>
 
-      {/* 6. Minimal Footer strictly per Reference Image 2 */}
-      <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-400 border-t border-slate-100">
-        <div>SHAP &bull; Smart Healthcare Access Platform</div>
-        <div>Conceptual sample data &bull; Privacy & support</div>
-      </div>
+                <div className="flex items-center space-x-3">
+                  {getStatusBadge(apt.status)}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenHistory(apt)}
+                    className="px-2.5 py-1 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-semibold cursor-pointer"
+                  >
+                    View History
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Hospital Check-in Pass / Details Modal */}
       {selectedPass && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in"
         >
           <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl p-6 max-w-sm w-full text-center space-y-4">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100">
@@ -543,26 +541,21 @@ export const AppointmentsPage = () => {
                 <QrCode className="w-32 h-32 text-slate-900" />
               </div>
               <p className="text-xs font-mono font-bold text-slate-900 mt-2">
-                TOKEN: {selectedPass.appointmentNumber || '#AP-2041'}
+                TOKEN: {selectedPass.appointmentNumber || selectedPass.appointmentId}
               </p>
             </div>
 
             <div className="text-xs text-slate-600 text-left bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
               <p>
                 <strong className="text-slate-900">Doctor:</strong>{' '}
-                {selectedPass.doctorId?.userId?.name || 'Dr. Mira Patel'}
+                {selectedPass.doctorId?.userId?.name || 'Dr. Specialist'}
               </p>
               <p>
-                <strong className="text-slate-900">Department:</strong>{' '}
-                {selectedPass.doctorId?.specialization || 'Cardiology'}
-              </p>
-              <p>
-                <strong className="text-slate-900">Schedule:</strong> {selectedPass.slotDate} (
-                {selectedPass.slotTime})
+                <strong className="text-slate-900">Schedule:</strong> {selectedPass.slotDate} ({selectedPass.slotTime})
               </p>
               <p>
                 <strong className="text-slate-900">Facility:</strong>{' '}
-                {selectedPass.organizationId?.name || 'Riverside Medical Center'}
+                {selectedPass.organizationId?.name || 'Healthcare Facility'}
               </p>
             </div>
 
@@ -574,7 +567,7 @@ export const AppointmentsPage = () => {
                 icon={Printer}
                 onClick={() => window.print()}
               >
-                Print Voucher
+                Print Pass
               </Button>
               <Button
                 variant="primary"
@@ -594,9 +587,9 @@ export const AppointmentsPage = () => {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in"
         >
-          <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl p-6 max-w-sm w-full space-y-4">
+          <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl p-6 max-w-md w-full space-y-4">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-900">Reschedule Consultation</h3>
               <button
@@ -609,11 +602,11 @@ export const AppointmentsPage = () => {
             </div>
 
             <p className="text-xs text-slate-500">
-              Select new date and time for consultation with{' '}
-              {rescheduleApt.doctorId?.userId?.name || 'Dr. Mira Patel'}
+              Selecting replacement timing for {rescheduleApt.appointmentNumber} with{' '}
+              {rescheduleApt.doctorId?.userId?.name || 'Doctor'}.
             </p>
 
-            <form onSubmit={handleRescheduleSubmit} className="space-y-3">
+            <form onSubmit={handleRescheduleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">New Date</label>
                 <input
@@ -627,19 +620,40 @@ export const AppointmentsPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">New Slot Time</label>
-                <select
-                  value={newTime}
-                  onChange={(e) => setNewTime(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
-                >
-                  <option value="09:00 AM">09:00 AM</option>
-                  <option value="10:00 AM">10:00 AM</option>
-                  <option value="10:30 AM">10:30 AM</option>
-                  <option value="11:00 AM">11:00 AM</option>
-                  <option value="02:30 PM">02:30 PM</option>
-                  <option value="04:00 PM">04:00 PM</option>
-                </select>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-bold text-slate-700">Available Slots</label>
+                  {slotsLoading && <span className="text-[10px] text-slate-400">Loading...</span>}
+                </div>
+
+                {rescheduleSlots.length === 0 && !slotsLoading ? (
+                  <div className="p-3 text-center bg-slate-50 rounded-xl text-xs text-slate-400 border border-dashed border-slate-200">
+                    No slots available on this date.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {rescheduleSlots.map((slot) => {
+                      const isSelected = newTime === slot.time;
+                      const isAvailable = slot.isAvailable !== false;
+                      return (
+                        <button
+                          key={slot.time}
+                          type="button"
+                          disabled={!isAvailable}
+                          onClick={() => setNewTime(slot.time)}
+                          className={`py-2 px-2 rounded-lg text-xs font-bold transition-all text-center ${
+                            !isAvailable
+                              ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50'
+                              : isSelected
+                              ? 'bg-blue-600 text-white shadow-xs'
+                              : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
+                          }`}
+                        >
+                          {slot.time}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 pt-2">
@@ -657,12 +671,151 @@ export const AppointmentsPage = () => {
                   variant="primary"
                   size="sm"
                   className="flex-1 cursor-pointer"
+                  disabled={!newTime || actionLoading}
                   loading={actionLoading}
                 >
                   Confirm Change
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Cancellation Modal */}
+      {cancelModalApt && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in"
+        >
+          <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl p-6 max-w-sm w-full space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-red-600 flex items-center space-x-1.5">
+                <XCircle className="w-4 h-4" />
+                <span>Cancel Reservation</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setCancelModalApt(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Are you sure you want to cancel your consultation{' '}
+              <strong className="text-slate-900">{cancelModalApt.appointmentNumber}</strong>? Your slot will be released back to the clinical schedule.
+            </p>
+
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-700">Cancellation Reason</label>
+              <select
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-600"
+              >
+                <option value="Schedule conflict">Schedule conflict</option>
+                <option value="Symptoms resolved / feeling better">Symptoms resolved / feeling better</option>
+                <option value="Transportation issue">Transportation issue</option>
+                <option value="Seeking alternate facility">Seeking alternate facility</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex-1 cursor-pointer"
+                onClick={() => setCancelModalApt(null)}
+              >
+                Keep Booking
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                className="flex-1 cursor-pointer"
+                loading={actionLoading}
+                onClick={handleCancelConfirm}
+              >
+                Confirm Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Audit Trail / Status History Modal */}
+      {historyModalApt && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in"
+        >
+          <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl p-6 max-w-md w-full space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-1.5">
+                <History className="w-4 h-4 text-blue-600" />
+                <span>Appointment Status History</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setHistoryModalApt(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-500">
+              Auditable transition lifecycle for {historyModalApt.appointmentNumber}
+            </div>
+
+            {historyLoading ? (
+              <div className="py-8 text-center text-xs text-slate-400 flex items-center justify-center space-x-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Loading lifecycle history...</span>
+              </div>
+            ) : appointmentHistoryData?.statusHistory && appointmentHistoryData.statusHistory.length > 0 ? (
+              <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                {appointmentHistoryData.statusHistory.map((item, idx) => (
+                  <div key={item._id || idx} className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-slate-800">
+                        {item.previousStatus ? `${item.previousStatus} → ` : ''}
+                        <span className="text-blue-700">{item.newStatus}</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {new Date(item.changedAt).toLocaleString()}
+                      </span>
+                    </div>
+                    {item.reason && (
+                      <p className="text-[11px] text-slate-600 italic">"{item.reason}"</p>
+                    )}
+                    <div className="text-[10px] text-slate-400 pt-0.5">
+                      By: {item.changedBy?.name || 'System / User'} ({item.changedBy?.role || 'user'})
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 bg-slate-50 rounded-xl text-xs text-slate-500 text-center">
+                Initial confirmed booking state recorded.
+              </div>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full cursor-pointer"
+              onClick={() => setHistoryModalApt(null)}
+            >
+              Close
+            </Button>
           </div>
         </div>
       )}
