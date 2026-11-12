@@ -12,10 +12,10 @@ const startServer = async () => {
   // Connect database
   await connectDB();
 
-  // If database is empty, automatically seed demonstration data
-  const userCount = await User.countDocuments();
-  if (userCount === 0) {
-    console.log('[Startup] Database is empty. Running auto-seed for demo environment...');
+  // Automatically seed demonstration data if empty or missing reference entities
+  const miraUser = await User.findOne({ email: 'mira.patel@shap.com' });
+  if (!miraUser) {
+    console.log('[Startup] Seeding demonstration healthcare ecosystem data...');
     const { default: seedScript } = await import('./utils/autoSeed.js');
     await seedScript();
   }

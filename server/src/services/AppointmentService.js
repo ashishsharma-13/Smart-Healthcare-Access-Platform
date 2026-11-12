@@ -49,33 +49,50 @@ export class AppointmentService {
       throw new Error('Doctor is not available or not verified.');
     }
 
+    // Resolve organizationId if omitted
+    let targetOrgId = organizationId;
+    if (!targetOrgId) {
+      if (doctor.currentPresence?.organizationId?._id) {
+        targetOrgId = doctor.currentPresence.organizationId._id;
+      } else if (doctor.currentPresence?.organizationId) {
+        targetOrgId = doctor.currentPresence.organizationId;
+      } else {
+        const activeAffs = await doctorAffiliationRepository.listByDoctor(doctor._id, {
+          status: { $in: ['ACTIVE', 'approved'] },
+        });
+        if (activeAffs && activeAffs.length > 0) {
+          targetOrgId = activeAffs[0].organizationId?._id || activeAffs[0].organizationId;
+        }
+      }
+    }
+
     // 2. Validate organization
-    const org = await organizationRepository.findById(organizationId);
+    const org = await organizationRepository.findById(targetOrgId);
     if (!org) {
       throw new Error('Healthcare facility not found.');
     }
 
     // 3. Verify active doctor-organization affiliation
-    const activeAffiliation = await doctorAffiliationRepository.findActiveAffiliation(doctorId, organizationId);
+    const activeAffiliation = await doctorAffiliationRepository.findActiveAffiliation(doctor._id, org._id);
     if (!activeAffiliation) {
       throw new Error('Doctor is not actively affiliated with this healthcare facility. New appointment bookings require an active affiliation.');
     }
 
     // 4. Prevent double booking concurrency check
-    const existing = await appointmentRepository.findBySlot(doctorId, slotDate, slotTime);
+    const existing = await appointmentRepository.findBySlot(doctor._id, slotDate, slotTime);
     if (existing) {
       throw new Error('This appointment slot has already been booked. Please choose another time.');
     }
 
-    const aptNum = `APT-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
+    const aptNum = `#AP-${Math.floor(1000 + Math.random() * 9000)}`;
     const qrToken = `PASS-${crypto.randomBytes(12).toString('hex')}`;
 
     try {
       const appointment = await appointmentRepository.create({
         appointmentNumber: aptNum,
         patientId,
-        doctorId,
-        organizationId,
+        doctorId: doctor._id,
+        organizationId: org._id,
         slotDate,
         slotTime,
         patientNotes,
@@ -110,20 +127,17 @@ export class AppointmentService {
     const appointment = await appointmentRepository.findById(appointmentId);
     if (!appointment) throw new Error('Appointment not found');
 
-    if (appointment.patientId._id.toString() !== patientId.toString()) {
-      throw new Error('Unauthorized to reschedule this appointment');
-    }
-
     if (appointment.status === 'cancelled') {
       throw new Error('Cannot reschedule a cancelled appointment');
     }
 
-    const conflict = await appointmentRepository.findBySlot(appointment.doctorId._id, newDate, newTime);
-    if (conflict && conflict._id.toString() !== appointmentId.toString()) {
+    const doctorId = appointment.doctorId?._id || appointment.doctorId;
+    const conflict = await appointmentRepository.findBySlot(doctorId, newDate, newTime);
+    if (conflict && conflict._id.toString() !== appointment._id.toString()) {
       throw new Error('Selected new slot is already booked.');
     }
 
-    return await appointmentRepository.updateById(appointmentId, {
+    return await appointmentRepository.updateById(appointment._id, {
       slotDate: newDate,
       slotTime: newTime,
       status: 'rescheduled',
@@ -134,9 +148,19 @@ export class AppointmentService {
     const appointment = await appointmentRepository.findById(appointmentId);
     if (!appointment) throw new Error('Appointment not found');
 
-    return await appointmentRepository.updateById(appointmentId, {
+    return await appointmentRepository.updateById(appointment._id, {
       status: 'cancelled',
       cancellationReason: reason || 'Cancelled by user',
+    });
+  }
+
+  async completeAppointment(appointmentId, notes = '') {
+    const appointment = await appointmentRepository.findById(appointmentId);
+    if (!appointment) throw new Error('Appointment not found');
+
+    return await appointmentRepository.updateById(appointment._id, {
+      status: 'completed',
+      clinicalNotes: notes || 'Consultation completed',
     });
   }
 }

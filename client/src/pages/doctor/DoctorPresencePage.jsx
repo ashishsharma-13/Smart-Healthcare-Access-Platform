@@ -42,7 +42,7 @@ export const DoctorPresencePage = () => {
         api.get('/doctors/me'),
         api.get('/doctors/qr-credential'),
         api.get('/doctors/presence/history'),
-        api.get('/doctor/affiliations').catch(() => ({ data: { success: false, data: [] } })),
+        api.get('/doctors/affiliations').catch(() => ({ data: { success: false, data: [] } })),
       ]);
 
       if (profRes.data?.success) setProfile(profRes.data.data);

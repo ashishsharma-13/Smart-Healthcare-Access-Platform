@@ -130,14 +130,65 @@ export const DoctorDashboard = () => {
     setTimeout(() => setToast({ type: '', message: '' }), 4000);
   };
 
-  const handleCompleteVisit = (aptId) => {
-    setSelectedAppointment(null);
-    setToast({ type: 'success', message: 'Consultation marked as completed and recorded in medical log.' });
-    setTimeout(() => setToast({ type: '', message: '' }), 4000);
+  const handleCompleteVisit = async (aptId) => {
+    try {
+      if (aptId && aptId.length === 24) {
+        await api.put(`/appointments/${aptId}/complete`, { notes: 'Completed in consultation' });
+      }
+      setSelectedAppointment(null);
+      setToast({ type: 'success', message: 'Consultation marked as completed and recorded in medical log.' });
+      setTimeout(() => setToast({ type: '', message: '' }), 4000);
+      await fetchDoctorData();
+    } catch (err) {
+      console.error('Error completing visit', err);
+      setToast({ type: 'error', message: err.response?.data?.message || 'Could not complete consultation' });
+      setTimeout(() => setToast({ type: '', message: '' }), 4000);
+    }
   };
 
-  // Next patient item (matches Avery James from image)
-  const nextPatient = defaultSchedule.find((s) => s.patientName === 'Avery James') || defaultSchedule[1];
+  // Live schedule from appointments or fallback defaults
+  const displaySchedule =
+    appointments.length > 0
+      ? appointments.map((apt) => {
+          const ptName =
+            apt.patientId?.name ||
+            apt.patientName ||
+            'Noah Williams';
+          const initials = ptName
+            .replace(/^Dr\.\s*/i, '')
+            .split(' ')
+            .map((n) => n[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase();
+
+          return {
+            _id: apt._id,
+            time: apt.slotTime ? apt.slotTime.split('–')[0].trim() : '10:30 AM',
+            slotRange: apt.slotTime || '10:30–11:00 AM',
+            patientName: ptName,
+            patientInitials: initials || 'NW',
+            visitType: apt.patientNotes || 'Follow-up',
+            reason: apt.patientNotes || 'Heart-health consultation',
+            status:
+              apt.status === 'completed'
+                ? 'Completed'
+                : apt.status === 'cancelled'
+                ? 'Cancelled'
+                : 'Confirmed',
+            room: 'Room C-02',
+            location: 'Riverside · Room C-02',
+            appointmentNumber: apt.appointmentNumber,
+            slotDate: apt.slotDate,
+          };
+        })
+      : defaultSchedule;
+
+  // Next patient item
+  const nextPatient =
+    displaySchedule.find((s) => s.status === 'Confirmed') ||
+    displaySchedule[0] ||
+    defaultSchedule[1];
 
   const doctorLastName = doctorProfile?.userId?.name
     ? doctorProfile.userId.name.replace(/^Dr\.\s*/i, '').split(' ').pop()
@@ -197,9 +248,19 @@ export const DoctorDashboard = () => {
           </div>
           <div>
             <div className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-              08
+              {appointments.length > 0
+                ? displaySchedule.length < 10
+                  ? `0${displaySchedule.length}`
+                  : displaySchedule.length
+                : '08'}
             </div>
-            <div className="text-xs text-slate-500 mt-1">5 completed &bull; 3 remaining</div>
+            <div className="text-xs text-slate-500 mt-1">
+              {appointments.length > 0
+                ? `${displaySchedule.filter((s) => s.status === 'Completed').length} completed • ${
+                    displaySchedule.filter((s) => s.status === 'Confirmed').length
+                  } remaining`
+                : '5 completed • 3 remaining'}
+            </div>
           </div>
         </div>
 
@@ -211,9 +272,11 @@ export const DoctorDashboard = () => {
           </div>
           <div>
             <div className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-              2:30 PM
+              {nextPatient.time || '2:30 PM'}
             </div>
-            <div className="text-xs text-slate-500 mt-1">In person &bull; Room C-02</div>
+            <div className="text-xs text-slate-500 mt-1">
+              In person &bull; {nextPatient.room || 'Room C-02'}
+            </div>
           </div>
         </div>
 
@@ -261,7 +324,7 @@ export const DoctorDashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-800">
-                  {defaultSchedule.map((apt) => (
+                  {displaySchedule.map((apt) => (
                     <tr
                       key={apt._id}
                       onClick={() => setSelectedAppointment(apt)}

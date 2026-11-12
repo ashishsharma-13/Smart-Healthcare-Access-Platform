@@ -107,32 +107,19 @@ export const AppointmentsPage = () => {
       setError('');
 
       const aptId = apt._id;
-      // Optimistic update
+      if (aptId && aptId.length === 24) {
+        await api.put(`/appointments/${aptId}/cancel`, {
+          reason: 'Cancelled by patient from portal',
+        });
+      }
+
       setAppointments((prev) =>
         prev.map((a) =>
           a._id === aptId || a.appointmentNumber === apt.appointmentNumber
-            ? { ...a, status: 'cancelled' }
+            ? { ...a, status: 'cancelled', cancellationReason: 'Cancelled by patient from portal' }
             : a
         )
       );
-
-      try {
-        await api.patch(`/appointments/${aptId}/cancel`, {
-          reason: 'Cancelled by patient from portal',
-          cancellationReason: 'Cancelled by patient from portal',
-        });
-      } catch {
-        try {
-          await api.put(`/appointments/${aptId}/cancel`, {
-            reason: 'Cancelled by patient from portal',
-          });
-        } catch {
-          await api.post(`/appointments/${aptId}/cancel`, {
-            reason: 'Cancelled by patient from portal',
-            cancellationReason: 'Cancelled by patient from portal',
-          });
-        }
-      }
 
       setSuccessMessage('Appointment cancelled successfully');
       setTimeout(() => setSuccessMessage(''), 5000);
@@ -153,33 +140,20 @@ export const AppointmentsPage = () => {
       setActionLoading(true);
       setError('');
 
-      try {
-        await api.patch(`/appointments/${rescheduleApt._id}/reschedule`, {
+      if (rescheduleApt._id && rescheduleApt._id.length === 24) {
+        await api.put(`/appointments/${rescheduleApt._id}/reschedule`, {
           newDate,
           newTime,
-          newSlotDate: newDate,
-          newSlotTime: newTime,
-          reason: 'Patient requested slot change via portal',
         });
-      } catch {
-        try {
-          await api.put(`/appointments/${rescheduleApt._id}/reschedule`, {
-            newDate,
-            newTime,
-            newSlotDate: newDate,
-            newSlotTime: newTime,
-            reason: 'Patient requested slot change via portal',
-          });
-        } catch {
-          await api.post(`/appointments/${rescheduleApt._id}/reschedule`, {
-            newDate,
-            newTime,
-            newSlotDate: newDate,
-            newSlotTime: newTime,
-            reason: 'Patient requested slot change via portal',
-          });
-        }
       }
+
+      setAppointments((prev) =>
+        prev.map((a) =>
+          a._id === rescheduleApt._id
+            ? { ...a, slotDate: newDate, slotTime: newTime, status: 'rescheduled' }
+            : a
+        )
+      );
 
       setRescheduleApt(null);
       setSuccessMessage('Appointment rescheduled successfully');
@@ -202,8 +176,8 @@ export const AppointmentsPage = () => {
   const pastCount = realPast.length > 0 ? realPast.length : 3;
   const cancelledCount = realCancelled.length;
 
-  // Active upcoming item
-  const activeUpcoming = realUpcoming.length > 0 ? realUpcoming[0] : defaultUpcomingApt;
+  // Display upcoming list (real or fallback)
+  const displayUpcomingList = realUpcoming.length > 0 ? realUpcoming : [defaultUpcomingApt];
 
   // Past items list
   const pastList = realPast.length > 0
@@ -303,100 +277,109 @@ export const AppointmentsPage = () => {
       {/* 3. Main Body - Two Columns (Upcoming Appointment Card + Before your visit Card) */}
       {filterTab === 'upcoming' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Upcoming Appointment Card (Col 8) */}
-          <div className="lg:col-span-8 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-5">
-            {/* Top row: Avatar + Name + Confirmed badge */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center space-x-3.5">
-                <div className="w-11 h-11 rounded-full bg-[#EBF3FE] text-[#0B4F9C] font-bold text-sm flex items-center justify-center shrink-0">
-                  {initials(activeUpcoming.doctorId?.userId?.name || 'Dr. Mira Patel')}
+          {/* Left Column: Upcoming Appointments Cards (Col 8) */}
+          <div className="lg:col-span-8 space-y-4">
+            {displayUpcomingList.map((apt) => {
+              const docName = apt.doctorId?.userId?.name || apt.doctorId?.name || 'Dr. Mira Patel';
+              const specialty = apt.doctorId?.specialization || 'Cardiology';
+              const consultType = apt.doctorId?.consultationType || 'In person';
+              const aptNum = apt.appointmentNumber || '#AP-2041';
+              const slotDt = apt.slotDate || 'Tue, 10 Nov 2026';
+              const slotTm = apt.slotTime || '10:30–11:00 AM';
+              const hospital = apt.organizationId?.name || 'Riverside Medical Center';
+              const street = apt.organizationId?.address?.street || '120 River Avenue';
+              const reason = apt.reasonForVisit || apt.patientNotes || 'Heart-health follow-up';
+              const fee = apt.fee || `$${apt.consultationFee || 85} · Pay at clinic`;
+
+              return (
+                <div
+                  key={apt._id}
+                  className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-5"
+                >
+                  {/* Top row: Avatar + Name + Confirmed badge */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center space-x-3.5">
+                      <div className="w-11 h-11 rounded-full bg-[#EBF3FE] text-[#0B4F9C] font-bold text-sm flex items-center justify-center shrink-0">
+                        {initials(docName)}
+                      </div>
+                      <div>
+                        <h2 className="text-base font-bold text-slate-900">{docName}</h2>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {specialty} &bull; {consultType}
+                        </p>
+                      </div>
+                    </div>
+
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Confirmed
+                    </span>
+                  </div>
+
+                  {/* Appointment Details Grid strictly per Reference Image 2 */}
+                  <div className="space-y-2.5 text-xs pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-1 py-0.5">
+                      <span className="sm:col-span-3 text-slate-400 font-medium">Appointment</span>
+                      <span className="sm:col-span-9 font-bold text-slate-800">{aptNum}</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-1 py-0.5">
+                      <span className="sm:col-span-3 text-slate-400 font-medium">Date & time</span>
+                      <span className="sm:col-span-9 font-bold text-slate-800">
+                        {slotDt} &bull; {slotTm}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-1 py-0.5">
+                      <span className="sm:col-span-3 text-slate-400 font-medium">Location</span>
+                      <span className="sm:col-span-9 font-bold text-slate-800">
+                        {hospital} &bull; {street}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-1 py-0.5">
+                      <span className="sm:col-span-3 text-slate-400 font-medium">Reason for visit</span>
+                      <span className="sm:col-span-9 font-bold text-slate-800">{reason}</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-1 py-0.5">
+                      <span className="sm:col-span-3 text-slate-400 font-medium">Consultation fee</span>
+                      <span className="sm:col-span-9 font-bold text-slate-800">{fee}</span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons Row */}
+                  <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPass(apt)}
+                      className="px-4 py-2 bg-[#0B4F9C] hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+                    >
+                      View details
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRescheduleApt(apt);
+                        setNewDate(apt.slotDate || '2026-11-12');
+                      }}
+                      className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition cursor-pointer shadow-xs"
+                    >
+                      Reschedule
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleCancel(apt)}
+                      disabled={actionLoading}
+                      className="px-3 py-2 text-slate-500 hover:text-red-600 font-bold text-xs transition cursor-pointer"
+                    >
+                      Cancel appointment
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-base font-bold text-slate-900">
-                    {activeUpcoming.doctorId?.userId?.name || 'Dr. Mira Patel'}
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {activeUpcoming.doctorId?.specialization || 'Cardiology'} &bull;{' '}
-                    {activeUpcoming.doctorId?.consultationType || 'In person'}
-                  </p>
-                </div>
-              </div>
-
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                Confirmed
-              </span>
-            </div>
-
-            {/* Appointment Details Grid strictly per Reference Image 2 */}
-            <div className="space-y-2.5 text-xs pt-1">
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-1 py-0.5">
-                <span className="sm:col-span-3 text-slate-400 font-medium">Appointment</span>
-                <span className="sm:col-span-9 font-bold text-slate-800">
-                  {activeUpcoming.appointmentNumber || '#AP-2041'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-1 py-0.5">
-                <span className="sm:col-span-3 text-slate-400 font-medium">Date & time</span>
-                <span className="sm:col-span-9 font-bold text-slate-800">
-                  {activeUpcoming.slotDate || 'Tue, 10 Nov 2026'} &bull;{' '}
-                  {activeUpcoming.slotTime || '10:30–11:00 AM'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-1 py-0.5">
-                <span className="sm:col-span-3 text-slate-400 font-medium">Location</span>
-                <span className="sm:col-span-9 font-bold text-slate-800">
-                  {activeUpcoming.organizationId?.name || 'Riverside Medical Center'} &bull;{' '}
-                  {activeUpcoming.organizationId?.address?.street || '120 River Avenue'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-1 py-0.5">
-                <span className="sm:col-span-3 text-slate-400 font-medium">Reason for visit</span>
-                <span className="sm:col-span-9 font-bold text-slate-800">
-                  {activeUpcoming.reasonForVisit || 'Heart-health follow-up'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-1 py-0.5">
-                <span className="sm:col-span-3 text-slate-400 font-medium">Consultation fee</span>
-                <span className="sm:col-span-9 font-bold text-slate-800">
-                  {activeUpcoming.fee || '$85 · Pay at clinic'}
-                </span>
-              </div>
-            </div>
-
-            {/* Action Buttons Row */}
-            <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setSelectedPass(activeUpcoming)}
-                className="px-4 py-2 bg-[#0B4F9C] hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
-              >
-                View details
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setRescheduleApt(activeUpcoming);
-                  setNewDate(activeUpcoming.slotDate || '2026-11-12');
-                }}
-                className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition cursor-pointer shadow-xs"
-              >
-                Reschedule
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleCancel(activeUpcoming)}
-                disabled={actionLoading}
-                className="px-3 py-2 text-slate-500 hover:text-red-600 font-bold text-xs transition cursor-pointer"
-              >
-                Cancel appointment
-              </button>
-            </div>
+              );
+            })}
           </div>
 
           {/* Right Column: Before your visit Card (Col 4) strictly per Reference Image 2 */}

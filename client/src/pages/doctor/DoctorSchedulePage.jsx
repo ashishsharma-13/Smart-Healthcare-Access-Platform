@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Plus, Check, AlertCircle, Save } from 'lucide-react';
+import api from '../../services/api';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Toast } from '../../components/ui/Toast';
@@ -7,6 +8,8 @@ import { Toast } from '../../components/ui/Toast';
 export const DoctorSchedulePage = () => {
   const [activeDay, setActiveDay] = useState(1); // Monday
   const [savedNotice, setSavedNotice] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [workingHours, setWorkingHours] = useState('Mon–Fri · 9:00 AM–4:00 PM');
   const [slots, setSlots] = useState([
     { id: 1, time: '09:00 AM - 09:30 AM', active: true },
     { id: 2, time: '09:30 AM - 10:00 AM', active: true },
@@ -19,13 +22,41 @@ export const DoctorSchedulePage = () => {
     { id: 9, time: '03:30 PM - 04:00 PM', active: true },
   ]);
 
+  useEffect(() => {
+    fetchSchedule();
+  }, []);
+
+  const fetchSchedule = async () => {
+    try {
+      const res = await api.get('/doctors/me');
+      if (res.data?.success && res.data?.data) {
+        if (res.data.data.workingHours) {
+          setWorkingHours(res.data.data.workingHours);
+        }
+      }
+    } catch (err) {
+      console.warn('Could not fetch doctor schedule:', err.message);
+    }
+  };
+
   const toggleSlot = (id) => {
     setSlots(slots.map((s) => (s.id === id ? { ...s, active: !s.active } : s)));
   };
 
-  const handleSave = () => {
-    setSavedNotice(true);
-    setTimeout(() => setSavedNotice(false), 4000);
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await api.put('/doctors/me', {
+        workingHours,
+        isAvailableForAppointments: true,
+      });
+      setSavedNotice(true);
+      setTimeout(() => setSavedNotice(false), 4000);
+    } catch (err) {
+      console.error('Failed to save schedule roster', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

@@ -19,4 +19,8 @@ router.put('/:id/cancel', authenticate, (req, res, next) => appointmentControlle
 router.patch('/:id/cancel', authenticate, (req, res, next) => appointmentController.cancelAppointment(req, res, next));
 router.post('/:id/cancel', authenticate, (req, res, next) => appointmentController.cancelAppointment(req, res, next));
 
+// Complete appointment - supports POST and PUT
+router.post('/:id/complete', authenticate, (req, res, next) => appointmentController.completeAppointment(req, res, next));
+router.put('/:id/complete', authenticate, (req, res, next) => appointmentController.completeAppointment(req, res, next));
+
 export default router;

@@ -99,6 +99,16 @@ export class AppointmentController {
       next(err);
     }
   }
+
+  async completeAppointment(req, res, next) {
+    try {
+      const notes = req.body?.clinicalNotes || req.body?.notes || 'Consultation completed';
+      const updated = await appointmentService.completeAppointment(req.params.id, notes);
+      res.json({ success: true, message: 'Consultation marked as completed', data: updated });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const appointmentController = new AppointmentController();

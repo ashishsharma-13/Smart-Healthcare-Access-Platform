@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { doctorRepository } from '../repositories/DoctorRepository.js';
 import { doctorService } from '../services/DoctorService.js';
 import { User } from '../models/User.js';
@@ -18,7 +19,21 @@ export class DoctorController {
 
   async getDoctorById(req, res, next) {
     try {
-      const doctor = await doctorRepository.findById(req.params.id);
+      let doctor = null;
+      if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+        doctor = await doctorRepository.findById(req.params.id);
+      } else {
+        doctor = await doctorRepository.findByUniqueId(req.params.id);
+        if (!doctor) {
+          const allDocs = await doctorRepository.searchDoctors({});
+          doctor = allDocs.find((d) =>
+            d.doctorUniqueId === req.params.id ||
+            (req.params.id.toLowerCase().includes('mira') && d.userId?.name?.toLowerCase().includes('mira')) ||
+            (req.params.id.toLowerCase().includes('daniel') && d.userId?.name?.toLowerCase().includes('daniel')) ||
+            (req.params.id.toLowerCase().includes('sofia') && d.userId?.name?.toLowerCase().includes('sofia'))
+          ) || null;
+        }
+      }
       if (!doctor) {
         return res.status(404).json({ success: false, message: 'Doctor not found' });
       }
