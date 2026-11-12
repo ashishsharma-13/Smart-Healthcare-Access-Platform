@@ -11,24 +11,29 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-900 antialiased font-sans selection:bg-brand-500 selection:text-white;
+    @apply bg-slate-50 text-slate-900 antialiased font-sans selection:bg-brand-600 selection:text-white;
   }
 
-  /* Accessible focus indicators */
+  /* Accessible clinical focus indicators */
   :focus-visible {
     @apply outline-none ring-2 ring-brand-600 ring-offset-2 ring-offset-white;
   }
 
-  /* Refined institutional headings */
+  /* Authoritative headings */
   h1, h2, h3, h4, h5, h6 {
     @apply tracking-tight text-slate-900 font-semibold;
   }
+
+  /* Tabular numbers for clinical telemetry, timestamps, passes, counts */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
-/* Subtle, sleek scrollbar for clinical dashboards and tables */
+/* Precision scrollbar for clinical feeds and tables */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -42,15 +47,15 @@
 /* Precision radar pulse animation for Emergency Beep broadcast */
 @keyframes radar-pulse {
   0% {
-    transform: scale(0.92);
-    opacity: 0.85;
+    transform: scale(0.95);
+    opacity: 0.9;
   }
   50% {
-    transform: scale(1.25);
-    opacity: 0.35;
+    transform: scale(1.2);
+    opacity: 0.3;
   }
   100% {
-    transform: scale(1.55);
+    transform: scale(1.45);
     opacity: 0;
   }
 }
@@ -62,7 +67,7 @@
 /* Subdued pulse for live on-site presence indicator */
 @keyframes presence-ping {
   75%, 100% {
-    transform: scale(1.8);
+    transform: scale(1.6);
     opacity: 0;
   }
 }
@@ -75,7 +80,7 @@
 .leaflet-container {
   width: 100%;
   height: 100%;
-  border-radius: 0.625rem;
+  border-radius: 0.5rem;
   border: 1px solid #E2E8F0;
   z-index: 10;
   font-family: inherit;

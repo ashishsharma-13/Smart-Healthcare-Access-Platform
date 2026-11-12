@@ -164,8 +164,6 @@ export const PatientProfilePage = () => {
           <div className="flex items-center space-x-1.5 text-xs text-slate-400 mb-1">
             <span>Patient portal</span>
             <ChevronRight className="w-3.5 h-3.5" />
-            <span>Settings & privacy</span>
-            <ChevronRight className="w-3.5 h-3.5" />
             <span className="text-blue-600 font-bold">Manage profile</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">

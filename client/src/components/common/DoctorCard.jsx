@@ -42,7 +42,7 @@ export const DoctorCard = ({ doctor }) => {
                 className="w-full h-full object-cover object-top"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-brand-50 to-brand-100 text-brand-700 flex flex-col items-center justify-center font-bold text-sm tracking-tight border border-brand-200/60">
+              <div className="w-full h-full bg-brand-50 text-brand-700 flex flex-col items-center justify-center font-bold text-sm tracking-tight border border-brand-200/60">
                 <span>{getInitials(doctorName)}</span>
               </div>
             )}

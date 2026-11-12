@@ -324,7 +324,7 @@ export const OrganizationDashboard = () => {
       </div>
 
       {/* Facility Address & GPS Operating Telemetry Card */}
-      <div className="p-5 rounded-2xl bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-3">
+      <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-card space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
           <div className="flex items-center space-x-2">
             <MapPin className="w-4 h-4 text-red-600" />

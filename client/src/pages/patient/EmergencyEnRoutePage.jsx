@@ -155,9 +155,9 @@ export const EmergencyEnRoutePage = () => {
     <div className="max-w-5xl mx-auto space-y-6 pb-12">
       
       {/* 1. Mandatory Floating Banner Note */}
-      <div className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white rounded-2xl p-4 sm:p-5 shadow-xl border border-blue-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-[#0A1628] text-white rounded-xl p-4 sm:p-5 shadow-card border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center flex-shrink-0 text-blue-300">
+          <div className="w-10 h-10 rounded-lg bg-blue-500/20 border border-blue-400/30 flex items-center justify-center flex-shrink-0 text-blue-300">
             <Compass className="w-6 h-6 animate-pulse" />
           </div>
           <div>
@@ -173,9 +173,9 @@ export const EmergencyEnRoutePage = () => {
 
         <button
           onClick={handleLaunchGoogleMaps}
-          className="px-5 py-2.5 bg-white text-blue-950 font-black text-xs sm:text-sm rounded-xl shadow-lg hover:bg-blue-50 hover:scale-105 transition-all flex items-center justify-center space-x-2 flex-shrink-0 cursor-pointer"
+          className="px-5 py-2.5 bg-white text-blue-950 font-black text-xs sm:text-sm rounded-lg shadow-xs hover:bg-blue-50 transition-all flex items-center justify-center space-x-2 flex-shrink-0 cursor-pointer"
         >
-          <Navigation className="w-4 h-4 text-blue-600 fill-current" />
+          <Navigation className="w-4 h-4 text-[#0B4F9C] fill-current" />
           <span>Launch Google Maps</span>
           <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
         </button>
@@ -183,7 +183,7 @@ export const EmergencyEnRoutePage = () => {
 
       {/* 2. Top Header & 15-Minute Reservation Countdown */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2 bg-white rounded-2xl p-5 border border-slate-200 shadow-card flex items-center justify-between gap-4">
+        <div className="md:col-span-2 bg-white rounded-xl p-5 border border-slate-200 shadow-card flex items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <Badge variant="emergency" size="xs" dot pulseDot>

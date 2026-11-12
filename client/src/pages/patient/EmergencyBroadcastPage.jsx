@@ -83,7 +83,7 @@ export const EmergencyBroadcastPage = () => {
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
 
       {/* Compact Radar Signal Card */}
-      <div className="bg-slate-900 text-white rounded-2xl py-5 px-6 max-w-2xl mx-auto text-center relative overflow-hidden shadow-xl border border-slate-800">
+      <div className="bg-slate-900 text-white rounded-xl py-5 px-6 max-w-2xl mx-auto text-center relative overflow-hidden shadow-card border border-slate-800">
 
         {/* Animated Emergency Radar Illustration */}
         <EmergencyRadarIllustration hospitalCount={broadcasts.length} />
@@ -126,7 +126,7 @@ export const EmergencyBroadcastPage = () => {
           <div className="mt-3.5">
             <button
               onClick={() => navigate(`/emergency/responses/${id}`)}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition-all hover:scale-105 flex items-center space-x-2 mx-auto cursor-pointer"
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm rounded-lg shadow-xs transition-colors flex items-center space-x-2 mx-auto cursor-pointer"
             >
               <span>View {acceptedCount} Ready Hospital{acceptedCount > 1 ? 's' : ''} & Select Destination</span>
               <ArrowRight className="w-4 h-4" />
@@ -136,7 +136,7 @@ export const EmergencyBroadcastPage = () => {
       </div>
 
       {/* Mandatory Clinical Readiness Invariant Note */}
-      <div className="bg-blue-50 border border-blue-200/80 rounded-2xl p-4 flex items-start gap-3 text-blue-900 max-w-2xl mx-auto shadow-xs">
+      <div className="bg-blue-50 border border-blue-200/80 rounded-xl p-4 flex items-start gap-3 text-blue-900 max-w-2xl mx-auto shadow-xs">
         <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
         <div className="text-xs space-y-0.5">
           <p className="font-bold text-blue-950">Readiness Telemetry Protocol</p>
@@ -148,7 +148,7 @@ export const EmergencyBroadcastPage = () => {
 
       {/* All Declined / Zero Accepted Fallback Callout */}
       {allDeclined && (
-        <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-5 text-center space-y-3 max-w-2xl mx-auto shadow-md">
+        <div className="bg-red-50 border-2 border-red-200 rounded-xl p-5 text-center space-y-3 max-w-2xl mx-auto shadow-card">
           <AlertTriangle className="w-8 h-8 text-red-600 mx-auto animate-bounce" />
           <div className="space-y-1">
             <h3 className="text-sm font-black text-red-900 uppercase">

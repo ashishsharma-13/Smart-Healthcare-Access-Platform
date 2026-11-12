@@ -205,7 +205,7 @@ export const EmergencyActivatePage = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
       {/* Top Banner */}
-      <div className="bg-red-600 rounded-2xl p-5 sm:p-6 text-white shadow-lg relative overflow-hidden">
+      <div className="bg-red-600 rounded-xl p-5 sm:p-6 text-white shadow-card relative overflow-hidden">
         <div className="relative z-10 space-y-1.5">
           <div className="inline-flex items-center space-x-2 px-2.5 py-0.5 bg-white/20 rounded-full text-[11px] font-black uppercase tracking-wider">
             <ShieldAlert className="w-3.5 h-3.5 animate-bounce" />

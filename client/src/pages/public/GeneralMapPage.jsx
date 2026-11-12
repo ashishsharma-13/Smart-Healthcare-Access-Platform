@@ -133,8 +133,8 @@ export const GeneralMapPage = () => {
       <div className="bg-white border-b border-slate-200 px-4 py-3 sm:px-6 z-10 shadow-xs">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-lg bg-brand-950 text-white flex items-center justify-center font-bold">
-              <Building2 className="w-4 h-4 text-brand-400" />
+            <div className="w-8 h-8 rounded-lg bg-[#0B4F9C] text-white flex items-center justify-center font-bold shadow-xs">
+              <Building2 className="w-4 h-4 text-white" />
             </div>
             <div>
               <h1 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-none">
@@ -158,7 +158,7 @@ export const GeneralMapPage = () => {
             </button>
 
             {/* Quick Emergency Beep Shortcut */}
-            <Link to="/emergency/match">
+            <Link to="/emergency/activate">
               <button className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider bg-red-600 hover:bg-red-700 text-white shadow-xs transition-colors cursor-pointer">
                 <ShieldAlert className="w-3.5 h-3.5" />
                 <span>Emergency Beep Match</span>

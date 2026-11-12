@@ -122,7 +122,7 @@ export const DoctorAvailabilityPage = () => {
 
       {/* Booking Mode Status Banners */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs flex items-center justify-between">
+        <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-card flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-900">Outpatient Consultation Booking</h3>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -134,7 +134,7 @@ export const DoctorAvailabilityPage = () => {
           <button
             type="button"
             onClick={() => setIsAvailableForAppointments(!isAvailableForAppointments)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
               isAvailableForAppointments
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
                 : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
@@ -144,7 +144,7 @@ export const DoctorAvailabilityPage = () => {
           </button>
         </div>
 
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs flex items-center justify-between">
+        <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-card flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-900">Emergency On-Call Standby</h3>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -156,7 +156,7 @@ export const DoctorAvailabilityPage = () => {
           <button
             type="button"
             onClick={() => setIsAvailableForEmergency(!isAvailableForEmergency)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
               isAvailableForEmergency
                 ? 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
                 : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
@@ -168,7 +168,7 @@ export const DoctorAvailabilityPage = () => {
       </div>
 
       {/* Weekly Schedule Days */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-4">
+      <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-card space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div>
             <h2 className="text-sm font-bold text-slate-900">Weekly Operating Schedule</h2>

@@ -7,21 +7,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Deep clinical brand blue & slate scale
+        // Deep authoritative clinical blue & navy scale
         brand: {
           50: '#F0F6FE',
           100: '#DCE8FB',
           200: '#B8D3F8',
           300: '#82B2F4',
           400: '#4C8DEF',
-          500: '#2563EB',
-          600: '#1D4ED8',
-          700: '#1E40AF',
-          800: '#1E3A8A',
-          900: '#0F2D59',
-          950: '#091E3A', // Institutional Deep Navy
+          500: '#1D63D8',
+          600: '#0B4F9C', // Core SHAP clinical navy-blue
+          700: '#083D7A',
+          800: '#062E5C',
+          900: '#052142',
+          950: '#031429', // Deepest obsidian navy
         },
-        // Clinical Presence & NMC Verification (restrained teal/emerald)
+        // Clinical Presence & NMC Verification (restrained surgical teal/emerald)
         presence: {
           50: '#F0FDF9',
           100: '#CCFBEE',
@@ -53,10 +53,11 @@ export default {
           700: '#B91C1C',
           800: '#991B1B',
         },
-        // Triage hold, 15m timer & cautionary
+        // Triage hold, 15m timer & cautionary amber
         hold: {
           50: '#FFFBEB',
           100: '#FEF3C7',
+          200: '#FDE68A',
           500: '#F59E0B',
           600: '#D97706',
           700: '#B45309',
@@ -73,7 +74,8 @@ export default {
           700: '#334155',
           800: '#1E293B',
           900: '#0F172A',
-        }
+          950: '#020617',
+        },
       },
       fontFamily: {
         sans: [
@@ -97,13 +99,15 @@ export default {
         ],
       },
       boxShadow: {
-        'xs': '0 1px 2px 0 rgb(15 23 42 / 0.05)',
-        'card': '0 1px 3px 0 rgb(15 23 42 / 0.08), 0 1px 2px -1px rgb(15 23 42 / 0.08)',
-        'elevated': '0 4px 6px -1px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.06)',
+        '2xs': '0 1px 2px 0 rgb(15 23 42 / 0.04)',
+        'xs': '0 1px 3px 0 rgb(15 23 42 / 0.05), 0 1px 2px -1px rgb(15 23 42 / 0.04)',
+        'card': '0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.04)',
+        'elevated': '0 4px 6px -1px rgb(15 23 42 / 0.07), 0 2px 4px -2px rgb(15 23 42 / 0.05)',
         'modal': '0 20px 25px -5px rgb(15 23 42 / 0.12), 0 8px 10px -6px rgb(15 23 42 / 0.08)',
       },
       borderRadius: {
-        'clinical': '0.625rem', // 10px - balanced institutional curve
+        'clinical': '0.5rem', // 8px - balanced institutional curve
+        'card': '0.75rem',    // 12px - restrained card radius
       },
     },
   },

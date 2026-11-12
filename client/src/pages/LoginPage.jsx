@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Activity, Lock, Mail, ArrowRight, UserCheck, ShieldCheck } from 'lucide-react';
+import { Plus, Lock, Mail, ArrowRight, UserCheck, ShieldCheck } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Toast } from '../components/ui/Toast';
 import { Badge } from '../components/ui/Badge';
@@ -47,14 +47,14 @@ export const LoginPage = () => {
         
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-11 h-11 rounded-lg bg-brand-950 text-white flex items-center justify-center mx-auto shadow-xs">
-            <Activity className="w-6 h-6 text-brand-400 stroke-[2.25]" />
+          <div className="w-10 h-10 rounded-xl bg-[#0B4F9C] text-white flex items-center justify-center mx-auto shadow-xs">
+            <Plus className="w-6 h-6 stroke-[3]" />
           </div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">
             Sign in to SHAP
           </h2>
           <p className="text-xs text-slate-500">
-            Smart Healthcare Access & Parallel Emergency Dispatch
+            Connected Care, Clearer Access
           </p>
         </div>
 

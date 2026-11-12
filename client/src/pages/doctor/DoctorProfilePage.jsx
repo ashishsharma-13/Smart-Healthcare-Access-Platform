@@ -210,7 +210,7 @@ export const DoctorProfilePage = () => {
 
       <form onSubmit={handleSaveProfile} className="space-y-6">
         {/* 1. Demographics & Contact Card */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-5">
+        <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-card space-y-5">
           <div className="flex items-center space-x-2 pb-3 border-b border-slate-100">
             <User className="w-4 h-4 text-[#0B4F9C]" />
             <h2 className="text-sm font-bold text-slate-900">Personal & Contact Details</h2>
@@ -254,7 +254,7 @@ export const DoctorProfilePage = () => {
         </div>
 
         {/* 2. Clinical Credentials & Practice Details */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-5">
+        <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-card space-y-5">
           <div className="flex items-center space-x-2 pb-3 border-b border-slate-100">
             <Stethoscope className="w-4 h-4 text-[#0B4F9C]" />
             <h2 className="text-sm font-bold text-slate-900">Specialty & Clinical Qualifications</h2>
@@ -393,7 +393,7 @@ export const DoctorProfilePage = () => {
         </div>
 
         {/* 3. Availability, Hours & Rates */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-5">
+        <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-card space-y-5">
           <div className="flex items-center space-x-2 pb-3 border-b border-slate-100">
             <Clock className="w-4 h-4 text-[#0B4F9C]" />
             <h2 className="text-sm font-bold text-slate-900">Consultation Rates & Availability Controls</h2>

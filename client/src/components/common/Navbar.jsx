@@ -9,7 +9,6 @@ import {
   Menu,
   X,
   User,
-  Settings,
   LogOut,
   ChevronDown,
   ShieldAlert,
@@ -191,6 +190,14 @@ export const Navbar = () => {
     return '/patient/dashboard';
   };
 
+  const getProfileRoute = () => {
+    if (user?.role === 'doctor') return '/doctor/profile';
+    if (user?.role === 'patient') return '/patient/profile';
+    if (user?.role === 'organization') return '/organization/dashboard';
+    if (user?.role === 'admin') return '/admin/dashboard';
+    return '/patient/profile';
+  };
+
   const isDashboardRoute =
     location.pathname.startsWith('/patient') ||
     location.pathname.startsWith('/doctor') ||
@@ -221,12 +228,12 @@ export const Navbar = () => {
     if (location.pathname.includes('/patient/appointments')) return 'Appointments';
     if (location.pathname.includes('/emergency/activate')) return 'Emergency Beep';
     if (location.pathname.includes('/patient/activity')) return 'Care activity';
-    if (location.pathname.includes('/patient/profile')) return 'Settings & privacy';
+    if (location.pathname.includes('/patient/profile')) return 'Manage profile';
     if (location.pathname.includes('/doctor/dashboard')) return 'Overview';
     if (location.pathname.includes('/doctor/schedule')) return 'Schedule';
     if (location.pathname.includes('/doctor/appointments')) return 'Appointments';
     if (location.pathname.includes('/doctor/availability')) return 'Availability';
-    if (location.pathname.includes('/doctor/profile')) return 'Profile';
+    if (location.pathname.includes('/doctor/profile')) return 'Manage profile';
     if (location.pathname.includes('/doctor/presence')) return 'Presence & Badge';
     if (location.pathname.includes('/doctor/affiliations')) return 'Affiliations';
     if (location.pathname.includes('/doctor')) return 'Doctor Portal';
@@ -300,7 +307,7 @@ export const Navbar = () => {
             {user ? (
               <>
                 {/* Date Display (Only visible after login) */}
-                <div className="hidden sm:block text-xs font-medium text-slate-500">
+                <div className="hidden sm:block text-xs font-medium text-slate-500 tabular-nums">
                   {formattedDate}
                 </div>
 
@@ -308,23 +315,23 @@ export const Navbar = () => {
                 <div className="relative" ref={notificationsRef}>
                   <button
                     onClick={() => setNotificationsOpen(!notificationsOpen)}
-                    className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-xl transition relative cursor-pointer"
+                    className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100/80 rounded-lg transition relative cursor-pointer"
                     aria-label="Notifications"
                   >
                     <Bell className="w-4 h-4" />
                     {hasUnread && (
-                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white" />
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand-600 ring-2 ring-white" />
                     )}
                   </button>
 
                   {/* Notification Dropdown */}
                   {notificationsOpen && (
-                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 p-4 space-y-2.5 z-50 animate-fade-in text-xs">
+                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-modal border border-slate-200/90 p-4 space-y-2.5 z-50 text-xs">
                       <div className="flex items-center justify-between pb-2 border-b border-slate-100 font-bold text-slate-900">
                         <div className="flex items-center space-x-1.5">
                           <span>Notifications</span>
                           {unreadCount > 0 && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-700 rounded-full">
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-brand-50 text-brand-700 rounded-md border border-brand-200/60 tabular-nums">
                               {unreadCount}
                             </span>
                           )}
@@ -332,7 +339,7 @@ export const Navbar = () => {
                         {unreadCount > 0 ? (
                           <button
                             onClick={handleMarkAllRead}
-                            className="text-[10px] text-blue-600 hover:text-blue-800 font-bold hover:underline cursor-pointer"
+                            className="text-[10px] text-brand-600 hover:text-brand-800 font-bold hover:underline cursor-pointer"
                           >
                             Mark all read
                           </button>
@@ -350,47 +357,42 @@ export const Navbar = () => {
                               user?.role === 'organization' ? '/organization/dashboard' : '/map'
                             );
                           }}
-                          className="p-2.5 rounded-xl border border-red-200 bg-red-50/90 text-red-900 cursor-pointer hover:bg-red-100/80 transition"
+                          className="p-2.5 rounded-lg border border-urgent-200 bg-urgent-50 text-urgent-900 cursor-pointer hover:bg-urgent-100/80 transition"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="font-black text-[10px] uppercase tracking-wider text-red-600 flex items-center gap-1">
+                            <span className="font-bold text-[10px] uppercase tracking-wider text-urgent-700 flex items-center gap-1">
                               <ShieldAlert className="w-3.5 h-3.5" /> Emergency Beep
                             </span>
-                            <span className="text-[9.5px] text-red-500 font-bold">Live Alert</span>
+                            <span className="text-[9.5px] text-urgent-600 font-bold">Live Alert</span>
                           </div>
-                          <p className="text-[10.5px] font-semibold text-red-800 mt-1">
+                          <p className="text-[10.5px] font-semibold text-urgent-800 mt-1">
                             Incoming dispatch broadcast in your regional coverage zone.
                           </p>
                         </div>
                       )}
 
-                      <div className="space-y-2 py-0.5 max-h-80 overflow-y-auto">
+                      <div className="space-y-1.5 py-0.5 max-h-80 overflow-y-auto">
                         {notifications.map((item) => (
                           <div
                             key={item.id}
                             onClick={() => handleNotificationClick(item)}
-                            className={`p-2.5 rounded-xl border transition cursor-pointer ${
+                            className={`p-2.5 rounded-lg border transition cursor-pointer ${
                               item.unread
-                                ? 'bg-blue-50/60 border-blue-100/70 hover:bg-blue-50'
-                                : 'bg-slate-50/60 border-slate-100 hover:bg-slate-100/70'
+                                ? 'bg-brand-50/50 border-brand-200/60 hover:bg-brand-50'
+                                : 'bg-slate-50/60 border-slate-200/60 hover:bg-slate-100/70'
                             }`}
                           >
                             <div className="flex items-start justify-between gap-2">
                               <p className="font-bold text-slate-900 text-[11px] leading-snug">
                                 {item.title}
                               </p>
-                              <span className="text-[9.5px] text-slate-400 whitespace-nowrap mt-0.5">
+                              <span className="text-[9.5px] text-slate-400 whitespace-nowrap mt-0.5 tabular-nums">
                                 {item.time}
                               </span>
                             </div>
                             <p className="text-[10.5px] text-slate-600 mt-1 leading-relaxed">
                               {item.message}
                             </p>
-                            {item.unread && (
-                              <div className="flex items-center justify-end mt-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                              </div>
-                            )}
                           </div>
                         ))}
                       </div>
@@ -402,16 +404,16 @@ export const Navbar = () => {
                 <div className="relative" ref={profileRef}>
                   <button
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                    className="flex items-center space-x-2.5 p-1 pr-2 rounded-full hover:bg-slate-50 transition cursor-pointer"
+                    className="flex items-center space-x-2.5 p-1 pr-2 rounded-full hover:bg-slate-100/80 transition cursor-pointer"
                   >
-                    <div className="w-8 h-8 rounded-full bg-[#EBF3FE] text-blue-700 font-bold text-xs flex items-center justify-center border border-blue-200/60">
+                    <div className="w-8 h-8 rounded-full bg-[#EBF3FE] text-brand-700 font-bold text-xs flex items-center justify-center border border-brand-200/80">
                       {getInitials(user.name)}
                     </div>
                     <div className="text-left hidden md:block">
                       <div className="text-xs font-bold text-slate-900 leading-tight truncate max-w-[120px]">
                         {user.role === 'doctor' && !user.name.startsWith('Dr.') ? `Dr. ${user.name}` : user.name}
                       </div>
-                      <div className="text-[10px] text-slate-400 capitalize leading-tight">
+                      <div className="text-[10px] text-slate-500 capitalize leading-tight">
                         {user.role === 'patient'
                           ? 'Personal account'
                           : user.role === 'doctor'
@@ -424,7 +426,7 @@ export const Navbar = () => {
 
                   {/* Dropdown Menu */}
                   {profileDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-50 animate-fade-in text-xs">
+                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-modal border border-slate-200/90 py-1.5 z-50 text-xs">
                       <div className="px-4 py-2 border-b border-slate-100">
                         <p className="font-bold text-slate-900 truncate">
                           {user.role === 'doctor' && !user.name.startsWith('Dr.') ? `Dr. ${user.name}` : user.name}
@@ -433,7 +435,7 @@ export const Navbar = () => {
                       </div>
 
                       <Link
-                        to={user.role === 'doctor' ? '/doctor/profile' : '/patient/profile'}
+                        to={getProfileRoute()}
                         onClick={() => setProfileDropdownOpen(false)}
                         className="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:bg-slate-50 font-medium"
                       >
@@ -441,22 +443,13 @@ export const Navbar = () => {
                         <span>Manage Profile</span>
                       </Link>
 
-                      <Link
-                        to={user.role === 'doctor' ? '/doctor/profile' : '/patient/profile'}
-                        onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:bg-slate-50 font-medium"
-                      >
-                        <Settings className="w-4 h-4 text-slate-400" />
-                        <span>Settings & Privacy</span>
-                      </Link>
-
                       <div className="border-t border-slate-100 my-1" />
 
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center space-x-2 px-4 py-2 text-red-600 hover:bg-red-50 font-bold text-left cursor-pointer"
+                        className="w-full flex items-center space-x-2 px-4 py-2 text-rose-600 hover:bg-rose-50 font-semibold text-left cursor-pointer"
                       >
-                        <LogOut className="w-4 h-4 text-red-500" />
+                        <LogOut className="w-4 h-4 text-rose-500" />
                         <span>Sign Out</span>
                       </button>
                     </div>

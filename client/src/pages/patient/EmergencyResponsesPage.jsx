@@ -73,7 +73,7 @@ export const EmergencyResponsesPage = () => {
     <div className="max-w-5xl mx-auto space-y-6 pb-12">
       
       {/* Top Banner */}
-      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-card space-y-2">
+      <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-card space-y-2">
         <div className="flex items-center gap-2">
           <Badge variant="info" size="xs">
             Dynamic Suitability Routing
@@ -91,7 +91,7 @@ export const EmergencyResponsesPage = () => {
       </div>
 
       {/* Mandatory Invariant Notice */}
-      <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex items-start gap-3 text-amber-900 shadow-xs">
+      <div className="bg-amber-50 border border-amber-200/80 rounded-xl p-4 flex items-start gap-3 text-amber-900 shadow-xs">
         <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
         <div className="text-xs space-y-0.5">
           <p className="font-bold text-amber-950">15-Minute Bed Hold Invariant</p>

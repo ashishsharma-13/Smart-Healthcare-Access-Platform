@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { OrganizationAddressSection } from '../components/organization/OrganizationAddressSection';
 import {
+  Plus,
   Activity,
   User,
   Stethoscope,
@@ -289,8 +290,8 @@ export const RegisterPage = () => {
         
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-11 h-11 rounded-lg bg-brand-950 text-white flex items-center justify-center mx-auto shadow-xs">
-            <Activity className="w-6 h-6 text-brand-400 stroke-[2.25]" />
+          <div className="w-10 h-10 rounded-xl bg-[#0B4F9C] text-white flex items-center justify-center mx-auto shadow-xs">
+            <Plus className="w-6 h-6 stroke-[3]" />
           </div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">
             Create your SHAP Account

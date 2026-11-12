@@ -10,13 +10,11 @@ import {
   Siren,
   ClipboardList,
   MessageCircle,
-  Settings,
   ChevronDown,
   LayoutDashboard,
   Clock,
   QrCode,
   Users,
-  User,
   BedDouble,
   FileCheck,
   Activity,
@@ -61,21 +59,21 @@ export const Sidebar = () => {
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5 px-1">
             WORKSPACE
           </span>
-          <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200/80 bg-white shadow-xs text-slate-900 font-bold text-xs">
+          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200/90 bg-white shadow-2xs text-slate-900 font-semibold text-xs">
             <span>Patient portal</span>
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </div>
         </div>
 
         {/* Primary Patient Links */}
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           {/* 1. Overview */}
           <NavLink
             to="/patient/dashboard"
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
                 isActive
-                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
               }`
             }
@@ -88,9 +86,9 @@ export const Sidebar = () => {
           <NavLink
             to="/doctors"
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
                 isActive
-                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
               }`
             }
@@ -103,9 +101,9 @@ export const Sidebar = () => {
           <NavLink
             to="/hospitals"
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
                 isActive
-                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
               }`
             }
@@ -118,9 +116,9 @@ export const Sidebar = () => {
           <NavLink
             to="/map"
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
                 isActive
-                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
               }`
             }
@@ -133,9 +131,9 @@ export const Sidebar = () => {
           <NavLink
             to="/patient/appointments"
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
                 isActive
-                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
               }`
             }
@@ -148,14 +146,14 @@ export const Sidebar = () => {
           <NavLink
             to="/emergency/activate"
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
                 isActive
-                  ? 'bg-rose-50 text-rose-600 font-bold'
-                  : 'text-slate-600 hover:text-rose-600 hover:bg-rose-50/60 font-medium'
+                  ? 'bg-urgent-50 text-urgent-700 font-bold border-l-2 border-urgent-600 rounded-l-none'
+                  : 'text-slate-600 hover:text-urgent-700 hover:bg-urgent-50/50 font-medium'
               }`
             }
           >
-            <Siren className="w-4 h-4 text-rose-500 shrink-0" />
+            <Siren className="w-4 h-4 text-urgent-600 shrink-0" />
             <span>Emergency Beep</span>
           </NavLink>
 
@@ -163,9 +161,9 @@ export const Sidebar = () => {
           <NavLink
             to="/patient/activity"
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
                 isActive
-                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
               }`
             }
@@ -177,38 +175,23 @@ export const Sidebar = () => {
       </div>
 
       {/* Support Callout Box */}
-      <div className="space-y-4">
-        <div className="p-4 rounded-2xl bg-[#F0F6FE] border border-blue-100/70 space-y-2">
-          <MessageCircle className="w-5 h-5 text-blue-600" />
-          <h4 className="text-xs font-bold text-slate-900">Here to help</h4>
+      <div className="space-y-3">
+        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1.5">
+          <div className="flex items-center space-x-2">
+            <MessageCircle className="w-4 h-4 text-brand-600" />
+            <h4 className="text-xs font-bold text-slate-900">Here to help</h4>
+          </div>
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            Find answers and support for using SHAP.
+            Find answers, clinical protocols, and platform support.
           </p>
           <button
             type="button"
             onClick={() => setHelpOpen(true)}
-            className="text-[11px] font-bold text-blue-600 hover:underline flex items-center space-x-1 cursor-pointer pt-0.5"
+            className="text-[11px] font-bold text-brand-600 hover:underline flex items-center space-x-1 cursor-pointer pt-0.5"
           >
             <span>Visit help center</span>
             <span>&rarr;</span>
           </button>
-        </div>
-
-        {/* Bottom Settings Link */}
-        <div className="pt-2 border-t border-slate-100">
-          <NavLink
-            to="/patient/profile"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
-                isActive
-                  ? 'bg-slate-100 text-slate-900 font-bold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
-            <Settings className="w-4 h-4 text-slate-400 shrink-0" />
-            <span>Settings & privacy</span>
-          </NavLink>
         </div>
       </div>
     </div>
@@ -223,21 +206,21 @@ export const Sidebar = () => {
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5 px-1">
             WORKSPACE
           </span>
-          <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200/80 bg-white shadow-xs text-slate-900 font-bold text-xs">
+          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200/90 bg-white shadow-2xs text-slate-900 font-semibold text-xs">
             <span>Doctor portal</span>
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </div>
         </div>
 
         {/* Primary Doctor Links */}
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           {/* 1. Overview */}
           <NavLink
             to="/doctor/dashboard"
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
                 isActive
-                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
               }`
             }
@@ -250,9 +233,9 @@ export const Sidebar = () => {
           <NavLink
             to="/doctor/schedule"
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
                 isActive
-                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
               }`
             }
@@ -265,9 +248,9 @@ export const Sidebar = () => {
           <NavLink
             to="/doctor/appointments"
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
                 isActive
-                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
               }`
             }
@@ -280,9 +263,9 @@ export const Sidebar = () => {
           <NavLink
             to="/doctor/availability"
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
                 isActive
-                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
               }`
             }
@@ -290,34 +273,19 @@ export const Sidebar = () => {
             <Clock className="w-4 h-4 shrink-0" />
             <span>Availability</span>
           </NavLink>
-
-          {/* 5. Profile */}
-          <NavLink
-            to="/doctor/profile"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
-                isActive
-                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
-            <User className="w-4 h-4 shrink-0" />
-            <span>Profile</span>
-          </NavLink>
         </div>
 
         {/* Facility & Affiliations strictly per media_1794416780094_69267bc6.png */}
-        <div className="pt-3 border-t border-slate-100 space-y-1">
+        <div className="pt-3 border-t border-slate-100 space-y-0.5">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 px-3">
             FACILITY & AFFILIATIONS
           </span>
           <NavLink
             to="/doctor/affiliations"
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
                 isActive
-                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
               }`
             }
@@ -329,9 +297,9 @@ export const Sidebar = () => {
           <NavLink
             to="/doctor/presence"
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
+              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
                 isActive
-                  ? 'bg-[#EBF3FE] text-blue-600 font-bold'
+                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
               }`
             }
@@ -343,38 +311,23 @@ export const Sidebar = () => {
       </div>
 
       {/* Support Callout Box */}
-      <div className="space-y-4">
-        <div className="p-4 rounded-2xl bg-[#F0F6FE] border border-blue-100/70 space-y-2">
-          <MessageCircle className="w-5 h-5 text-blue-600" />
-          <h4 className="text-xs font-bold text-slate-900">Here to help</h4>
+      <div className="space-y-3">
+        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1.5">
+          <div className="flex items-center space-x-2">
+            <MessageCircle className="w-4 h-4 text-brand-600" />
+            <h4 className="text-xs font-bold text-slate-900">Here to help</h4>
+          </div>
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            Find answers and support for using SHAP.
+            Find answers, clinical protocols, and platform support.
           </p>
           <button
             type="button"
             onClick={() => setHelpOpen(true)}
-            className="text-[11px] font-bold text-blue-600 hover:underline flex items-center space-x-1 cursor-pointer pt-0.5"
+            className="text-[11px] font-bold text-brand-600 hover:underline flex items-center space-x-1 cursor-pointer pt-0.5"
           >
             <span>Visit help center</span>
             <span>&rarr;</span>
           </button>
-        </div>
-
-        {/* Bottom Settings Link */}
-        <div className="pt-2 border-t border-slate-100">
-          <NavLink
-            to="/doctor/profile"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs transition-all ${
-                isActive
-                  ? 'bg-slate-100 text-slate-900 font-bold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
-            <Settings className="w-4 h-4 text-slate-400 shrink-0" />
-            <span>Settings & privacy</span>
-          </NavLink>
         </div>
       </div>
     </div>
@@ -458,9 +411,9 @@ export const Sidebar = () => {
                       key={link.to}
                       to={link.to}
                       className={({ isActive }) =>
-                        `flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                        `flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                           isActive
-                            ? 'bg-blue-50 text-blue-700 font-bold'
+                            ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
                             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                         }`
                       }

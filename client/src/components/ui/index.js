@@ -1,6 +1,7 @@
 export { Button } from './Button';
 export { Badge } from './Badge';
 export { EmptyState } from './EmptyState';
+export { Modal } from './Modal';
 export {
   Skeleton,
   TableSkeleton,
@@ -9,4 +10,3 @@ export {
   MetricSkeleton,
 } from './Skeleton';
 export { Toast } from './Toast';
-
