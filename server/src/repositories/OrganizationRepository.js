@@ -41,10 +41,51 @@ export class OrganizationRepository {
     }).populate('userId', 'name email phone').exec();
   }
 
+  async findByRegistrationNumber(registrationNumber) {
+    if (!registrationNumber) return null;
+    return await Organization.findOne({ registrationNumber: String(registrationNumber).trim() })
+      .populate('userId', 'name email phone')
+      .exec();
+  }
+
+  async findByApplicationReference(applicationReference) {
+    if (!applicationReference) return null;
+    return await Organization.findOne({ applicationReference: String(applicationReference).trim() })
+      .populate('userId', 'name email phone')
+      .exec();
+  }
+
+  async findByUniqueCode(uniqueOrganizationCode) {
+    if (!uniqueOrganizationCode) return null;
+    return await Organization.findOne({ uniqueOrganizationCode: String(uniqueOrganizationCode).trim() })
+      .populate('userId', 'name email phone')
+      .exec();
+  }
+
   async listPendingVerifications() {
-    return await Organization.find({ verificationStatus: 'pending' })
+    return await Organization.find({
+      verificationStatus: { $in: ['pending', 'PENDING_VERIFICATION'] },
+    })
       .populate('userId', 'name email phone')
       .sort({ createdAt: -1 })
+      .exec();
+  }
+
+  async listVerifiedOrganizations() {
+    return await Organization.find({
+      verificationStatus: { $in: ['verified', 'VERIFIED', 'approved', 'APPROVED'] },
+    })
+      .populate('userId', 'name email phone')
+      .sort({ updatedAt: -1 })
+      .exec();
+  }
+
+  async listRejectedOrganizations() {
+    return await Organization.find({
+      verificationStatus: { $in: ['rejected', 'REJECTED'] },
+    })
+      .populate('userId', 'name email phone')
+      .sort({ updatedAt: -1 })
       .exec();
   }
 }

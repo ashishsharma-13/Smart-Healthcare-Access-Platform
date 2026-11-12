@@ -9,4 +9,16 @@ export { ResourceReservation } from './ResourceReservation.js';
 export { Appointment } from './Appointment.js';
 export { DoctorPresenceLog } from './DoctorPresenceLog.js';
 export { AuditLog } from './AuditLog.js';
+export { DoctorQualification } from './DoctorQualification.js';
+export { DoctorRegistration } from './DoctorRegistration.js';
+export { DoctorDocument } from './DoctorDocument.js';
+export { DoctorQrCredential } from './DoctorQrCredential.js';
+export { DoctorVerificationApplication } from './DoctorVerificationApplication.js';
+export { Specialization } from './Specialization.js';
+export { OrganizationDocument } from './OrganizationDocument.js';
+export { OrganizationFacility } from './OrganizationFacility.js';
+export { OrganizationAdmin } from './OrganizationAdmin.js';
+export { OrganizationSpecialization } from './OrganizationSpecialization.js';
+export { OrganizationVerificationApplication } from './OrganizationVerificationApplication.js';
+export { AffiliationRequest } from './AffiliationRequest.js';
 

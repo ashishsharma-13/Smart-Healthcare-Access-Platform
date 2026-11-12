@@ -33,14 +33,77 @@ const doctorSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      index: true,
+    },
+    applicationReference: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+    issuingAuthority: {
+      type: String,
+      default: 'National Medical Commission',
+      trim: true,
+    },
+    registrationJurisdiction: {
+      type: String,
+      default: 'India',
+      trim: true,
+    },
+    registrationYear: {
+      type: Number,
+      default: 2018,
     },
     licenseDocumentUrl: {
       type: String,
       default: '',
     },
+    rejectionReason: {
+      type: String,
+      default: '',
+    },
+    documents: [
+      {
+        documentType: {
+          type: String,
+          enum: ['medical_registration', 'qualification_degree', 'identity_proof', 'experience_certificate', 'other'],
+          default: 'medical_registration',
+        },
+        documentName: String,
+        storageReference: String,
+        originalFileName: String,
+        fileSize: Number,
+        mimeType: String,
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        verificationStatus: {
+          type: String,
+          default: 'pending',
+        },
+      },
+    ],
+    qualificationsDetailed: [
+      {
+        degree: String,
+        institution: String,
+        year: Number,
+        certificateUrl: String,
+      },
+    ],
+    activeQrCredentialId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'DoctorQrCredential',
+    },
+    verificationApplicationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'DoctorVerificationApplication',
+    },
     verificationStatus: {
       type: String,
-      enum: ['pending', 'verified', 'rejected'],
+      enum: ['pending', 'verified', 'rejected', 'PENDING_VERIFICATION', 'VERIFIED', 'REJECTED'],
       default: 'pending',
       index: true,
     },

@@ -1,9 +1,17 @@
 import 'dotenv/config';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import { User } from '../models/User.js';
 import { Doctor } from '../models/Doctor.js';
 import { Organization } from '../models/Organization.js';
+import { DoctorRegistration } from '../models/DoctorRegistration.js';
+import { DoctorVerificationApplication } from '../models/DoctorVerificationApplication.js';
+import { OrganizationAdmin } from '../models/OrganizationAdmin.js';
+import { OrganizationFacility } from '../models/OrganizationFacility.js';
+import { OrganizationDocument } from '../models/OrganizationDocument.js';
+import { OrganizationSpecialization } from '../models/OrganizationSpecialization.js';
+import { OrganizationVerificationApplication } from '../models/OrganizationVerificationApplication.js';
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -39,18 +47,43 @@ const normalizeTarget = (target) => {
   return raw.replace(/\s+/g, '');
 };
 
-const generateToken = (user) => {
+// Active refresh tokens store & token blacklist for revocations
+export const activeRefreshTokens = new Set();
+export const tokenBlacklist = new Set();
+export const passwordResetStore = new Map();
+
+export const isTokenRevoked = (token) => {
+  return tokenBlacklist.has(token);
+};
+
+export const generateToken = (user) => {
   return jwt.sign(
     {
-      id: user._id,
+      id: user._id || user.id,
       name: user.name,
       email: user.email,
       phone: user.phone,
       role: user.role,
+      status: user.status || (user.isActive ? 'active' : 'suspended'),
     },
     process.env.JWT_SECRET || 'shap_super_secret_jwt_key_2025_access_health',
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
+};
+
+export const generateRefreshToken = (user) => {
+  const refreshToken = jwt.sign(
+    {
+      id: user._id || user.id,
+      role: user.role,
+      type: 'refresh',
+      jti: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random()}`,
+    },
+    process.env.JWT_REFRESH_SECRET || 'shap_refresh_secret_jwt_key_2025_access_health',
+    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d' }
+  );
+  activeRefreshTokens.add(refreshToken);
+  return refreshToken;
 };
 
 // 1. Send OTP (Validates target, checks existing users, generates 6-digit OTP, stores in Map with 5-min TTL, sends email via transporter, returns devOtp in JSON)
@@ -253,6 +286,14 @@ export const register = async (req, res) => {
       });
     }
 
+    // WEB_ADMIN / ADMIN: Controlled administrator provisioning only. Never allow public registration.
+    if (role === 'admin' || role === 'web_admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Public administrator registration is prohibited. Administrator accounts must be provisioned by system authority.'
+      });
+    }
+
     // Requires at least ONE contact method (email OR phone)
     if (!email && !phone) {
       return res.status(400).json({
@@ -289,12 +330,16 @@ export const register = async (req, res) => {
       });
     }
 
+    // Account status: Patients become active immediately; doctors & organizations start as pending_verification
+    const initialStatus = role === 'patient' ? 'active' : 'pending_verification';
+
     const newUser = await User.create({
       name,
       email: email || undefined,
       phone: phone || undefined,
       password,
       role: role || 'patient',
+      status: initialStatus,
     });
 
     if (email) otpStore.delete(email);
@@ -303,18 +348,68 @@ export const register = async (req, res) => {
     let profile = null;
 
     if (role === 'doctor' && doctorDetails) {
+      if (doctorDetails.licenseNumber) {
+        const existingDocWithLicense = await Doctor.findOne({ licenseNumber: doctorDetails.licenseNumber.trim() });
+        if (existingDocWithLicense) {
+          await User.findByIdAndDelete(newUser._id);
+          return res.status(400).json({
+            success: false,
+            message: `A doctor with medical license / registration number "${doctorDetails.licenseNumber}" is already registered.`,
+          });
+        }
+      }
+
+      const appRef = `DOC-APP-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
       profile = await Doctor.create({
         userId: newUser._id,
         specialization: doctorDetails.specialization || 'General Physician',
         qualifications: doctorDetails.qualifications || ['MBBS'],
         experienceYears: doctorDetails.experienceYears || 0,
         licenseNumber: doctorDetails.licenseNumber || 'MED-PENDING',
+        issuingAuthority: doctorDetails.issuingAuthority || 'National Medical Commission',
+        registrationJurisdiction: doctorDetails.registrationJurisdiction || 'India',
+        registrationYear: doctorDetails.registrationYear || new Date().getFullYear(),
         licenseDocumentUrl: doctorDetails.licenseDocumentUrl || '',
         consultationFee: doctorDetails.consultationFee || 500,
         bio: doctorDetails.bio || '',
         verificationStatus: 'pending',
+        applicationReference: appRef,
+        documents: doctorDetails.documents || [],
       });
+
+      await DoctorRegistration.create({
+        doctorId: profile._id,
+        registrationNumber: doctorDetails.licenseNumber || 'MED-PENDING',
+        issuingAuthority: doctorDetails.issuingAuthority || 'National Medical Commission',
+        jurisdiction: doctorDetails.registrationJurisdiction || 'India',
+        registrationYear: doctorDetails.registrationYear || new Date().getFullYear(),
+      });
+
+      const appRecord = await DoctorVerificationApplication.create({
+        applicationReference: appRef,
+        doctorId: profile._id,
+        userId: newUser._id,
+        applicationStatus: 'PENDING_VERIFICATION',
+        history: [{ action: 'SUBMITTED', timestamp: new Date(), remarks: 'Submitted during initial registration.' }],
+      });
+
+      profile.verificationApplicationId = appRecord._id;
+      await profile.save();
     } else if (role === 'organization' && orgDetails) {
+      if (orgDetails.registrationNumber) {
+        const existingOrgWithReg = await Organization.findOne({
+          registrationNumber: String(orgDetails.registrationNumber).trim(),
+        });
+        if (existingOrgWithReg) {
+          await User.findByIdAndDelete(newUser._id);
+          return res.status(400).json({
+            success: false,
+            message: `Organization with registration license '${orgDetails.registrationNumber}' already exists.`,
+          });
+        }
+      }
+
       // Validate PIN code format if provided
       const regPin = orgDetails.registeredAddress?.pinCode;
       if (regPin && !/^\d{6}$/.test(String(regPin).trim())) {
@@ -363,12 +458,28 @@ export const register = async (req, res) => {
         });
       }
 
+      const appRef = `ORG-APP-${Math.floor(10000 + Math.random() * 90000)}`;
       const code = `ORG-QR-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 899 + 100)}`;
+      
+      const docList = orgDetails.documents || [];
+      const rep = orgDetails.representative || {
+        name: name,
+        email: email || '',
+        phone: phone || '',
+        designation: 'Hospital Administrator',
+      };
+
       profile = await Organization.create({
         userId: newUser._id,
         name: orgDetails.name || name,
+        legalName: orgDetails.legalName || orgDetails.name || name,
         orgType: orgDetails.orgType || 'hospital',
         registrationNumber: orgDetails.registrationNumber || 'REG-PENDING',
+        applicationReference: appRef,
+        officialEmail: orgDetails.officialEmail || email || '',
+        contactNumber: orgDetails.contactNumber || phone || '',
+        website: orgDetails.website || '',
+        description: orgDetails.description || '',
         registeredAddress: orgDetails.registeredAddress || {},
         operatingAddress: orgDetails.operatingAddress || { isSameAsRegistered: true },
         location: {
@@ -379,11 +490,59 @@ export const register = async (req, res) => {
         emergencyContactPhone: orgDetails.emergencyContactPhone || phone || '',
         qrCheckinCode: code,
         facilities: orgDetails.facilities || ['Emergency Care', 'ICU', 'General Ward'],
+        healthcareCapabilities: orgDetails.healthcareCapabilities || ['Emergency Services', 'ICU', 'Diagnostic Imaging'],
+        specializations: orgDetails.specializations || ['General Medicine', 'Cardiology'],
+        representative: rep,
+        documents: docList,
         verificationStatus: 'pending',
       });
+
+      // Create OrganizationAdmin representative link
+      await OrganizationAdmin.create({
+        organizationId: profile._id,
+        userId: newUser._id,
+        accessRole: 'PRIMARY_ADMIN',
+        representativeName: rep.name || name,
+        representativeEmail: rep.email || email || '',
+        representativePhone: rep.phone || phone || '',
+        designation: rep.designation || 'Hospital Administrator',
+      });
+
+      // Create primary OrganizationFacility
+      const facilityRecord = await OrganizationFacility.create({
+        facilityId: `FAC-${Math.floor(10000 + Math.random() * 90000)}`,
+        organizationId: profile._id,
+        facilityName: `${profile.name} - Main Campus`,
+        facilityType: 'main_campus',
+        isPrimary: true,
+        address: profile.operatingAddress,
+        location: {
+          type: 'Point',
+          coordinates: [lng, lat],
+        },
+        latitude: lat,
+        longitude: lng,
+        capabilities: profile.healthcareCapabilities || [],
+        operationalStatus: 'ACTIVE',
+        contactPhone: profile.emergencyContactPhone || profile.contactNumber,
+      });
+
+      // Create OrganizationVerificationApplication
+      const appRecord = await OrganizationVerificationApplication.create({
+        applicationReference: appRef,
+        organizationId: profile._id,
+        userId: newUser._id,
+        applicationStatus: 'PENDING_VERIFICATION',
+        history: [{ action: 'SUBMITTED', timestamp: new Date(), remarks: 'Submitted during initial registration.' }],
+      });
+
+      profile.activeVerificationApplicationId = appRecord._id;
+      profile.primaryFacilityId = facilityRecord._id;
+      await profile.save();
     }
 
     const token = generateToken(newUser);
+    const refreshToken = generateRefreshToken(newUser);
     const userResponse = {
       id: newUser._id,
       _id: newUser._id,
@@ -391,15 +550,20 @@ export const register = async (req, res) => {
       email: newUser.email,
       phone: newUser.phone,
       role: newUser.role,
+      status: newUser.status,
     };
 
     return res.status(201).json({
       success: true,
-      message: 'Account registered successfully',
+      message: role === 'patient'
+        ? 'Account registered successfully'
+        : 'Registration submitted successfully. Account is pending administrative verification before access is granted.',
       token,
+      refreshToken,
       user: userResponse,
       data: {
         token,
+        refreshToken,
         user: userResponse,
         profile,
       },
@@ -460,21 +624,57 @@ export const login = async (req, res) => {
       });
     }
 
-    if (!user.isActive) {
+    if (!user.isActive || user.status === 'suspended') {
       return res.status(403).json({
         success: false,
-        message: 'Account has been deactivated. Please contact support.'
+        message: 'Account has been deactivated or suspended. Please contact support.',
+        code: 'ACCOUNT_SUSPENDED',
       });
     }
 
     let profile = null;
     if (user.role === 'doctor') {
       profile = await Doctor.findOne({ userId: user._id });
+      if (profile) {
+        const vStatus = String(profile.verificationStatus || '').toLowerCase();
+        if (vStatus === 'pending' || vStatus === 'pending_verification') {
+          return res.status(403).json({
+            success: false,
+            message: 'Your doctor account is pending verification. Administrative approval is required before logging in.',
+            code: 'PENDING_VERIFICATION',
+          });
+        }
+        if (vStatus === 'rejected') {
+          return res.status(403).json({
+            success: false,
+            message: 'Your doctor verification request was rejected. Please contact administration.',
+            code: 'VERIFICATION_REJECTED',
+          });
+        }
+      }
     } else if (user.role === 'organization') {
       profile = await Organization.findOne({ userId: user._id });
+      if (profile) {
+        const vStatus = String(profile.verificationStatus || '').toLowerCase();
+        if (vStatus === 'pending' || vStatus === 'pending_verification') {
+          return res.status(403).json({
+            success: false,
+            message: 'Your healthcare facility account is pending accreditation verification. Administrative approval is required before logging in.',
+            code: 'PENDING_VERIFICATION',
+          });
+        }
+        if (vStatus === 'rejected') {
+          return res.status(403).json({
+            success: false,
+            message: 'Your healthcare facility verification request was rejected. Please contact administration.',
+            code: 'VERIFICATION_REJECTED',
+          });
+        }
+      }
     }
 
     const token = generateToken(user);
+    const refreshToken = generateRefreshToken(user);
     const userResponse = {
       id: user._id,
       _id: user._id,
@@ -482,15 +682,18 @@ export const login = async (req, res) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      status: user.status || (user.isActive ? 'active' : 'suspended'),
     };
 
     return res.status(200).json({
       success: true,
       message: 'Login successful',
       token,
+      refreshToken,
       user: userResponse,
       data: {
         token,
+        refreshToken,
         user: userResponse,
         profile,
       },
@@ -498,6 +701,209 @@ export const login = async (req, res) => {
   } catch (error) {
     console.error('Login Error:', error);
     return res.status(500).json({ success: false, message: 'Internal server error during login.' });
+  }
+};
+
+// 4b. Refresh Token (Validates active refresh token, verifies JWT, checks account status, rotates tokens)
+export const refreshToken = async (req, res) => {
+  try {
+    const rawToken = req.body.refreshToken || req.headers['x-refresh-token'];
+    if (!rawToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Refresh token is required.'
+      });
+    }
+
+    if (!activeRefreshTokens.has(rawToken)) {
+      return res.status(401).json({
+        success: false,
+        message: 'Refresh token is invalid or has been revoked.'
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(
+        rawToken,
+        process.env.JWT_REFRESH_SECRET || 'shap_refresh_secret_jwt_key_2025_access_health'
+      );
+    } catch (err) {
+      activeRefreshTokens.delete(rawToken);
+      return res.status(401).json({
+        success: false,
+        message: 'Refresh token is expired or malformed.'
+      });
+    }
+
+    const user = await User.findById(decoded.id);
+    if (!user || !user.isActive || user.status === 'suspended') {
+      activeRefreshTokens.delete(rawToken);
+      return res.status(403).json({
+        success: false,
+        message: 'User account is inactive or suspended.'
+      });
+    }
+
+    // Token Rotation: Invalidate the old refresh token, generate new access & refresh tokens
+    activeRefreshTokens.delete(rawToken);
+    const newAccessToken = generateToken(user);
+    const newRefreshToken = generateRefreshToken(user);
+
+    return res.status(200).json({
+      success: true,
+      token: newAccessToken,
+      refreshToken: newRefreshToken,
+      user: {
+        id: user._id,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        status: user.status || (user.isActive ? 'active' : 'suspended'),
+      },
+    });
+  } catch (error) {
+    console.error('Refresh Token Error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to refresh authentication token.' });
+  }
+};
+
+// 4c. Logout (Invalidates access token in blacklist and revokes active refresh token)
+export const logout = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      tokenBlacklist.add(token);
+    }
+
+    const rawRefreshToken = req.body.refreshToken || req.headers['x-refresh-token'];
+    if (rawRefreshToken) {
+      activeRefreshTokens.delete(rawRefreshToken);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Logged out successfully. Authentication tokens invalidated.'
+    });
+  } catch (error) {
+    console.error('Logout Error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to log out.' });
+  }
+};
+
+// 4d. Forgot Password (Generates secure OTP for registered email or phone)
+export const forgotPassword = async (req, res) => {
+  try {
+    const rawTarget = req.body.email || req.body.phone || req.body.identifier;
+    if (!rawTarget) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide your registered email or phone number.'
+      });
+    }
+
+    const targetStr = String(rawTarget).trim().toLowerCase();
+    const user = await User.findOne({
+      $or: [
+        { email: targetStr },
+        { phone: targetStr.replace(/\s+/g, '') }
+      ]
+    });
+
+    if (!user) {
+      // Respond with neutral 200 to prevent user enumeration attacks
+      return res.status(200).json({
+        success: true,
+        message: 'If an account exists with this credential, a password reset code has been sent.'
+      });
+    }
+
+    const resetOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    passwordResetStore.set(user._id.toString(), {
+      otp: resetOtp,
+      expiresAt,
+      userId: user._id
+    });
+
+    console.log(`\n========================================`);
+    console.log(`[SHAP Password Reset] User: ${user.email || user.phone} | Reset OTP: ${resetOtp}`);
+    console.log(`========================================\n`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password reset code has been generated.',
+      devOtp: resetOtp,
+      resetKey: user._id.toString()
+    });
+  } catch (error) {
+    console.error('Forgot Password Error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to process forgot password request.' });
+  }
+};
+
+// 4e. Reset Password (Verifies OTP & key and updates password)
+export const resetPassword = async (req, res) => {
+  try {
+    const { resetKey, otp, newPassword, confirmPassword } = req.body;
+
+    if (!resetKey || !otp || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reset key, OTP code, and new password are required.'
+      });
+    }
+
+    if (confirmPassword && newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Passwords do not match.'
+      });
+    }
+
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long.'
+      });
+    }
+
+    const record = passwordResetStore.get(resetKey);
+    if (!record || Date.now() > record.expiresAt) {
+      passwordResetStore.delete(resetKey);
+      return res.status(400).json({
+        success: false,
+        message: 'Password reset session has expired or is invalid. Please request a new one.'
+      });
+    }
+
+    if (String(record.otp) !== String(otp).trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid reset code. Please check and try again.'
+      });
+    }
+
+    const user = await User.findById(record.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+    passwordResetStore.delete(resetKey);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password has been reset successfully. You can now log in with your new password.'
+    });
+  } catch (error) {
+    console.error('Reset Password Error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to reset password.' });
   }
 };
 

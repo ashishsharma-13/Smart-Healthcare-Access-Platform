@@ -34,7 +34,12 @@ export const OrganizationDoctorsPage = () => {
   const [searching, setSearching] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [department, setDepartment] = useState('General Medicine');
+  const [designation, setDesignation] = useState('Consultant');
+  const [affiliationType, setAffiliationType] = useState('VISITING');
+  const [proposedStartDate, setProposedStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [proposedEndDate, setProposedEndDate] = useState('');
   const [inviteNotes, setInviteNotes] = useState('');
+  const [affiliationRequests, setAffiliationRequests] = useState([]);
 
   // Termination Modal state
   const [terminatingAffiliation, setTerminatingAffiliation] = useState(null);
@@ -47,16 +52,28 @@ export const OrganizationDoctorsPage = () => {
   const fetchAffiliationData = async () => {
     try {
       setLoading(true);
-      const [affRes, orgRes] = await Promise.all([
-        api.get('/organizations/affiliations'),
+      const [affRes, reqRes, orgRes] = await Promise.allSettled([
+        api.get('/organizations/me/affiliations'),
+        api.get('/organizations/me/affiliation-requests'),
         api.get('/organizations/portal/me'),
       ]);
 
-      if (affRes.data.success) {
-        setAffiliations(affRes.data.data || []);
+      if (affRes.status === 'fulfilled' && affRes.value?.data?.success) {
+        setAffiliations(affRes.value.data.data || []);
+      } else {
+        // Fallback to legacy route if needed
+        try {
+          const fallbackAff = await api.get('/organizations/affiliations');
+          if (fallbackAff.data.success) setAffiliations(fallbackAff.data.data || []);
+        } catch {}
       }
-      if (orgRes.data.success) {
-        setDoctorsPresent(orgRes.data.data?.doctorsPresent || []);
+
+      if (reqRes.status === 'fulfilled' && reqRes.value?.data?.success) {
+        setAffiliationRequests(reqRes.value.data.data || []);
+      }
+
+      if (orgRes.status === 'fulfilled' && orgRes.value?.data?.success) {
+        setDoctorsPresent(orgRes.value.data.data?.doctorsPresent || []);
       }
     } catch (err) {
       console.error('Error fetching organization doctor affiliations', err);
@@ -95,11 +112,25 @@ export const OrganizationDoctorsPage = () => {
     try {
       setActionLoading(true);
       setFeedback({ type: '', message: '' });
-      const res = await api.post('/organizations/affiliations/invite', {
-        doctorId: selectedDoctor._id,
-        department,
-        notes: inviteNotes,
-      });
+      let res;
+      try {
+        res = await api.post('/organizations/me/affiliation-requests', {
+          doctorId: selectedDoctor._id,
+          department,
+          designation,
+          affiliationType,
+          proposedStartDate,
+          proposedEndDate: proposedEndDate || undefined,
+          message: inviteNotes,
+        });
+      } catch (postErr) {
+        // Fallback to legacy invite endpoint if needed
+        res = await api.post('/organizations/affiliations/invite', {
+          doctorId: selectedDoctor._id,
+          department,
+          notes: inviteNotes,
+        });
+      }
 
       if (res.data.success) {
         setFeedback({ type: 'success', message: res.data.message });
@@ -172,9 +203,16 @@ export const OrganizationDoctorsPage = () => {
     try {
       setActionLoading(true);
       setFeedback({ type: '', message: '' });
-      const res = await api.post(`/organizations/affiliations/${terminatingAffiliation._id}/terminate`, {
-        reason: terminationReason,
-      });
+      let res;
+      try {
+        res = await api.post(`/organizations/me/affiliations/${terminatingAffiliation._id}/terminate`, {
+          reason: terminationReason,
+        });
+      } catch {
+        res = await api.post(`/organizations/affiliations/${terminatingAffiliation._id}/terminate`, {
+          reason: terminationReason,
+        });
+      }
       if (res.data.success) {
         setFeedback({ type: 'success', message: res.data.message });
         setTerminatingAffiliation(null);
@@ -683,27 +721,78 @@ export const OrganizationDoctorsPage = () => {
                 </div>
               )}
 
-              {/* Department */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Hospital Department</label>
-                <input
-                  type="text"
-                  required
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  placeholder="e.g., Cardiology OPD, Trauma Center, Pediatrics"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              {/* Department & Designation */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Hospital Department</label>
+                  <input
+                    type="text"
+                    required
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    placeholder="e.g., Cardiology OPD, Trauma Center"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Designation / Clinical Role</label>
+                  <input
+                    type="text"
+                    required
+                    value={designation}
+                    onChange={(e) => setDesignation(e.target.value)}
+                    placeholder="e.g., Senior Consultant, Specialist"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Affiliation Type & Proposed Start/End Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Affiliation Type</label>
+                  <select
+                    value={affiliationType}
+                    onChange={(e) => setAffiliationType(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                  >
+                    <option value="VISITING">Visiting Specialist</option>
+                    <option value="FULL_TIME">Full Time</option>
+                    <option value="PART_TIME">Part Time</option>
+                    <option value="CONSULTANT">Consultant</option>
+                    <option value="HONORARY">Honorary</option>
+                    <option value="RESIDENT">Resident</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Proposed Start</label>
+                  <input
+                    type="date"
+                    required
+                    value={proposedStartDate}
+                    onChange={(e) => setProposedStartDate(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Proposed End (Opt)</label>
+                  <input
+                    type="date"
+                    value={proposedEndDate}
+                    onChange={(e) => setProposedEndDate(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
 
               {/* Notes */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Invitation Note</label>
+                <label className="text-xs font-bold text-slate-700">Invitation Message</label>
                 <textarea
                   rows={2}
                   value={inviteNotes}
                   onChange={(e) => setInviteNotes(e.target.value)}
-                  placeholder="Offer details, clinic hours or invitation message..."
+                  placeholder="Offer details, clinic hours or invitation message to the physician..."
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>

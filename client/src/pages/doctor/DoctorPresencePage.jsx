@@ -187,12 +187,16 @@ export const DoctorPresencePage = () => {
                 Scan at hospital reception QR stand to record on-site physical presence.
               </p>
               <span className="inline-block text-[10px] font-mono font-semibold text-brand-300 mt-0.5">
-                {qrCredential?.qrCodeValue || 'SHAP-DOC-CREDENTIAL'}
+                {qrCredential?.uniqueId || qrCredential?.token || qrCredential?.qrCodeValue || 'SHAP-DOC-CREDENTIAL'}
               </span>
             </div>
 
-            <div className="w-16 h-16 bg-white p-1 rounded-md flex-shrink-0 flex items-center justify-center shadow-xs">
-              <QrCode className="w-14 h-14 text-slate-900" />
+            <div className="w-16 h-16 bg-white p-1 rounded-md flex-shrink-0 flex items-center justify-center shadow-xs overflow-hidden">
+              {qrCredential?.qrDataUrl ? (
+                <img src={qrCredential.qrDataUrl} alt="Physician QR Credential" className="w-full h-full object-contain" />
+              ) : (
+                <QrCode className="w-14 h-14 text-slate-900" />
+              )}
             </div>
           </div>
 

@@ -46,10 +46,42 @@ export class DoctorRepository {
       .exec();
   }
 
+  async findByLicenseNumber(licenseNumber) {
+    return await Doctor.findOne({ licenseNumber: licenseNumber.trim() })
+      .populate('userId', 'name email phone avatar')
+      .exec();
+  }
+
+  async findByApplicationReference(applicationReference) {
+    return await Doctor.findOne({ applicationReference })
+      .populate('userId', 'name email phone avatar')
+      .exec();
+  }
+
   async listPendingVerifications() {
-    return await Doctor.find({ verificationStatus: 'pending' })
-      .populate('userId', 'name email phone')
+    return await Doctor.find({
+      verificationStatus: { $in: ['pending', 'PENDING_VERIFICATION'] },
+    })
+      .populate('userId', 'name email phone avatar')
       .sort({ createdAt: -1 })
+      .exec();
+  }
+
+  async listVerifiedDoctors() {
+    return await Doctor.find({
+      verificationStatus: { $in: ['verified', 'VERIFIED'] },
+    })
+      .populate('userId', 'name email phone avatar')
+      .sort({ updatedAt: -1 })
+      .exec();
+  }
+
+  async listRejectedDoctors() {
+    return await Doctor.find({
+      verificationStatus: { $in: ['rejected', 'REJECTED'] },
+    })
+      .populate('userId', 'name email phone avatar')
+      .sort({ updatedAt: -1 })
       .exec();
   }
 }

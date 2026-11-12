@@ -20,6 +20,7 @@ import {
   Volume2,
   MapPin,
   Navigation,
+  FileCheck2,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -257,25 +258,75 @@ export const OrganizationDashboard = () => {
       {/* Top Banner */}
       <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Badge variant="presence" size="xs" dot>
-              Verified Facility Command
-            </Badge>
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            {profile?.verificationStatus === 'verified' || profile?.verificationStatus === 'APPROVED' ? (
+              <Badge variant="presence" size="xs" dot>
+                Accredited Healthcare Facility
+              </Badge>
+            ) : profile?.verificationStatus === 'rejected' || profile?.verificationStatus === 'REJECTED' ? (
+              <Badge variant="emergency" size="xs">
+                Accreditation Rejected
+              </Badge>
+            ) : (
+              <Badge variant="neutral" size="xs">
+                Pending State Accreditation Review
+              </Badge>
+            )}
+
+            {profile?.uniqueOrganizationCode && (
+              <span className="text-[11px] font-mono font-bold bg-brand-50 text-brand-700 px-2 py-0.5 rounded border border-brand-200">
+                {profile.uniqueOrganizationCode}
+              </span>
+            )}
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            {profile?.name}
+            {profile?.name || profile?.organizationName || profile?.legalName}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Emergency Operations & Resource Allocation Desk &bull; Code: <span className="font-mono font-semibold text-slate-800">{profile?.qrCheckinCode}</span>
+            Emergency Operations & Resource Allocation Desk &bull; Check-in Code: <span className="font-mono font-semibold text-slate-800">{profile?.qrCheckinCode || 'N/A'}</span>
+            {profile?.applicationReference && (
+              <> &bull; App Ref: <span className="font-mono font-semibold text-slate-600">{profile.applicationReference}</span></>
+            )}
           </p>
         </div>
 
-        <Link to="/organization/qr-code">
-          <Button variant="primary" size="sm" icon={QrCode}>
-            Reception Check-In Stand
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to="/organization/qr-code">
+            <Button variant="primary" size="sm" icon={QrCode}>
+              Reception Stand
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      {/* Verification Warning Alert if not yet verified */}
+      {(profile?.verificationStatus === 'pending' || profile?.verificationStatus === 'PENDING_VERIFICATION') && (
+        <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/70 text-amber-900 flex items-start gap-3">
+          <Clock className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+          <div className="text-xs space-y-1">
+            <p className="font-bold">Accreditation Verification In Progress</p>
+            <p className="text-amber-800">
+              Your organization dossier (Ref: <span className="font-mono font-semibold">{profile?.applicationReference}</span>) is under active review by the Health Department Administration. Full public healthcare directory listings and patient booking features activate automatically upon administrative accreditation approval.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Alert if rejected */}
+      {(profile?.verificationStatus === 'rejected' || profile?.verificationStatus === 'REJECTED') && (
+        <div className="p-4 rounded-xl border border-rose-200 bg-rose-50/70 text-rose-900 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-rose-600 mt-0.5 flex-shrink-0" />
+          <div className="text-xs space-y-1">
+            <p className="font-bold">Accreditation Application Returned / Rejected</p>
+            <p className="text-rose-800">
+              Reason recorded by Health Authority: <span className="font-semibold">{profile?.rejectionReason || 'Documentation incomplete or authority license expired.'}</span>
+            </p>
+            <p className="text-rose-700 text-[11px]">
+              Please contact platform administration or submit updated license documentation through your organization settings.
+            </p>
+          </div>
+        </div>
+      )}
 
       {actionNotice && (
         <Toast type="success" message={actionNotice} onClose={() => setActionNotice('')} />

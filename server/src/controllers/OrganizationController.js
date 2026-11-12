@@ -233,6 +233,147 @@ export class OrganizationController {
       next(err);
     }
   }
+
+  async registerOrganization(req, res, next) {
+    try {
+      const result = await organizationService.registerOrganization(req.body);
+      res.status(201).json({
+        success: true,
+        message: 'Organization registration application submitted. Status is PENDING_VERIFICATION.',
+        data: result,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getMyVerificationStatus(req, res, next) {
+    try {
+      const org = await organizationRepository.findByUserId(req.user._id);
+      if (!org) {
+        return res.status(404).json({ success: false, message: 'Organization profile not found.' });
+      }
+      const status = await organizationService.getOrganizationVerificationStatus(org._id);
+      res.json({ success: true, data: status });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getMyFacilities(req, res, next) {
+    try {
+      const org = await organizationRepository.findByUserId(req.user._id);
+      if (!org) {
+        return res.status(404).json({ success: false, message: 'Organization profile not found.' });
+      }
+      const facilities = await organizationService.getOrganizationFacilities(org._id);
+      res.json({ success: true, count: facilities.length, data: facilities });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async addFacility(req, res, next) {
+    try {
+      const org = await organizationRepository.findByUserId(req.user._id);
+      if (!org) {
+        return res.status(404).json({ success: false, message: 'Organization profile not found.' });
+      }
+      const facility = await organizationService.addOrganizationFacility(org._id, req.body);
+      res.status(201).json({ success: true, message: 'Facility added successfully', data: facility });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async uploadDocument(req, res, next) {
+    try {
+      const org = await organizationRepository.findByUserId(req.user._id);
+      if (!org) {
+        return res.status(404).json({ success: false, message: 'Organization profile not found.' });
+      }
+      const { documentType, documentName, storageReference, mimeType, fileSize } = req.body;
+      if (!documentType || !documentName) {
+        return res.status(400).json({ success: false, message: 'documentType and documentName are required.' });
+      }
+
+      const docRecord = {
+        documentType,
+        documentName,
+        storageReference: storageReference || 'https://storage.shap.health/docs/' + documentName,
+        mimeType: mimeType || 'application/pdf',
+        fileSize: fileSize || 1048576,
+        uploadedAt: new Date(),
+      };
+
+      org.documents.push(docRecord);
+      await org.save();
+
+      res.status(201).json({ success: true, message: 'Document uploaded successfully', data: docRecord });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async resubmitApplication(req, res, next) {
+    try {
+      const org = await organizationRepository.findByUserId(req.user._id);
+      if (!org) {
+        return res.status(404).json({ success: false, message: 'Organization profile not found.' });
+      }
+      const updated = await organizationService.resubmitOrganizationApplication(org._id, req.body, req.user._id);
+      res.json({ success: true, message: 'Application successfully resubmitted for verification.', data: updated });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getMyDashboard(req, res, next) {
+    try {
+      const org = await organizationRepository.findByUserId(req.user._id);
+      if (!org) {
+        return res.status(404).json({ success: false, message: 'Organization profile not found.' });
+      }
+      const metrics = await organizationService.getOrganizationDashboardMetrics(org._id);
+      res.json({ success: true, data: metrics });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateMyOrganization(req, res, next) {
+    try {
+      const org = await organizationRepository.findByUserId(req.user._id);
+      if (!org) {
+        return res.status(404).json({ success: false, message: 'Organization profile not found.' });
+      }
+
+      const allowedFields = [
+        'name',
+        'legalName',
+        'website',
+        'description',
+        'officialEmail',
+        'contactNumber',
+        'emergencyContactPhone',
+        'emergencyCapable',
+        'facilities',
+        'healthcareCapabilities',
+        'specializations',
+      ];
+
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          org[field] = req.body[field];
+        }
+      }
+
+      const updated = await org.save();
+      res.json({ success: true, message: 'Organization profile updated successfully', data: updated });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const organizationController = new OrganizationController();

@@ -261,6 +261,157 @@ export class DoctorAffiliationController {
     }
   }
 
+  // =================== MODULE 4 SPECIFIC ENDPOINTS ===================
+
+  async createAffiliationRequest(req, res, next) {
+    try {
+      const {
+        doctorId,
+        facilityId,
+        department,
+        designation,
+        affiliationType,
+        proposedStartDate,
+        proposedEndDate,
+        message,
+      } = req.body;
+
+      if (!doctorId) {
+        return res.status(400).json({ success: false, message: 'doctorId is required.' });
+      }
+
+      const request = await doctorAffiliationService.createAffiliationRequestByOrganization({
+        orgUserId: req.user._id,
+        doctorId,
+        facilityId,
+        department,
+        designation,
+        affiliationType,
+        proposedStartDate,
+        proposedEndDate,
+        message,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Affiliation request dispatched to doctor successfully.',
+        data: request,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getOrgAffiliationRequests(req, res, next) {
+    try {
+      const statusFilter = req.query.status || null;
+      const requests = await doctorAffiliationService.getOrganizationAffiliationRequests(req.user._id, statusFilter);
+      res.json({
+        success: true,
+        count: requests.length,
+        data: requests,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getDoctorIncomingRequests(req, res, next) {
+    try {
+      const statusFilter = req.query.status || null;
+      const requests = await doctorAffiliationService.getDoctorAffiliationRequests(req.user._id, statusFilter);
+      res.json({
+        success: true,
+        count: requests.length,
+        data: requests,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async acceptAffiliationRequest(req, res, next) {
+    try {
+      const { message } = req.body;
+      const result = await doctorAffiliationService.acceptAffiliationRequestByDoctor({
+        requestId: req.params.id,
+        doctorUserId: req.user._id,
+        message,
+      });
+
+      res.json({
+        success: true,
+        message: 'Affiliation request accepted. Active doctor affiliation created.',
+        data: result,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async rejectAffiliationRequest(req, res, next) {
+    try {
+      const { reason } = req.body;
+      const updated = await doctorAffiliationService.rejectAffiliationRequestByDoctor({
+        requestId: req.params.id,
+        doctorUserId: req.user._id,
+        reason,
+      });
+
+      res.json({
+        success: true,
+        message: 'Affiliation request declined.',
+        data: updated,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async terminateAffiliationDirectly(req, res, next) {
+    try {
+      const { reason } = req.body;
+      const updated = await doctorAffiliationService.terminateAffiliationDirectly({
+        affiliationId: req.params.id,
+        userId: req.user._id,
+        userRole: req.user.role,
+        reason,
+      });
+
+      res.json({
+        success: true,
+        message: 'Affiliation terminated successfully.',
+        data: updated,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getAdminAffiliations(req, res, next) {
+    try {
+      const filter = {};
+      if (req.query.status) {
+        filter.status = req.query.status.toUpperCase();
+      }
+      if (req.query.organizationId) {
+        filter.organizationId = req.query.organizationId;
+      }
+      if (req.query.doctorId) {
+        filter.doctorId = req.query.doctorId;
+      }
+
+      const affiliations = await doctorAffiliationService.getAllAffiliationsForAdmin(filter);
+      res.json({
+        success: true,
+        count: affiliations.length,
+        data: affiliations,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   // =================== PUBLIC / PATIENT QUERY ENDPOINTS ===================
 
   async getAffiliatedDoctorsForOrg(req, res, next) {

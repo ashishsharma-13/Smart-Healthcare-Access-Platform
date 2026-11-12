@@ -23,8 +23,13 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['patient', 'doctor', 'organization', 'admin'],
+      enum: ['patient', 'doctor', 'organization', 'admin', 'web_admin'],
       default: 'patient',
+    },
+    status: {
+      type: String,
+      enum: ['active', 'pending_verification', 'suspended'],
+      default: 'active',
     },
     phone: {
       type: String,

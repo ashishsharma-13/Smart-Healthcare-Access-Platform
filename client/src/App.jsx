@@ -52,8 +52,17 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
   if (loading) return <div className="p-12 text-center text-xs text-slate-400">Authenticating...</div>;
   if (!user) return <Navigate to="/login" replace />;
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" replace />;
+  if (allowedRoles) {
+    const userRole = user.role;
+    const isAllowed = allowedRoles.some((r) => {
+      if (r === 'admin' || r === 'web_admin') {
+        return userRole === 'admin' || userRole === 'web_admin';
+      }
+      return r === userRole;
+    });
+    if (!isAllowed) {
+      return <Navigate to="/" replace />;
+    }
   }
   return children;
 };
@@ -62,7 +71,7 @@ const DashboardRedirect = () => {
   const { user } = useAuth();
   if (user?.role === 'doctor') return <Navigate to="/doctor/dashboard" replace />;
   if (user?.role === 'organization') return <Navigate to="/organization/dashboard" replace />;
-  if (user?.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+  if (user?.role === 'admin' || user?.role === 'web_admin') return <Navigate to="/admin/dashboard" replace />;
   return <Navigate to="/patient/dashboard" replace />;
 };
 

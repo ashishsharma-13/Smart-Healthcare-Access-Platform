@@ -20,12 +20,58 @@ const doctorAffiliationSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    facilityId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'OrganizationFacility',
+      index: true,
+    },
+    requestId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'AffiliationRequest',
+      index: true,
+    },
+    department: {
+      type: String,
+      default: 'General Medicine',
+      trim: true,
+    },
+    designation: {
+      type: String,
+      default: 'Consultant',
+      trim: true,
+    },
+    affiliationType: {
+      type: String,
+      enum: ['FULL_TIME', 'PART_TIME', 'VISITING', 'CONSULTANT', 'HONORARY', 'RESIDENT'],
+      default: 'VISITING',
+    },
+    startDate: {
+      type: Date,
+      default: Date.now,
+    },
+    endDate: {
+      type: Date,
+    },
+    acceptedAt: {
+      type: Date,
+    },
+    terminatedAt: {
+      type: Date,
+    },
+    terminationReason: {
+      type: String,
+      default: '',
+    },
     status: {
       type: String,
       enum: [
         'PENDING',
+        'ACCEPTED',
         'ACTIVE',
         'REJECTED',
+        'SUSPENDED',
+        'TERMINATED',
+        'EXPIRED',
         'TERMINATION_REQUESTED',
         'INACTIVE',
         // Lowercase backwards compatibility

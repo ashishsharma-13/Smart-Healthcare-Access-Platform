@@ -21,6 +21,7 @@ import {
 
 export const DoctorAffiliationsPage = () => {
   const [affiliations, setAffiliations] = useState([]);
+  const [incomingRequests, setIncomingRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('active'); // 'active' | 'invitations' | 'pending' | 'history'
   const [actionLoading, setActionLoading] = useState(false);
@@ -46,9 +47,16 @@ export const DoctorAffiliationsPage = () => {
   const fetchAffiliations = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/doctors/affiliations');
-      if (res.data.success) {
-        setAffiliations(res.data.data || []);
+      const [affRes, reqRes] = await Promise.allSettled([
+        api.get('/doctors/me/affiliations'),
+        api.get('/doctors/me/affiliation-requests'),
+      ]);
+
+      if (affRes.status === 'fulfilled' && affRes.value?.data?.success) {
+        setAffiliations(affRes.value.data.data || []);
+      }
+      if (reqRes.status === 'fulfilled' && reqRes.value?.data?.success) {
+        setIncomingRequests(reqRes.value.data.data || []);
       }
     } catch (err) {
       console.error('Error fetching doctor affiliations', err);
@@ -116,13 +124,26 @@ export const DoctorAffiliationsPage = () => {
     }
   };
 
-  const handleAcceptInvitation = async (affiliationId) => {
+  const handleAcceptInvitation = async (invitationId, isReq = false) => {
     try {
       setActionLoading(true);
       setFeedback({ type: '', message: '' });
-      const res = await api.post(`/doctors/affiliations/${affiliationId}/accept`, {
-        notes: 'Invitation accepted by doctor.',
-      });
+      let res;
+      if (isReq) {
+        res = await api.post(`/doctors/me/affiliation-requests/${invitationId}/accept`, {
+          message: 'Invitation accepted by doctor.',
+        });
+      } else {
+        try {
+          res = await api.post(`/doctors/me/affiliation-requests/${invitationId}/accept`, {
+            message: 'Invitation accepted by doctor.',
+          });
+        } catch {
+          res = await api.post(`/doctors/affiliations/${invitationId}/accept`, {
+            notes: 'Invitation accepted by doctor.',
+          });
+        }
+      }
       if (res.data.success) {
         setFeedback({ type: 'success', message: res.data.message });
         fetchAffiliations();
@@ -137,16 +158,29 @@ export const DoctorAffiliationsPage = () => {
     }
   };
 
-  const handleDeclineInvitation = async (affiliationId) => {
+  const handleDeclineInvitation = async (invitationId, isReq = false) => {
     const reason = prompt('Please specify reason for declining invitation:');
     if (reason === null) return;
 
     try {
       setActionLoading(true);
       setFeedback({ type: '', message: '' });
-      const res = await api.post(`/doctors/affiliations/${affiliationId}/decline`, {
-        reason: reason || 'Declined by doctor',
-      });
+      let res;
+      if (isReq) {
+        res = await api.post(`/doctors/me/affiliation-requests/${invitationId}/reject`, {
+          reason: reason || 'Declined by doctor',
+        });
+      } else {
+        try {
+          res = await api.post(`/doctors/me/affiliation-requests/${invitationId}/reject`, {
+            reason: reason || 'Declined by doctor',
+          });
+        } catch {
+          res = await api.post(`/doctors/affiliations/${invitationId}/decline`, {
+            reason: reason || 'Declined by doctor',
+          });
+        }
+      }
       if (res.data.success) {
         setFeedback({ type: 'success', message: res.data.message });
         fetchAffiliations();
@@ -168,7 +202,7 @@ export const DoctorAffiliationsPage = () => {
     try {
       setActionLoading(true);
       setFeedback({ type: '', message: '' });
-      const res = await api.post(`/doctors/affiliations/${terminatingAffiliation._id}/terminate`, {
+      const res = await api.post(`/doctors/me/affiliations/${terminatingAffiliation._id}/terminate`, {
         reason: terminationReason,
       });
       if (res.data.success) {
@@ -192,12 +226,18 @@ export const DoctorAffiliationsPage = () => {
     (a) => a.status === 'ACTIVE' || a.status === 'approved'
   );
 
-  const incomingInvitations = affiliations.filter(
+  const pendingIncomingReqs = incomingRequests
+    .filter((r) => r.status === 'PENDING')
+    .map((r) => ({ ...r, isRequest: true }));
+
+  const legacyIncoming = affiliations.filter(
     (a) =>
       (a.status === 'PENDING' || a.status === 'pending') &&
       a.initiatedBy === 'organization' &&
       a.doctorAcceptance?.status === 'pending'
   );
+
+  const incomingInvitations = [...pendingIncomingReqs, ...legacyIncoming];
 
   const pendingRequests = affiliations.filter(
     (a) =>
@@ -205,13 +245,19 @@ export const DoctorAffiliationsPage = () => {
       (a.initiatedBy === 'doctor' || a.doctorAcceptance?.status === 'accepted')
   );
 
-  const historyAffiliations = affiliations.filter(
-    (a) =>
-      a.status === 'INACTIVE' ||
-      a.status === 'REJECTED' ||
-      a.status === 'TERMINATION_REQUESTED' ||
-      a.status === 'revoked'
-  );
+  const historyAffiliations = [
+    ...affiliations.filter(
+      (a) =>
+        a.status === 'INACTIVE' ||
+        a.status === 'REJECTED' ||
+        a.status === 'TERMINATION_REQUESTED' ||
+        a.status === 'TERMINATED' ||
+        a.status === 'revoked'
+    ),
+    ...incomingRequests
+      .filter((r) => r.status === 'REJECTED' || r.status === 'CANCELLED')
+      .map((r) => ({ ...r, isRequest: true })),
+  ];
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
@@ -408,9 +454,14 @@ export const DoctorAffiliationsPage = () => {
                               <Building2 className="w-5 h-5" />
                             </div>
                             <div>
-                              <h3 className="font-extrabold text-sm text-slate-900">{org?.name}</h3>
+                              <h3 className="font-extrabold text-sm text-slate-900">{org?.name || org?.legalName}</h3>
                               <p className="text-xs text-slate-500 mt-0.5">
-                                Sent an affiliation invitation &bull; {org?.address?.city}
+                                Sent an affiliation invitation &bull; {org?.address?.city || 'Healthcare Center'}
+                                {org?.uniqueOrganizationCode && (
+                                  <span className="ml-1.5 font-mono text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
+                                    {org.uniqueOrganizationCode}
+                                  </span>
+                                )}
                               </p>
                             </div>
                           </div>
@@ -420,22 +471,44 @@ export const DoctorAffiliationsPage = () => {
                           </span>
                         </div>
 
-                        {aff.doctorAcceptance?.notes && (
-                          <div className="p-2.5 bg-slate-50 rounded-xl text-xs text-slate-600 border border-slate-100">
-                            <strong>Note:</strong> {aff.doctorAcceptance.notes}
+                        {/* Proposed Details */}
+                        <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                          <div>
+                            <span className="text-slate-400 block font-semibold uppercase text-[9px]">Department</span>
+                            <span className="font-bold text-slate-800">{aff.department || 'General Medicine'}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block font-semibold uppercase text-[9px]">Designation</span>
+                            <span className="font-bold text-slate-800">{aff.designation || 'Consultant'}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block font-semibold uppercase text-[9px]">Type</span>
+                            <span className="font-bold text-slate-800">{aff.affiliationType || 'VISITING'}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block font-semibold uppercase text-[9px]">Start Date</span>
+                            <span className="font-bold text-slate-800">
+                              {aff.proposedStartDate ? new Date(aff.proposedStartDate).toLocaleDateString() : 'Immediate'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {(aff.message || aff.doctorAcceptance?.notes) && (
+                          <div className="p-2.5 bg-blue-50/60 rounded-xl text-xs text-blue-900 border border-blue-100">
+                            <strong>Message:</strong> {aff.message || aff.doctorAcceptance?.notes}
                           </div>
                         )}
 
                         <div className="pt-2 border-t border-slate-100 flex items-center space-x-2">
                           <button
-                            onClick={() => handleAcceptInvitation(aff._id)}
+                            onClick={() => handleAcceptInvitation(aff._id, aff.isRequest)}
                             disabled={actionLoading}
                             className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-50"
                           >
-                            Accept Invitation
+                            Accept Affiliation
                           </button>
                           <button
-                            onClick={() => handleDeclineInvitation(aff._id)}
+                            onClick={() => handleDeclineInvitation(aff._id, aff.isRequest)}
                             disabled={actionLoading}
                             className="py-2 px-3 bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 font-bold text-xs uppercase rounded-xl border border-slate-200 transition-colors cursor-pointer"
                           >

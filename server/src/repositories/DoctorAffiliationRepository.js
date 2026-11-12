@@ -61,7 +61,8 @@ export class DoctorAffiliationRepository {
   async listByDoctor(doctorId, filter = {}) {
     const query = { doctorId, ...filter };
     return await DoctorAffiliation.find(query)
-      .populate('organizationId', 'name orgType registrationNumber verificationStatus address location emergencyContactPhone rating facilities qrCheckinCode')
+      .populate('organizationId', 'name legalName orgType registrationNumber verificationStatus address location emergencyContactPhone rating facilities qrCheckinCode uniqueOrganizationCode')
+      .populate('facilityId')
       .sort({ updatedAt: -1 })
       .exec();
   }
@@ -73,6 +74,7 @@ export class DoctorAffiliationRepository {
         path: 'doctorId',
         populate: { path: 'userId', select: 'name email phone avatar' },
       })
+      .populate('facilityId')
       .sort({ updatedAt: -1 })
       .exec();
   }
@@ -83,7 +85,8 @@ export class DoctorAffiliationRepository {
         path: 'doctorId',
         populate: { path: 'userId', select: 'name email phone' },
       })
-      .populate('organizationId', 'name orgType verificationStatus address')
+      .populate('organizationId', 'name legalName orgType verificationStatus address uniqueOrganizationCode')
+      .populate('facilityId')
       .sort({ updatedAt: -1 })
       .exec();
   }

@@ -119,6 +119,106 @@ export class DoctorController {
     }
   }
 
+  async registerDoctor(req, res, next) {
+    try {
+      const result = await doctorService.registerDoctor(req.body);
+      res.status(201).json({
+        success: true,
+        message: result.message,
+        applicationReference: result.applicationReference,
+        status: result.status,
+        data: result,
+      });
+    } catch (err) {
+      if (err.message && (err.message.includes('already registered') || err.message.includes('already exists') || err.message.includes('required'))) {
+        return res.status(400).json({ success: false, message: err.message });
+      }
+      next(err);
+    }
+  }
+
+  async uploadDocument(req, res, next) {
+    try {
+      const doctor = await doctorRepository.findByUserId(req.user._id);
+      if (!doctor) {
+        return res.status(404).json({ success: false, message: 'Doctor profile not found' });
+      }
+      const result = await doctorService.uploadDoctorDocument(doctor._id, req.body);
+      res.status(201).json(result);
+    } catch (err) {
+      if (err.message && err.message.includes('required')) {
+        return res.status(400).json({ success: false, message: err.message });
+      }
+      next(err);
+    }
+  }
+
+  async getVerificationStatus(req, res, next) {
+    try {
+      const doctor = await doctorRepository.findByUserId(req.user._id);
+      if (!doctor) {
+        return res.status(404).json({ success: false, message: 'Doctor profile not found' });
+      }
+      const status = await doctorService.getDoctorVerificationStatus(doctor._id);
+      res.json({ success: true, data: status });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async resubmitApplication(req, res, next) {
+    try {
+      const doctor = await doctorRepository.findByUserId(req.user._id);
+      if (!doctor) {
+        return res.status(404).json({ success: false, message: 'Doctor profile not found' });
+      }
+      const result = await doctorService.resubmitDoctorApplication(doctor._id, req.body);
+      res.json(result);
+    } catch (err) {
+      if (err.message && err.message.includes('Only rejected')) {
+        return res.status(400).json({ success: false, message: err.message });
+      }
+      next(err);
+    }
+  }
+
+  async getCredentials(req, res, next) {
+    try {
+      const doctor = await doctorRepository.findByUserId(req.user._id);
+      if (!doctor) {
+        return res.status(404).json({ success: false, message: 'Doctor profile not found' });
+      }
+      const qrData = await doctorService.getQrCredential(doctor._id);
+      res.json({
+        success: true,
+        data: {
+          doctorUniqueId: doctor.doctorUniqueId,
+          verificationStatus: doctor.verificationStatus,
+          ...qrData,
+        },
+      });
+    } catch (err) {
+      if (err.message && err.message.includes('Only verified doctors')) {
+        return res.status(403).json({ success: false, message: err.message });
+      }
+      next(err);
+    }
+  }
+
+  async reissueCredential(req, res, next) {
+    try {
+      const doctor = await doctorRepository.findByUserId(req.user._id);
+      if (!doctor) {
+        return res.status(404).json({ success: false, message: 'Doctor profile not found' });
+      }
+      const { reason } = req.body;
+      const result = await doctorService.reissueQrCredential(doctor._id, reason, req.user._id);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getQrCredential(req, res, next) {
     try {
       const doctor = await doctorRepository.findByUserId(req.user._id);

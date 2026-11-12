@@ -63,11 +63,60 @@ export class AdminController {
     }
   }
 
+  async getVerifiedDoctors(req, res, next) {
+    try {
+      const verified = await doctorRepository.listVerifiedDoctors();
+      res.json({ success: true, count: verified.length, data: verified });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getRejectedDoctors(req, res, next) {
+    try {
+      const rejected = await doctorRepository.listRejectedDoctors();
+      res.json({ success: true, count: rejected.length, data: rejected });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getDoctorApplication(req, res, next) {
+    try {
+      const doctor = await doctorRepository.findById(req.params.id);
+      if (!doctor) {
+        return res.status(404).json({ success: false, message: 'Doctor record not found.' });
+      }
+      const verificationStatus = await doctorService.getDoctorVerificationStatus(doctor._id);
+      let qrCredential = null;
+      if (String(doctor.verificationStatus || '').toLowerCase() === 'verified') {
+        try {
+          qrCredential = await doctorService.getQrCredential(doctor._id);
+        } catch (e) {
+          // fallback if pending generation
+        }
+      }
+      res.json({
+        success: true,
+        data: {
+          doctor,
+          verification: verificationStatus,
+          qrCredential,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async approveDoctor(req, res, next) {
     try {
       const updated = await doctorService.approveDoctor(req.params.id, req.user._id);
       res.json({ success: true, message: 'Doctor successfully approved and verified', data: updated });
     } catch (err) {
+      if (err.message && err.message.includes('already been verified')) {
+        return res.status(400).json({ success: false, message: err.message });
+      }
       next(err);
     }
   }
@@ -75,8 +124,24 @@ export class AdminController {
   async rejectDoctor(req, res, next) {
     try {
       const { reason } = req.body;
-      const updated = await doctorService.rejectDoctor(req.params.id, reason);
+      if (!reason || !String(reason).trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'A mandatory rejection reason is required to reject a doctor application.',
+        });
+      }
+      const updated = await doctorService.rejectDoctor(req.params.id, reason, req.user._id);
       res.json({ success: true, message: 'Doctor verification rejected', data: updated });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async reissueDoctorCredential(req, res, next) {
+    try {
+      const { reason } = req.body;
+      const result = await doctorService.reissueQrCredential(req.params.id, reason, req.user._id);
+      res.json(result);
     } catch (err) {
       next(err);
     }
@@ -91,18 +156,65 @@ export class AdminController {
     }
   }
 
+  async getVerifiedOrganizations(req, res, next) {
+    try {
+      const verified = await organizationRepository.listVerifiedOrganizations();
+      res.json({ success: true, count: verified.length, data: verified });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getRejectedOrganizations(req, res, next) {
+    try {
+      const rejected = await organizationRepository.listRejectedOrganizations();
+      res.json({ success: true, count: rejected.length, data: rejected });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getOrganizationDetails(req, res, next) {
+    try {
+      const org = await organizationRepository.findById(req.params.id);
+      if (!org) {
+        return res.status(404).json({ success: false, message: 'Organization record not found.' });
+      }
+      const verificationStatus = await organizationService.getOrganizationVerificationStatus(org._id);
+      res.json({
+        success: true,
+        data: {
+          organization: org,
+          verification: verificationStatus,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async approveOrganization(req, res, next) {
     try {
-      const updated = await organizationService.approveOrganization(req.params.id);
-      res.json({ success: true, message: 'Organization successfully approved and verified', data: updated });
+      const updated = await organizationService.approveOrganization(req.params.id, req.user._id);
+      res.json({ success: true, message: 'Organization successfully approved and accredited', data: updated });
     } catch (err) {
+      if (err.message && err.message.includes('already been verified')) {
+        return res.status(400).json({ success: false, message: err.message });
+      }
       next(err);
     }
   }
 
   async rejectOrganization(req, res, next) {
     try {
-      const updated = await organizationService.rejectOrganization(req.params.id);
+      const { reason } = req.body;
+      if (!reason || !String(reason).trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'A mandatory rejection reason is required to reject an organization application.',
+        });
+      }
+      const updated = await organizationService.rejectOrganization(req.params.id, reason, req.user._id);
       res.json({ success: true, message: 'Organization verification rejected', data: updated });
     } catch (err) {
       next(err);

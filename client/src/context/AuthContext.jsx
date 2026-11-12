@@ -43,9 +43,13 @@ export const AuthProvider = ({ children }) => {
     if (res.data.success) {
       const data = res.data.data || res.data;
       const newToken = data.token;
+      const newRefreshToken = data.refreshToken;
       const newUser = data.user;
       const newProfile = data.profile || null;
       localStorage.setItem('shap_token', newToken);
+      if (newRefreshToken) {
+        localStorage.setItem('shap_refresh_token', newRefreshToken);
+      }
       localStorage.setItem('shap_user', JSON.stringify(newUser));
       setToken(newToken);
       setUser(newUser);
@@ -60,9 +64,13 @@ export const AuthProvider = ({ children }) => {
     if (res.data.success) {
       const data = res.data.data || res.data;
       const newToken = data.token;
+      const newRefreshToken = data.refreshToken;
       const newUser = data.user;
       const newProfile = data.profile || null;
       localStorage.setItem('shap_token', newToken);
+      if (newRefreshToken) {
+        localStorage.setItem('shap_refresh_token', newRefreshToken);
+      }
       localStorage.setItem('shap_user', JSON.stringify(newUser));
       setToken(newToken);
       setUser(newUser);
@@ -72,12 +80,20 @@ export const AuthProvider = ({ children }) => {
     throw new Error(res.data.message || 'Registration failed');
   };
 
-  const logout = () => {
-    localStorage.removeItem('shap_token');
-    localStorage.removeItem('shap_user');
-    setToken(null);
-    setUser(null);
-    setProfile(null);
+  const logout = async () => {
+    try {
+      const refreshToken = localStorage.getItem('shap_refresh_token');
+      await api.post('/auth/logout', { refreshToken }).catch(() => {});
+    } catch (err) {
+      // Ignore network errors on logout
+    } finally {
+      localStorage.removeItem('shap_token');
+      localStorage.removeItem('shap_refresh_token');
+      localStorage.removeItem('shap_user');
+      setToken(null);
+      setUser(null);
+      setProfile(null);
+    }
   };
 
   const refreshProfile = async () => {

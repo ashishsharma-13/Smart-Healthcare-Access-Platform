@@ -78,9 +78,89 @@ const organizationSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    uniqueOrganizationCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+    applicationReference: {
+      type: String,
+      index: true,
+    },
+    legalName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    website: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    description: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    officialEmail: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    contactNumber: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    rejectionReason: {
+      type: String,
+      default: null,
+    },
+    verifiedAt: {
+      type: Date,
+    },
+    verifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    activeVerificationApplicationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'OrganizationVerificationApplication',
+    },
+    primaryFacilityId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'OrganizationFacility',
+    },
+    representative: {
+      name: { type: String, default: '' },
+      email: { type: String, default: '' },
+      phone: { type: String, default: '' },
+      designation: { type: String, default: 'Hospital Administrator' },
+    },
+    healthcareCapabilities: [
+      {
+        type: String,
+      },
+    ],
+    specializations: [
+      {
+        type: String,
+      },
+    ],
+    documents: [
+      {
+        documentType: { type: String, required: true },
+        documentName: { type: String, required: true },
+        storageReference: { type: String, required: true },
+        fileSize: { type: Number, default: 1048576 },
+        mimeType: { type: String, default: 'application/pdf' },
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
     verificationStatus: {
       type: String,
-      enum: ['pending', 'verified', 'rejected'],
+      enum: ['pending', 'verified', 'rejected', 'PENDING_VERIFICATION', 'VERIFIED', 'REJECTED'],
       default: 'pending',
       index: true,
     },
