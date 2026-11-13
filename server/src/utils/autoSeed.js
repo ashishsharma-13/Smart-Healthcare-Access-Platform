@@ -16,6 +16,7 @@ import {
 } from '../models/index.js';
 import { healthcareResourceTypeService } from '../services/HealthcareResourceTypeService.js';
 import { externalFacilityDirectoryService } from '../services/ExternalFacilityDirectoryService.js';
+import { platformConfigurationService } from '../services/PlatformConfigurationService.js';
 
 export default async function autoSeed() {
   const getOrCreateUser = async (data) => {
@@ -90,6 +91,9 @@ export default async function autoSeed() {
 
   // Seed default Module 15 External Healthcare Facilities Directory
   await externalFacilityDirectoryService.seedDefaultExternalFacilities();
+
+  // Seed default Module 16 Platform Configuration Parameters
+  await platformConfigurationService.seedDefaultConfigurations();
 
   // 1. Admin User
   const admin = await getOrCreateUser({

@@ -46,6 +46,12 @@ import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 import { Toast } from '../../components/ui/Toast';
+import { UserManagementTab } from './components/UserManagementTab';
+import { PlatformConfigurationsTab } from './components/PlatformConfigurationsTab';
+import { EmergencyOperationsTab } from './components/EmergencyOperationsTab';
+import { ReportsAnalyticsTab } from './components/ReportsAnalyticsTab';
+import { AuditLogsTab } from './components/AuditLogsTab';
+import { SystemHealthWidget } from './components/SystemHealthWidget';
 
 export const AdminDashboard = () => {
   // Data States
@@ -805,6 +811,9 @@ export const AdminDashboard = () => {
         </div>
       </div>
 
+      {/* Module 16: System Health & Live Governance Activity Telemetry */}
+      <SystemHealthWidget />
+
       {/* Tab Navigation and Search Controls */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden">
         {/* Navigation Tabs */}
@@ -954,6 +963,67 @@ export const AdminDashboard = () => {
                 {fallbackSessions.length}
               </span>
             )}
+          </button>
+
+          {/* Module 16 Tabs */}
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`flex items-center gap-2 py-3 px-3.5 text-xs font-semibold border-b-2 transition-all ${
+              activeTab === 'users'
+                ? 'border-brand-600 text-brand-700 bg-white shadow-xs rounded-t-lg'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>User Governance</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('configurations')}
+            className={`flex items-center gap-2 py-3 px-3.5 text-xs font-semibold border-b-2 transition-all ${
+              activeTab === 'configurations'
+                ? 'border-brand-600 text-brand-700 bg-white shadow-xs rounded-t-lg'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Database className="w-3.5 h-3.5" />
+            <span>Configurations</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('emergency-ops')}
+            className={`flex items-center gap-2 py-3 px-3.5 text-xs font-semibold border-b-2 transition-all ${
+              activeTab === 'emergency-ops'
+                ? 'border-brand-600 text-brand-700 bg-white shadow-xs rounded-t-lg'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Radio className="w-3.5 h-3.5" />
+            <span>Emergency Operations</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('reports')}
+            className={`flex items-center gap-2 py-3 px-3.5 text-xs font-semibold border-b-2 transition-all ${
+              activeTab === 'reports'
+                ? 'border-brand-600 text-brand-700 bg-white shadow-xs rounded-t-lg'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Reports & Analytics</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('audit-logs')}
+            className={`flex items-center gap-2 py-3 px-3.5 text-xs font-semibold border-b-2 transition-all ${
+              activeTab === 'audit-logs'
+                ? 'border-brand-600 text-brand-700 bg-white shadow-xs rounded-t-lg'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <History className="w-3.5 h-3.5" />
+            <span>Audit Logs</span>
           </button>
         </div>
 
@@ -2820,6 +2890,41 @@ export const AdminDashboard = () => {
                 </table>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Module 16: User Governance Tab */}
+        {activeTab === 'users' && (
+          <div className="p-6">
+            <UserManagementTab onNotify={setFeedback} />
+          </div>
+        )}
+
+        {/* Module 16: Platform Configurations & Specializations Tab */}
+        {activeTab === 'configurations' && (
+          <div className="p-6">
+            <PlatformConfigurationsTab onNotify={setFeedback} />
+          </div>
+        )}
+
+        {/* Module 16: Emergency Operations Monitoring Tab */}
+        {activeTab === 'emergency-ops' && (
+          <div className="p-6">
+            <EmergencyOperationsTab onNotify={setFeedback} />
+          </div>
+        )}
+
+        {/* Module 16: Reports & Analytics Tab */}
+        {activeTab === 'reports' && (
+          <div className="p-6">
+            <ReportsAnalyticsTab onNotify={setFeedback} />
+          </div>
+        )}
+
+        {/* Module 16: Administrative Audit Logs Tab */}
+        {activeTab === 'audit-logs' && (
+          <div className="p-6">
+            <AuditLogsTab onNotify={setFeedback} />
           </div>
         )}
       </div>

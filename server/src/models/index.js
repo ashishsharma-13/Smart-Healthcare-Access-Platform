@@ -56,3 +56,8 @@ export { EmergencyFallbackSession } from './EmergencyFallbackSession.js';
 export { EmergencyFallbackSearch } from './EmergencyFallbackSearch.js';
 export { ExternalHealthcareFacility } from './ExternalHealthcareFacility.js';
 export { EmergencyFallbackOption } from './EmergencyFallbackOption.js';
+export { AdminActionAuditLog } from './AdminActionAuditLog.js';
+export { AdminReviewNote } from './AdminReviewNote.js';
+export { PlatformConfiguration } from './PlatformConfiguration.js';
+export { ConfigurationChangeHistory } from './ConfigurationChangeHistory.js';
+
