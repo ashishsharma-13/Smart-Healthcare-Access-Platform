@@ -134,7 +134,8 @@ export const DoctorAvailabilityPage = () => {
   const handleSubmitLeave = async (e) => {
     e.preventDefault();
     if (!leaveStartDate || !leaveEndDate) {
-      alert('Please specify leave dates.');
+      setToast({ type: 'error', message: 'Please specify leave dates.' });
+      setTimeout(() => setToast({ type: '', message: '' }), 4000);
       return;
     }
 
@@ -161,7 +162,7 @@ export const DoctorAvailabilityPage = () => {
         if (updated.data.success) setLeaves(updated.data.data || []);
       }
     } catch (err) {
-      alert('Failed to register leave: ' + (err.response?.data?.message || err.message));
+      setToast({ type: 'error', message: 'Failed to register leave: ' + (err.response?.data?.message || err.message) });
     } finally {
       setSubmittingLeave(false);
       setTimeout(() => setToast({ type: '', message: '' }), 6000);

@@ -95,9 +95,8 @@ export const OrganizationQrDeskPage = () => {
     }
   };
 
-  const handleRevokeQR = async (qrId) => {
-    const reason = prompt('Specify reason for revoking this terminal QR code (e.g. Relocated reception, compromised token):');
-    if (!reason) return;
+  const handleRevokeQR = async (qrId, customReason) => {
+    const reason = customReason || 'Terminal decommissioned or rotated for security';
 
     try {
       setActionLoading(true);

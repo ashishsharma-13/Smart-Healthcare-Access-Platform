@@ -28,6 +28,30 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Reduced motion preference respect (Vercel Guidelines & UI UX Pro Max) */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Touch device target optimization */
+@media (pointer: coarse) {
+  button, a, input, select {
+    min-height: 44px;
+  }
+  .touch-target-dense {
+    min-height: 36px;
+  }
 }
 
 /* Precision scrollbar for clinical feeds and tables */

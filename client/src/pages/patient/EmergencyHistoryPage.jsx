@@ -21,6 +21,7 @@ import {
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { Toast } from '../../components/ui/Toast';
 
 export const EmergencyHistoryPage = () => {
   const [emergencies, setEmergencies] = useState([]);
@@ -32,6 +33,7 @@ export const EmergencyHistoryPage = () => {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [selectedHistory, setSelectedHistory] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [toast, setToast] = useState({ type: '', message: '' });
 
   const openHistoryDetails = async (requestId) => {
     try {
@@ -42,7 +44,7 @@ export const EmergencyHistoryPage = () => {
         setSelectedHistory(res.data.data);
       }
     } catch (err) {
-      alert('Error fetching full history: ' + (err.response?.data?.message || err.message));
+      setToast({ type: 'error', message: 'Error fetching full history: ' + (err.response?.data?.message || err.message) });
       setHistoryModalOpen(false);
     } finally {
       setHistoryLoading(false);
@@ -89,10 +91,11 @@ export const EmergencyHistoryPage = () => {
       });
       if (res.data.success) {
         setCancelModalOpen(false);
+        setToast({ type: 'info', message: 'Emergency request has been cancelled.' });
         fetchHistory();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to cancel emergency request.');
+      setToast({ type: 'error', message: err.response?.data?.message || 'Failed to cancel emergency request.' });
     } finally {
       setProcessingCancel(false);
     }
@@ -501,6 +504,10 @@ export const EmergencyHistoryPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {toast.message && (
+        <Toast type={toast.type || 'info'} message={toast.message} onClose={() => setToast({ type: '', message: '' })} />
       )}
     </div>
   );

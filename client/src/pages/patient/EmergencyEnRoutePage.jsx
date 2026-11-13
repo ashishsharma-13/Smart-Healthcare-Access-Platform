@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
+import { Toast } from '../../components/ui/Toast';
 
 export const EmergencyEnRoutePage = () => {
   const { id } = useParams();
@@ -40,6 +41,9 @@ export const EmergencyEnRoutePage = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(15 * 60);
+  const [toast, setToast] = useState({ type: '', message: '' });
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
 
   // Live Location Sharing state (Module 12)
   const [isSharingLocation, setIsSharingLocation] = useState(false);
@@ -127,7 +131,7 @@ export const EmergencyEnRoutePage = () => {
         fetchEmergencyAndJourney(false);
       }
     } catch (err) {
-      alert('Unable to start journey: ' + (err.response?.data?.message || err.message));
+      setToast({ type: 'error', message: 'Unable to start journey: ' + (err.response?.data?.message || err.message) });
     } finally {
       setActionLoading(false);
     }
@@ -263,21 +267,29 @@ export const EmergencyEnRoutePage = () => {
         fetchEmergencyAndJourney(false);
       }
     } catch (err) {
-      alert('Error confirming arrival: ' + (err.response?.data?.message || err.message));
+      setToast({ type: 'error', message: 'Error confirming arrival: ' + (err.response?.data?.message || err.message) });
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleCancelEmergency = async () => {
-    const reason = prompt('Please specify cancellation reason:');
-    if (!reason) return;
+  const handleOpenCancelModal = () => {
+    setCancelReason('');
+    setCancelModalOpen(true);
+  };
 
+  const handleConfirmCancelEmergency = async (e) => {
+    if (e) e.preventDefault();
     try {
-      await api.post(`/emergency/${id}/cancel`, { reason });
+      setActionLoading(true);
+      await api.post(`/emergency/${id}/cancel`, { reason: cancelReason || 'Cancelled by user en route' });
+      setCancelModalOpen(false);
+      setToast({ type: 'info', message: 'Emergency request has been cancelled.' });
       fetchEmergencyAndJourney(false);
     } catch (err) {
-      alert('Error cancelling emergency: ' + (err.response?.data?.message || err.message));
+      setToast({ type: 'error', message: 'Error cancelling emergency: ' + (err.response?.data?.message || err.message) });
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -373,7 +385,7 @@ export const EmergencyEnRoutePage = () => {
                 size="xs"
                 variant="outline"
                 className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                onClick={handleCancelEmergency}
+                onClick={handleOpenCancelModal}
               >
                 Cancel Alert
               </Button>
@@ -387,7 +399,7 @@ export const EmergencyEnRoutePage = () => {
         </div>
 
         {/* 15-Minute Hold Timer */}
-        <div className="bg-amber-500 rounded-2xl p-5 text-white shadow-card flex items-center justify-between">
+        <div className="bg-hold-600 rounded-xl p-5 text-white shadow-card flex items-center justify-between">
           <div className="space-y-0.5">
             <div className="flex items-center gap-1.5 text-amber-100 text-[10px] font-bold uppercase tracking-wider">
               <Clock className="w-3.5 h-3.5" />
@@ -703,6 +715,51 @@ export const EmergencyEnRoutePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Cancellation Modal */}
+      {cancelModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-xl border border-slate-200/90 shadow-modal max-w-md w-full p-6 space-y-4 animate-scale-up">
+            <h3 className="text-sm font-bold text-slate-900">Cancel Emergency Alert</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Are you sure you want to cancel this emergency request? The destination hospital will release their reserved bed and physician standby.
+            </p>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-slate-700 block">Reason for cancellation</label>
+              <input
+                type="text"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="e.g. Condition stabilized, reached private clinic"
+                className="w-full p-2.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCancelModalOpen(false)}
+                disabled={actionLoading}
+              >
+                Keep Active
+              </Button>
+              <Button
+                variant="emergency"
+                size="sm"
+                onClick={handleConfirmCancelEmergency}
+                disabled={actionLoading}
+              >
+                Confirm Cancellation
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast.message && (
+        <Toast type={toast.type || 'info'} message={toast.message} onClose={() => setToast({ type: '', message: '' })} />
+      )}
     </div>
   );
 };

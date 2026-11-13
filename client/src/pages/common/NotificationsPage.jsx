@@ -24,6 +24,7 @@ import {
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { Toast } from '../../components/ui/Toast';
 
 export const NotificationsPage = () => {
   const { user } = useAuth();
@@ -41,6 +42,7 @@ export const NotificationsPage = () => {
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [toast, setToast] = useState({ type: '', message: '' });
 
   useEffect(() => {
     fetchNotifications();
@@ -117,9 +119,10 @@ export const NotificationsPage = () => {
       if (res.data?.success) {
         setPreferences(res.data.data);
         setPreferencesOpen(false);
+        setToast({ type: 'success', message: 'Notification preferences updated.' });
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update preferences');
+      setToast({ type: 'error', message: err.response?.data?.message || 'Failed to update preferences' });
     } finally {
       setSavingPrefs(false);
     }
@@ -575,6 +578,10 @@ export const NotificationsPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {toast.message && (
+        <Toast type={toast.type || 'info'} message={toast.message} onClose={() => setToast({ type: '', message: '' })} />
       )}
     </div>
   );

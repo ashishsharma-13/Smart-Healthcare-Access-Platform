@@ -205,13 +205,13 @@ export const DoctorDashboard = () => {
       {/* Toast */}
       {toast.message && <Toast type={toast.type} message={toast.message} onClose={() => setToast({ type: '', message: '' })} />}
 
-      {/* 1. Header Section strictly per Reference Image */}
+      {/* 1. Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="text-[10px] sm:text-[11px] font-bold tracking-wider text-[#0B4F9C] uppercase block mb-1">
+          <span className="text-[10px] sm:text-[11px] font-bold tracking-wider text-brand-600 uppercase block mb-1">
             {facilityTag}
           </span>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
             A clear view of your day, Dr. {doctorLastName}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
@@ -222,7 +222,7 @@ export const DoctorDashboard = () => {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             to="/doctor/presence"
-            className="px-3.5 py-2.5 bg-[#EBF3FE] hover:bg-blue-100 text-[#0B4F9C] font-bold text-xs rounded-xl border border-blue-200/60 transition cursor-pointer shadow-xs flex items-center space-x-1.5"
+            className="px-3.5 py-2 bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold text-xs rounded-lg border border-brand-200/80 transition-colors cursor-pointer shadow-2xs flex items-center space-x-1.5"
           >
             <QrCode className="w-3.5 h-3.5" />
             <span>QR Presence & Badge</span>
@@ -231,23 +231,23 @@ export const DoctorDashboard = () => {
           <button
             type="button"
             onClick={() => navigate('/doctor/availability')}
-            className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition cursor-pointer shadow-xs"
+            className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg border border-slate-200/90 transition-colors cursor-pointer shadow-2xs"
           >
             Manage availability
           </button>
         </div>
       </div>
 
-      {/* 2. Three Stat Cards Row strictly per Reference Image */}
+      {/* 2. Three Stat Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card 1: Today's appointments */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-3">
+        <div className="bg-white border border-slate-200/90 rounded-xl p-5 shadow-card space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-600">Today's appointments</span>
-            <Calendar className="w-4 h-4 text-[#0B4F9C]" />
+            <span className="text-xs font-semibold text-slate-600">Today's appointments</span>
+            <Calendar className="w-4 h-4 text-brand-600" />
           </div>
           <div>
-            <div className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+            <div className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
               {appointments.length > 0
                 ? displaySchedule.length < 10
                   ? `0${displaySchedule.length}`
@@ -265,13 +265,13 @@ export const DoctorDashboard = () => {
         </div>
 
         {/* Card 2: Next consultation */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-3">
+        <div className="bg-white border border-slate-200/90 rounded-xl p-5 shadow-card space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-600">Next consultation</span>
-            <Clock className="w-4 h-4 text-[#0B4F9C]" />
+            <span className="text-xs font-semibold text-slate-600">Next consultation</span>
+            <Clock className="w-4 h-4 text-brand-600" />
           </div>
           <div>
-            <div className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+            <div className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
               {nextPatient.time || '2:30 PM'}
             </div>
             <div className="text-xs text-slate-500 mt-1">
@@ -281,13 +281,13 @@ export const DoctorDashboard = () => {
         </div>
 
         {/* Card 3: Routine requests */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-3">
+        <div className="bg-white border border-slate-200/90 rounded-xl p-5 shadow-card space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-600">Routine requests</span>
-            <ClipboardList className="w-4 h-4 text-[#0B4F9C]" />
+            <span className="text-xs font-semibold text-slate-600">Routine requests</span>
+            <ClipboardList className="w-4 h-4 text-brand-600" />
           </div>
           <div>
-            <div className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+            <div className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
               {routineRequests.length < 10 ? `0${routineRequests.length}` : routineRequests.length}
             </div>
             <div className="text-xs text-slate-500 mt-1">Awaiting schedule review</div>
@@ -300,13 +300,13 @@ export const DoctorDashboard = () => {
         {/* Left Column (8 cols): Today's Schedule + Pending Routine Requests */}
         <div className="lg:col-span-8 space-y-6">
           {/* Card 1: Today's schedule */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-4">
+          <div className="bg-white border border-slate-200/90 rounded-xl p-6 shadow-card space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <h2 className="text-base font-bold text-slate-900">Today's schedule</h2>
               <button
                 type="button"
                 onClick={() => navigate('/doctor/schedule')}
-                className="text-xs font-bold text-[#0B4F9C] hover:underline flex items-center space-x-1 cursor-pointer"
+                className="text-xs font-semibold text-brand-600 hover:underline flex items-center space-x-1 cursor-pointer"
               >
                 <span>Full schedule</span>
                 <span>&rarr;</span>
@@ -337,7 +337,7 @@ export const DoctorDashboard = () => {
                         {apt.status === 'Completed' ? (
                           <span className="text-slate-500 font-medium">Completed</span>
                         ) : (
-                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-presence-50 text-presence-700 border border-presence-200">
                             Confirmed
                           </span>
                         )}
@@ -353,14 +353,14 @@ export const DoctorDashboard = () => {
             </div>
           </div>
 
-          {/* Card 2: Pending routine requests strictly per Reference Image */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-4">
+          {/* Card 2: Pending routine requests */}
+          <div className="bg-white border border-slate-200/90 rounded-xl p-6 shadow-card space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <h2 className="text-base font-bold text-slate-900">Pending routine requests</h2>
               <button
                 type="button"
                 onClick={() => navigate('/doctor/schedule')}
-                className="text-xs font-bold text-[#0B4F9C] hover:underline flex items-center space-x-1 cursor-pointer"
+                className="text-xs font-semibold text-brand-600 hover:underline flex items-center space-x-1 cursor-pointer"
               >
                 <span>Review all</span>
                 <span>&rarr;</span>
@@ -376,18 +376,18 @@ export const DoctorDashboard = () => {
                 {routineRequests.map((req) => (
                   <div key={req._id} className="py-3.5 flex items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900">{req.patientName}</h3>
+                      <h3 className="text-sm font-semibold text-slate-900">{req.patientName}</h3>
                       <p className="text-xs text-slate-500 mt-0.5">{req.detail}</p>
                     </div>
 
                     <div className="flex items-center space-x-3">
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200/60">
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/60">
                         {req.status}
                       </span>
                       <button
                         type="button"
                         onClick={() => setReviewRequest(req)}
-                        className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-xs transition cursor-pointer"
+                        className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg border border-slate-200 shadow-2xs transition-colors cursor-pointer"
                       >
                         Review
                       </button>
@@ -401,15 +401,15 @@ export const DoctorDashboard = () => {
 
         {/* Right Column (4 cols): NEXT PATIENT Card + Availability is up to date Card */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Card 1: NEXT PATIENT strictly per Reference Image */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-5">
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#EBF3FE] text-blue-700 inline-block">
+          {/* Card 1: NEXT PATIENT */}
+          <div className="bg-white border border-slate-200/90 rounded-xl p-6 shadow-card space-y-5">
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-brand-50 text-brand-700 inline-block border border-brand-200/60">
               NEXT PATIENT
             </span>
 
             {/* Patient Header */}
             <div className="flex items-center space-x-3.5">
-              <div className="w-11 h-11 rounded-full bg-[#EBF3FE] text-[#0B4F9C] font-bold text-sm flex items-center justify-center shrink-0">
+              <div className="w-11 h-11 rounded-full bg-brand-50 text-brand-700 font-bold text-sm flex items-center justify-center shrink-0 border border-brand-200/80">
                 {nextPatient.patientInitials}
               </div>
               <div>
@@ -424,15 +424,15 @@ export const DoctorDashboard = () => {
             <div className="space-y-2.5 text-xs pt-1">
               <div className="flex justify-between py-0.5">
                 <span className="text-slate-400 font-medium">Visit type</span>
-                <span className="font-bold text-slate-800">{nextPatient.visitType}</span>
+                <span className="font-semibold text-slate-800">{nextPatient.visitType}</span>
               </div>
               <div className="flex justify-between py-0.5">
                 <span className="text-slate-400 font-medium">Reason</span>
-                <span className="font-bold text-slate-800">{nextPatient.reason}</span>
+                <span className="font-semibold text-slate-800">{nextPatient.reason}</span>
               </div>
               <div className="flex justify-between py-0.5">
                 <span className="text-slate-400 font-medium">Location</span>
-                <span className="font-bold text-slate-800">{nextPatient.location || 'Riverside · Room C-02'}</span>
+                <span className="font-semibold text-slate-800">{nextPatient.location || 'Riverside · Room C-02'}</span>
               </div>
             </div>
 
@@ -441,25 +441,25 @@ export const DoctorDashboard = () => {
               <button
                 type="button"
                 onClick={() => setSelectedAppointment(nextPatient)}
-                className="w-full py-2.5 bg-[#0B4F9C] hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+                className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs rounded-lg shadow-2xs transition-colors cursor-pointer"
               >
                 Open appointment
               </button>
             </div>
           </div>
 
-          {/* Card 2: Availability is up to date strictly per Reference Image */}
-          <div className="bg-[#F0FDF4] border border-emerald-100 rounded-2xl p-6 shadow-xs space-y-3">
+          {/* Card 2: Availability is up to date */}
+          <div className="bg-presence-50/60 border border-presence-200/80 rounded-xl p-6 shadow-card space-y-3">
             <h3 className="text-sm font-bold text-slate-900">Availability is up to date</h3>
-            <p className="text-xs font-bold text-slate-700">{workingHoursDisplay}</p>
+            <p className="text-xs font-semibold text-slate-700">{workingHoursDisplay}</p>
             <p className="text-[11px] text-slate-500 leading-relaxed">
               Lunch blocked &bull; 12:00–1:00 PM. Your next open slot is tomorrow at 9:00 AM.
             </p>
-            <div className="pt-2 border-t border-emerald-100/60">
+            <div className="pt-2 border-t border-presence-200/60">
               <button
                 type="button"
                 onClick={() => navigate('/doctor/availability')}
-                className="text-xs font-bold text-emerald-800 hover:underline flex items-center space-x-1 cursor-pointer"
+                className="text-xs font-semibold text-presence-800 hover:underline flex items-center space-x-1 cursor-pointer"
               >
                 <span>Edit weekly hours</span>
                 <span>&rarr;</span>
@@ -467,16 +467,16 @@ export const DoctorDashboard = () => {
             </div>
           </div>
 
-          {/* Card 3: Facility Affiliations & Presence strictly per earlier requirements */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-3">
+          {/* Card 3: Facility Affiliations & Presence */}
+          <div className="bg-white border border-slate-200/90 rounded-xl p-6 shadow-card space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-800 flex items-center space-x-2">
-                <Building2 className="w-4 h-4 text-[#0B4F9C]" />
+                <Building2 className="w-4 h-4 text-brand-600" />
                 <span>Facility Affiliations</span>
               </span>
               <Link
                 to="/doctor/affiliations"
-                className="text-xs font-bold text-[#0B4F9C] hover:underline"
+                className="text-xs font-semibold text-brand-600 hover:underline"
               >
                 Manage &rarr;
               </Link>
@@ -488,16 +488,16 @@ export const DoctorDashboard = () => {
               <span className="text-slate-400">Hospital Presence:</span>
               <Link
                 to="/doctor/presence"
-                className={`font-bold flex items-center space-x-1 ${
+                className={`font-semibold flex items-center space-x-1 ${
                   doctorProfile?.currentPresence?.isPresent
-                    ? 'text-emerald-600 hover:underline'
-                    : 'text-slate-600 hover:text-blue-600'
+                    ? 'text-presence-700 hover:underline'
+                    : 'text-slate-600 hover:text-brand-600'
                 }`}
               >
                 <span
                   className={`w-2 h-2 rounded-full inline-block ${
                     doctorProfile?.currentPresence?.isPresent
-                      ? 'bg-emerald-500 animate-pulse'
+                      ? 'bg-presence-600 animate-pulse'
                       : 'bg-slate-300'
                   }`}
                 />

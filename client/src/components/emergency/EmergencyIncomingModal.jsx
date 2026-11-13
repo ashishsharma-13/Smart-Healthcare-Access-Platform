@@ -10,6 +10,7 @@ export const EmergencyIncomingModal = () => {
   const { incomingEmergency, clearIncomingEmergency } = useSocket();
   const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [offeredResources, setOfferedResources] = useState({
     icuBed: true,
     erBay: true,
@@ -22,6 +23,7 @@ export const EmergencyIncomingModal = () => {
   const handleRespond = async (status) => {
     try {
       setSubmitting(true);
+      setErrorMessage('');
       const reqId = incomingEmergency.emergencyRequestId?._id || incomingEmergency.emergencyRequestId || incomingEmergency._id;
       await api.post(`/emergency/${reqId}/respond`, {
         responseStatus: status,
@@ -31,7 +33,7 @@ export const EmergencyIncomingModal = () => {
       clearIncomingEmergency();
     } catch (err) {
       console.error('Failed to respond to emergency beep', err);
-      alert('Error recording response: ' + (err.response?.data?.message || err.message));
+      setErrorMessage('Error recording response: ' + (err.response?.data?.message || err.message));
     } finally {
       setSubmitting(false);
     }
@@ -63,6 +65,11 @@ export const EmergencyIncomingModal = () => {
 
         {/* Details Card */}
         <div className="p-5 space-y-4">
+          {errorMessage && (
+            <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium">
+              {errorMessage}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3 bg-urgent-50/70 p-3.5 rounded-lg border border-urgent-200">
             <div>
               <span className="text-[10px] font-semibold uppercase text-urgent-700">Triage Type</span>

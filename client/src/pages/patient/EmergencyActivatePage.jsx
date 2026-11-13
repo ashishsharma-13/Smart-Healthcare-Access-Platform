@@ -294,11 +294,12 @@ export const EmergencyActivatePage = () => {
   const handleDispatchBeep = async (targetHospitalIds) => {
     const idsToSend = Array.isArray(targetHospitalIds) ? targetHospitalIds : selectedHospitalIds;
     if (idsToSend.length === 0) {
-      alert('Please select at least one hospital.');
+      setSubmissionError('Please select at least one hospital to dispatch your emergency beep.');
       return;
     }
 
     setDispatching(true);
+    setSubmissionError('');
     try {
       const res = await api.post('/emergency/dispatch', {
         emergencyId: createdEmergencyRequest?._id,
@@ -321,7 +322,7 @@ export const EmergencyActivatePage = () => {
         navigate(`/emergency/broadcast/${reqId}`);
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Emergency dispatch broadcast failed.');
+      setSubmissionError(err.response?.data?.message || 'Emergency dispatch broadcast failed.');
     } finally {
       setDispatching(false);
     }
@@ -330,11 +331,11 @@ export const EmergencyActivatePage = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
       {/* Critical Life-Safety Top Notice Banner */}
-      <div className="bg-gradient-to-r from-red-700 via-rose-700 to-red-800 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden">
+      <div className="bg-urgent-700 text-white rounded-xl p-5 shadow-card border border-urgent-800 relative overflow-hidden">
         <div className="relative z-10 space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="inline-flex items-center space-x-2 px-2.5 py-0.5 bg-white/20 rounded-full text-[11px] font-black uppercase tracking-wider">
-              <ShieldAlert className="w-3.5 h-3.5 animate-bounce" />
+            <div className="inline-flex items-center space-x-2 px-2.5 py-0.5 bg-white/20 rounded-full text-[11px] font-bold uppercase tracking-wider">
+              <ShieldAlert className="w-3.5 h-3.5" />
               <span>Critical Emergency Mode</span>
             </div>
             <div className="flex items-center gap-2">

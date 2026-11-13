@@ -118,7 +118,7 @@ export const OrganizationDoctorsPage = () => {
   const handleSendInvitation = async (e) => {
     e.preventDefault();
     if (!selectedDoctor) {
-      alert('Please select a verified doctor.');
+      setFeedback({ type: 'error', message: 'Please select a verified doctor.' });
       return;
     }
 
@@ -185,9 +185,8 @@ export const OrganizationDoctorsPage = () => {
     }
   };
 
-  const handleRejectAffiliation = async (affiliationId) => {
-    const reason = prompt('Please specify rejection reason:');
-    if (reason === null) return;
+  const handleRejectAffiliation = async (affiliationId, customReason) => {
+    const reason = customReason || 'Department credential verification criteria unmet';
 
     try {
       setActionLoading(true);

@@ -61,8 +61,9 @@ export const OrganizationDashboard = () => {
   const [incomingPatients, setIncomingPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [actionNotice, setActionNotice] = useState('');
+  const [toast, setToast] = useState({ type: '', message: '' });
   const [incomingAlert, setIncomingAlert] = useState(null);
+  const [declineModal, setDeclineModal] = useState({ open: false, selectionId: null, reason: '' });
 
   // 1. Socket room joining on hospital mount / profile load
   useEffect(() => {
@@ -241,32 +242,38 @@ export const OrganizationDashboard = () => {
         requiredResources: [{ resourceType: 'er_bay', quantity: 1 }],
       });
       if (res.data.success) {
-        setActionNotice('Destination confirmed & 1x ER Bay temporarily reserved for 15 minutes.');
-        setTimeout(() => setActionNotice(''), 5000);
+        setToast({ type: 'success', message: 'Destination confirmed & 1x ER Bay temporarily reserved for 15 minutes.' });
         fetchOrgData(false);
       }
     } catch (err) {
-      alert('Confirmation failed: ' + (err.response?.data?.message || err.message));
+      setToast({ type: 'error', message: 'Confirmation failed: ' + (err.response?.data?.message || err.message) });
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleDeclineFinalSelection = async (selectionId) => {
-    const reason = prompt('Specify reason for declining patient receiving:');
-    if (!reason) return;
+  const handleOpenDeclineModal = (selectionId) => {
+    setDeclineModal({ open: true, selectionId, reason: '' });
+  };
+
+  const handleDeclineSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!declineModal.reason.trim()) {
+      setToast({ type: 'error', message: 'Please specify a reason for declining.' });
+      return;
+    }
     try {
       setActionLoading(true);
-      const res = await api.post(`/organizations/me/destination-confirmations/${selectionId}/decline`, {
-        reason,
+      const res = await api.post(`/organizations/me/destination-confirmations/${declineModal.selectionId}/decline`, {
+        reason: declineModal.reason.trim(),
       });
       if (res.data.success) {
-        setActionNotice('Destination declined.');
-        setTimeout(() => setActionNotice(''), 4000);
+        setToast({ type: 'success', message: 'Destination declined and dispatch stream updated.' });
+        setDeclineModal({ open: false, selectionId: null, reason: '' });
         fetchOrgData(false);
       }
     } catch (err) {
-      alert('Error declining: ' + (err.response?.data?.message || err.message));
+      setToast({ type: 'error', message: 'Error declining: ' + (err.response?.data?.message || err.message) });
     } finally {
       setActionLoading(false);
     }
@@ -277,12 +284,11 @@ export const OrganizationDashboard = () => {
       setActionLoading(true);
       const res = await api.post(`/organizations/me/reservations/${reservationId}/mark-arrived`);
       if (res.data.success) {
-        setActionNotice('Patient arrival verified! Ready for bed allocation.');
-        setTimeout(() => setActionNotice(''), 5000);
+        setToast({ type: 'success', message: 'Patient arrival verified! Ready for bed allocation.' });
         fetchOrgData(false);
       }
     } catch (err) {
-      alert('Error recording arrival: ' + (err.response?.data?.message || err.message));
+      setToast({ type: 'error', message: 'Error recording arrival: ' + (err.response?.data?.message || err.message) });
     } finally {
       setActionLoading(false);
     }
@@ -293,12 +299,11 @@ export const OrganizationDashboard = () => {
       setActionLoading(true);
       const res = await api.post(`/organizations/me/reservations/${reservationId}/allocate`);
       if (res.data.success) {
-        setActionNotice('Resource officially allocated! Emergency admission completed.');
-        setTimeout(() => setActionNotice(''), 5000);
+        setToast({ type: 'success', message: 'Resource officially allocated! Emergency admission completed.' });
         fetchOrgData(false);
       }
     } catch (err) {
-      alert('Allocation error: ' + (err.response?.data?.message || err.message));
+      setToast({ type: 'error', message: 'Allocation error: ' + (err.response?.data?.message || err.message) });
     } finally {
       setActionLoading(false);
     }
@@ -311,11 +316,10 @@ export const OrganizationDashboard = () => {
         responseStatus: status,
         offeredResources: status === 'ACCEPTED' ? { icuBed: true, erBay: true, ventilator: false } : {},
       });
-      setActionNotice(`Response '${status}' submitted successfully.`);
-      setTimeout(() => setActionNotice(''), 4000);
+      setToast({ type: 'success', message: `Response '${status}' submitted successfully.` });
       fetchOrgData(false);
     } catch (err) {
-      alert('Error updating response: ' + (err.response?.data?.message || err.message));
+      setToast({ type: 'error', message: 'Error updating response: ' + (err.response?.data?.message || err.message) });
     } finally {
       setActionLoading(false);
     }
@@ -326,12 +330,11 @@ export const OrganizationDashboard = () => {
       setActionLoading(true);
       const res = await api.post(`/emergency/${emergencyRequestId}/arrived`);
       if (res.data.success) {
-        setActionNotice('Patient Arrival Confirmed! Bed allocation active.');
-        setTimeout(() => setActionNotice(''), 5000);
+        setToast({ type: 'success', message: 'Patient Arrival Confirmed! Bed allocation active.' });
         fetchOrgData(false);
       }
     } catch (err) {
-      alert('Error recording arrival: ' + (err.response?.data?.message || err.message));
+      setToast({ type: 'error', message: 'Error recording arrival: ' + (err.response?.data?.message || err.message) });
     } finally {
       setActionLoading(false);
     }
@@ -344,12 +347,11 @@ export const OrganizationDashboard = () => {
         resourceType: 'er_bay',
       });
       if (res.data.success) {
-        setActionNotice('Resource temporarily reserved for 15 minutes.');
-        setTimeout(() => setActionNotice(''), 5000);
+        setToast({ type: 'success', message: 'Resource temporarily reserved for 15 minutes.' });
         fetchOrgData(false);
       }
     } catch (err) {
-      alert('Reservation error: ' + (err.response?.data?.message || err.message));
+      setToast({ type: 'error', message: 'Reservation error: ' + (err.response?.data?.message || err.message) });
     } finally {
       setActionLoading(false);
     }
@@ -442,8 +444,8 @@ export const OrganizationDashboard = () => {
         </div>
       )}
 
-      {actionNotice && (
-        <Toast type="success" message={actionNotice} onClose={() => setActionNotice('')} />
+      {toast.message && (
+        <Toast type={toast.type || 'info'} message={toast.message} onClose={() => setToast({ type: '', message: '' })} />
       )}
 
       {/* Resource Counters Grid */}
@@ -605,7 +607,7 @@ export const OrganizationDashboard = () => {
                       variant="outline"
                       className="text-rose-600 hover:bg-rose-50"
                       disabled={actionLoading}
-                      onClick={() => handleDeclineFinalSelection(sel._id || sel.selectionId)}
+                      onClick={() => handleOpenDeclineModal(sel._id || sel.selectionId)}
                     >
                       <XCircle className="w-3.5 h-3.5 mr-1 inline" />
                       Decline
@@ -790,37 +792,37 @@ export const OrganizationDashboard = () => {
       )}
 
       {/* Live Emergency Broadcast Reception Desk */}
-      <div className="bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 sm:p-8 space-y-4">
-        {/* Real-time Incoming Emergency Beep Alert Badge Banner */}
+      <div className="bg-white border border-slate-200/90 shadow-card rounded-xl p-5 sm:p-6 space-y-4">
+        {/* Real-time Incoming Emergency Beep Alert Banner */}
         {incomingAlert && (
-          <div className="p-4 bg-red-600 text-white rounded-2xl shadow-lg shadow-red-600/30 flex items-center justify-between animate-bounce">
+          <div className="p-4 bg-urgent-600 text-white rounded-xl shadow-card flex items-center justify-between border border-urgent-700">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold">
-                <BellRing className="w-5 h-5 text-white animate-spin" />
+              <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center font-bold shrink-0">
+                <BellRing className="w-5 h-5 text-white" />
               </div>
               <div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-white text-red-700 rounded-md">
-                    NEW INCOMING EMERGENCY ALERT
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-white text-urgent-700 rounded">
+                    Incoming Emergency Beep
                   </span>
-                  <span className="text-xs font-bold text-red-200">
-                    <Volume2 className="w-3.5 h-3.5 inline mr-1" />
+                  <span className="text-xs font-semibold text-urgent-100 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
                     Chime Active
                   </span>
                 </div>
-                <h4 className="text-sm font-black mt-0.5">
+                <h4 className="text-sm font-bold mt-1 text-white">
                   {incomingAlert.patientName} &bull; <span className="capitalize">{incomingAlert.condition} Emergency</span> ({incomingAlert.severity})
                 </h4>
               </div>
             </div>
-            <span className="text-xs font-bold text-red-100 hidden sm:inline">Urgent Response Requested</span>
+            <span className="text-xs font-semibold text-urgent-100 hidden sm:inline">Urgent Response Requested</span>
           </div>
         )}
 
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100/80">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center space-x-2">
-            <span className="w-3 h-3 rounded-full bg-red-600 animate-ping"></span>
-            <h2 className="text-base font-black text-slate-900">
+            <span className="w-2.5 h-2.5 rounded-full bg-urgent-600 animate-pulse" />
+            <h2 className="text-base font-bold text-slate-900">
               Incoming Emergency Beep Telemetry & Destination Queue
             </h2>
           </div>
@@ -936,6 +938,92 @@ export const OrganizationDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Decline Destination Confirmation Modal (In-App Accessible Dialog replacing raw browser prompt) */}
+      {declineModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-xl border border-slate-200/90 shadow-modal max-w-md w-full p-6 space-y-4 animate-scale-up">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+                  <AlertTriangle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Decline Destination Selection</h3>
+                  <p className="text-[11px] text-slate-500">Record reason for emergency audit log</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeclineModal({ open: false, selectionId: null, reason: '' })}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Please state why this emergency admission cannot be accepted at this time. This ensures patient routing can immediately redirect to alternate verified trauma facilities.
+            </p>
+
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-slate-700 block uppercase tracking-wider">
+                Clinical / Capacity Justification
+              </label>
+              <div className="grid grid-cols-1 gap-1.5 text-xs">
+                {[
+                  'Critical trauma bays fully occupied',
+                  'Required specialist on emergency call elsewhere',
+                  'Temporary diversion authorized by regional desk',
+                  'Severe medical equipment recalibration in progress',
+                ].map((quickReason) => (
+                  <button
+                    key={quickReason}
+                    type="button"
+                    onClick={() => setDeclineModal((prev) => ({ ...prev, reason: quickReason }))}
+                    className={`text-left px-2.5 py-1.5 rounded-md border text-[11px] transition-colors ${
+                      declineModal.reason === quickReason
+                        ? 'border-brand-500 bg-brand-50 text-brand-800 font-semibold'
+                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {quickReason}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                rows={2}
+                value={declineModal.reason}
+                onChange={(e) => setDeclineModal((prev) => ({ ...prev, reason: e.target.value }))}
+                placeholder="Or enter specific operational notes..."
+                className="w-full mt-2 p-2.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={() => setDeclineModal({ open: false, selectionId: null, reason: '' })}
+                disabled={actionLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="emergency"
+                size="sm"
+                type="button"
+                onClick={handleDeclineSubmit}
+                disabled={actionLoading || !declineModal.reason.trim()}
+              >
+                Confirm Decline & Release Hold
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

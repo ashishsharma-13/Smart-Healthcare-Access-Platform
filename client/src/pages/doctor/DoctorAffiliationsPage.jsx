@@ -92,7 +92,7 @@ export const DoctorAffiliationsPage = () => {
   const handleSendAffiliationRequest = async (e) => {
     e.preventDefault();
     if (!selectedOrg) {
-      alert('Please select an organization.');
+      setFeedback({ type: 'error', message: 'Please select an organization.' });
       return;
     }
 
@@ -158,9 +158,8 @@ export const DoctorAffiliationsPage = () => {
     }
   };
 
-  const handleDeclineInvitation = async (invitationId, isReq = false) => {
-    const reason = prompt('Please specify reason for declining invitation:');
-    if (reason === null) return;
+  const handleDeclineInvitation = async (invitationId, isReq = false, declineReason) => {
+    const reason = declineReason || 'Schedule capacity constraints at selected facility';
 
     try {
       setActionLoading(true);

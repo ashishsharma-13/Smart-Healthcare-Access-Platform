@@ -166,7 +166,7 @@ export const EmergencyMatchPage = () => {
 
     const idsToSend = targets && targets.length > 0 ? targets : selectedIds;
     if (idsToSend.length === 0) {
-      alert('Please select at least one suitable hospital to dispatch your emergency beep.');
+      setError('Please select at least one suitable hospital to dispatch your emergency beep.');
       return;
     }
 
