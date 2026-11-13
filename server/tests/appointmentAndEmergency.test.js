@@ -165,7 +165,7 @@ describe('Issue 2: Emergency Beep and Apex Hospital Broadcast Tests', () => {
         responseStatus: 'PENDING',
         emergencyRequestId: {
           _id: '673888888888888888888881',
-          patientName: 'Alex Mercer',
+          patientName: 'Aarav Mehta',
           emergencyType: 'cardiac',
         },
       },
@@ -202,7 +202,7 @@ describe('Issue 2: Emergency Beep and Apex Hospital Broadcast Tests', () => {
     });
 
     const req = {
-      user: { _id: '673000000000000000000001', name: 'Alex Mercer', phone: '+1-555-0199' },
+      user: { _id: '673000000000000000000001', name: 'Aarav Mehta', phone: '+1-555-0199' },
       body: {
         emergencyType: 'cardiac',
         severity: 'critical',
@@ -222,7 +222,7 @@ describe('Issue 2: Emergency Beep and Apex Hospital Broadcast Tests', () => {
     expect(emergencyBroadcastService.activateEmergencyBeep).toHaveBeenCalledWith(
       expect.objectContaining({
         targetFacility: 'Apex Metro Trauma & Heart Hospital',
-        patientName: 'Alex Mercer',
+        patientName: 'Aarav Mehta',
         emergencyType: 'cardiac',
       })
     );
@@ -280,12 +280,12 @@ describe('Issue 2: Emergency Beep and Apex Hospital Broadcast Tests', () => {
     jest.spyOn(emergencyBroadcastService, 'dispatchEmergencyBeep').mockResolvedValue(mockResult);
 
     const req = {
-      user: { _id: '673000000000000000000001', name: 'Alex Mercer', phone: '+1-555-0199' },
+      user: { _id: '673000000000000000000001', name: 'Aarav Mehta', phone: '+1-555-0199' },
       body: {
         condition: 'cardiac',
         severity: 'critical',
         hospitalIds: ['673000000000000000000099'],
-        patientDetails: { name: 'Alex Mercer', phone: '+1-555-0199' },
+        patientDetails: { name: 'Aarav Mehta', phone: '+1-555-0199' },
       },
     };
     const res = {

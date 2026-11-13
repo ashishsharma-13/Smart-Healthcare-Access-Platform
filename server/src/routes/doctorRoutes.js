@@ -4,6 +4,7 @@ import { doctorAffiliationController } from '../controllers/DoctorAffiliationCon
 import { doctorScheduleController } from '../controllers/DoctorScheduleController.js';
 import { doctorPresenceController } from '../controllers/DoctorPresenceController.js';
 import { appointmentController } from '../controllers/AppointmentController.js';
+import { healthcareSearchController } from '../controllers/HealthcareSearchController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -79,6 +80,7 @@ router.post('/me/appointments/:id/no-show', authenticate, authorize('doctor'), (
 router.get('/profile/:id', (req, res, next) => doctorController.getDoctorById(req, res, next));
 router.get('/:id/organizations', (req, res, next) => doctorAffiliationController.getAffiliatedOrgsForDoctor(req, res, next));
 router.get('/:id/affiliations', (req, res, next) => doctorController.getDoctorAffiliationsForPatient(req, res, next));
+router.get('/:id/availability', (req, res, next) => healthcareSearchController.getDoctorAvailability(req, res, next));
 router.get('/:id', (req, res, next) => doctorController.getDoctorById(req, res, next));
 
 export default router;

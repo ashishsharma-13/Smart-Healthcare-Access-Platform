@@ -4,6 +4,7 @@ import { emergencyBeepController } from '../controllers/EmergencyBeepController.
 import { destinationReservationController } from '../controllers/DestinationReservationController.js';
 import { emergencyJourneyController } from '../controllers/EmergencyJourneyController.js';
 import { emergencyFallbackController } from '../controllers/EmergencyFallbackController.js';
+import { patientProfileController } from '../controllers/PatientProfileController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -11,12 +12,17 @@ const router = express.Router();
 // --- MODULE 8: EMERGENCY CATEGORIES & GUIDANCE ---
 router.get('/categories', (req, res, next) => emergencyController.getCategories(req, res, next));
 router.get('/guidance/:categoryId', (req, res, next) => emergencyController.getGuidance(req, res, next));
+router.get('/profile-summary', authenticate, (req, res, next) => patientProfileController.getPreflightEmergencySummary(req, res, next));
 
 // --- MODULE 8: EMERGENCY REQUEST CREATION & MANAGEMENT ---
 router.post('/requests', authenticate, (req, res, next) => emergencyController.createEmergencyRequest(req, res, next));
 router.get('/requests/my', authenticate, (req, res, next) => emergencyController.getMyEmergencyRequests(req, res, next));
 router.get('/requests/:id', authenticate, (req, res, next) => emergencyController.getEmergencyRequestDetails(req, res, next));
 router.post('/requests/:id/cancel', authenticate, (req, res, next) => emergencyController.cancelEmergencyRequest(req, res, next));
+
+// --- MODULE 18: EMERGENCY MEDICAL SNAPSHOT & SUMMARY ---
+router.post('/requests/:id/medical-snapshot', authenticate, (req, res, next) => patientProfileController.createEmergencyMedicalSnapshot(req, res, next));
+router.get('/requests/:id/medical-summary', authenticate, (req, res, next) => patientProfileController.getEmergencyMedicalSummary(req, res, next));
 
 // --- MODULE 10: EMERGENCY BEEP PATIENT RESPONSES & BROADCAST STATUS ---
 router.get('/requests/:id/responses', authenticate, (req, res, next) => emergencyBeepController.getPatientResponses(req, res, next));

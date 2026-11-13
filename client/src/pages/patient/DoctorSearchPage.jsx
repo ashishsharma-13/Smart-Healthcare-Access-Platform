@@ -109,7 +109,7 @@ export const DoctorSearchPage = () => {
             },
             {
               _id: 'sample-doc-2',
-              name: 'Dr. Daniel Brooks',
+              name: 'Dr. Devendra Sharma',
               specialization: 'Cardiologist',
               experienceYears: 15,
               consultationFee: 95,
@@ -122,7 +122,7 @@ export const DoctorSearchPage = () => {
             },
             {
               _id: 'sample-doc-3',
-              name: 'Dr. Sofia Chen',
+              name: 'Dr. Kavita Reddy',
               specialization: 'Cardiologist',
               experienceYears: 9,
               consultationFee: 80,

@@ -14,6 +14,7 @@ import { HospitalsListPage } from './pages/public/HospitalsListPage';
 import { GeneralMapPage } from './pages/public/GeneralMapPage';
 
 // Patient Pages
+import { HealthcareSearchPage } from './pages/patient/HealthcareSearchPage';
 import { DoctorSearchPage } from './pages/patient/DoctorSearchPage';
 import { DoctorProfilePage } from './pages/patient/DoctorProfilePage';
 import { PatientDashboard } from './pages/patient/PatientDashboard';
@@ -91,12 +92,14 @@ export default function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/map" element={<GeneralMapPage />} />
+              <Route path="/search" element={<HealthcareSearchPage />} />
               <Route path="/emergency/fallback" element={<EmergencyFallbackPage />} />
             </Route>
 
             {/* Authenticated Dashboard / Portal Layout */}
             <Route element={<DashboardLayout />}>
               {/* Doctor & Hospital Discovery */}
+              <Route path="/search" element={<HealthcareSearchPage />} />
               <Route path="/doctors" element={<DoctorSearchPage />} />
               <Route path="/doctors/:id" element={<DoctorProfilePage />} />
               <Route path="/hospitals" element={<HospitalsListPage />} />

@@ -23,9 +23,9 @@ The platform reproduces the UI design from the provided Figma screens and implem
 | Role | Email | Password | Details |
 | :--- | :--- | :--- | :--- |
 | **System Administrator** | `admin@shap.com` | `password123` | Doctor & hospital approvals, emergency audit |
-| **Patient** | `patient@shap.com` | `password123` | Alex Mercer (Connaught Place) |
-| **Doctor (Cardiology)** | `sarah.jenkins@shap.com` | `password123` | Dr. Sarah Jenkins (DOC-10024) |
-| **Doctor (Emergency Med)** | `marcus.chen@shap.com` | `password123` | Dr. Marcus Chen (DOC-20412) |
+| **Patient** | `patient@shap.com` | `password123` | Aarav Mehta (Connaught Place) |
+| **Doctor (Cardiology)** | `sarah.jenkins@shap.com` | `password123` | Dr. Sneha Sen (DOC-10024) |
+| **Doctor (Emergency Med)** | `marcus.chen@shap.com` | `password123` | Dr. Vikram Malhotra (DOC-20412) |
 | **Hospital (Apex Metro)** | `apex@hospital.com` | `password123` | Level 1 Trauma Center, 14 ICU beds, 11 ER bays |
 | **Hospital (St. Jude)** | `stjude@hospital.com` | `password123` | Emergency Center, 7 ICU beds, 14 ER bays |
 

@@ -13,6 +13,13 @@ import {
   EmergencyMatchingConfiguration,
   Notification,
   NotificationDelivery,
+  PatientProfile,
+  EmergencyContact,
+  PatientMedicalCondition,
+  PatientAllergy,
+  PatientMedication,
+  PatientMedicalHistory,
+  PatientConsent,
 } from '../models/index.js';
 import { healthcareResourceTypeService } from '../services/HealthcareResourceTypeService.js';
 import { externalFacilityDirectoryService } from '../services/ExternalFacilityDirectoryService.js';
@@ -23,6 +30,19 @@ export default async function autoSeed() {
     let u = await User.findOne({ email: data.email });
     if (!u) {
       u = await User.create(data);
+    } else {
+      let needsSave = false;
+      if (data.name && u.name !== data.name) {
+        u.name = data.name;
+        needsSave = true;
+      }
+      if (data.emergencyContact && JSON.stringify(u.emergencyContact) !== JSON.stringify(data.emergencyContact)) {
+        u.emergencyContact = data.emergencyContact;
+        needsSave = true;
+      }
+      if (needsSave) {
+        await u.save();
+      }
     }
     return u;
   };
@@ -104,9 +124,9 @@ export default async function autoSeed() {
     phone: '+1-555-0100',
   });
 
-  // 2. Patient 1: Alex Mercer (Test suite baseline)
+  // 2. Patient 1: Aarav Mehta (Test suite baseline)
   const patient = await getOrCreateUser({
-    name: 'Alex Mercer',
+    name: 'Aarav Mehta',
     email: 'patient@shap.com',
     password: 'password123',
     role: 'patient',
@@ -118,7 +138,7 @@ export default async function autoSeed() {
     chronicConditions: ['Hypertension'],
     currentMedications: ['Lisinopril 10mg'],
     emergencyContact: {
-      name: 'Sarah Mercer',
+      name: 'Pooja Mehta',
       relationship: 'Spouse',
       phone: '+1-555-0144',
     },
@@ -131,9 +151,9 @@ export default async function autoSeed() {
     },
   });
 
-  // 3. Patient 2: Jamie Bennett (Reference UI patient)
+  // 3. Patient 2: Ananya Iyer (Reference UI patient)
   const jamieUser = await getOrCreateUser({
-    name: 'Jamie Bennett',
+    name: 'Ananya Iyer',
     email: 'jamie@shap.com',
     password: 'password123',
     role: 'patient',
@@ -145,7 +165,7 @@ export default async function autoSeed() {
     chronicConditions: ['Mild Asthma'],
     currentMedications: ['Albuterol as needed'],
     emergencyContact: {
-      name: 'David Bennett',
+      name: 'Karthik Iyer',
       relationship: 'Spouse',
       phone: '+1-555-0189',
     },
@@ -157,6 +177,111 @@ export default async function autoSeed() {
       postalCode: '10001',
     },
   });
+
+  // Seed Module 18 Patient Profile & Health Records for Aarav Mehta
+  const alexProfile = await PatientProfile.findOne({ userId: patient._id });
+  if (!alexProfile) {
+    await PatientProfile.create({
+      userId: patient._id,
+      dateOfBirth: '1988-06-14',
+      gender: 'Male',
+      bloodGroup: 'O+',
+      preferredLanguage: 'English',
+      heightCm: 178,
+      weightKg: 74,
+      address: {
+        street: '42 Connaught Place',
+        city: 'Central City',
+        state: 'State Capital',
+        postalCode: '110001',
+      },
+      locationCoordinates: [77.209, 28.613],
+      profileCompleteness: 95,
+    });
+  }
+
+  await EmergencyContact.findOneAndUpdate(
+    { userId: patient._id },
+    {
+      userId: patient._id,
+      name: 'Pooja Mehta',
+      relationship: 'SPOUSE',
+      phone: '+1-555-0144',
+      alternatePhone: '+1-555-0145',
+      email: 'pooja.mehta@example.com',
+      isPrimary: true,
+      notes: 'Lives with patient; has emergency keys',
+    },
+    { upsert: true, new: true }
+  );
+
+  const existingCond = await PatientMedicalCondition.findOne({ userId: patient._id });
+  if (!existingCond) {
+    await PatientMedicalCondition.create({
+      userId: patient._id,
+      conditionName: 'Hypertension',
+      diagnosisDate: new Date('2021-03-15'),
+      status: 'MANAGED',
+      source: 'PROVIDER_CONFIRMED',
+      notes: 'Under regular clinical observation.',
+    });
+
+    await PatientAllergy.create({
+      userId: patient._id,
+      allergyType: 'DRUG',
+      substance: 'Penicillin',
+      severity: 'SEVERE',
+      reaction: 'Urticaria and mild wheezing',
+      source: 'PROVIDER_CONFIRMED',
+    });
+
+    await PatientAllergy.create({
+      userId: patient._id,
+      allergyType: 'FOOD',
+      substance: 'Peanuts',
+      severity: 'LIFE_THREATENING',
+      reaction: 'Anaphylaxis',
+      source: 'PROVIDER_CONFIRMED',
+    });
+
+    await PatientMedication.create({
+      userId: patient._id,
+      medicationName: 'Lisinopril',
+      dosage: '10 mg',
+      frequency: 'Once daily morning',
+      status: 'ACTIVE',
+      source: 'PROVIDER_CONFIRMED',
+      prescribedBy: 'Dr. Mira Patel',
+    });
+
+    await PatientMedicalHistory.create({
+      userId: patient._id,
+      category: 'SURGERY',
+      title: 'Appendectomy',
+      approximateYear: 2015,
+      facility: 'City General Hospital',
+      source: 'PATIENT_REPORTED',
+    });
+
+    await PatientConsent.create({
+      userId: patient._id,
+      purpose: 'EMERGENCY_COORDINATION',
+      status: 'GRANTED',
+      policyVersion: '1.0',
+    });
+    await PatientConsent.create({
+      userId: patient._id,
+      purpose: 'REGULAR_HEALTHCARE_SHARING',
+      status: 'GRANTED',
+      policyVersion: '1.0',
+    });
+    await PatientConsent.create({
+      userId: patient._id,
+      purpose: 'EMERGENCY_CONTACT_NOTIFICATION',
+      status: 'GRANTED',
+      policyVersion: '1.0',
+    });
+  }
 
   // 4. Test Suite Baseline Organizations
   // Org 1: Apex Metro
@@ -479,9 +604,9 @@ export default async function autoSeed() {
   });
 
   // 6. Test Suite Baseline Doctors
-  // Doctor 1: Sarah Jenkins
+  // Doctor 1: Sneha Sen
   const doc1User = await getOrCreateUser({
-    name: 'Dr. Sarah Jenkins',
+    name: 'Dr. Sneha Sen',
     email: 'sarah.jenkins@shap.com',
     password: 'password123',
     role: 'doctor',
@@ -498,7 +623,7 @@ export default async function autoSeed() {
     verificationStatus: 'verified',
     verifiedAt: new Date(),
     verifiedBy: admin._id,
-    qrCredentialToken: 'SEC-DOC-TOKEN-JENKINS-10024',
+    qrCredentialToken: 'SEC-DOC-TOKEN-SEN-10024',
     consultationFee: 750,
     bio: 'Senior Consultant Cardiologist specializing in interventional cardiology, acute coronary syndrome, and heart failure management.',
     rating: 4.9,
@@ -512,9 +637,9 @@ export default async function autoSeed() {
     },
   });
 
-  // Doctor 2: Marcus Chen
+  // Doctor 2: Vikram Malhotra
   const doc2User = await getOrCreateUser({
-    name: 'Dr. Marcus Chen',
+    name: 'Dr. Vikram Malhotra',
     email: 'marcus.chen@shap.com',
     password: 'password123',
     role: 'doctor',
@@ -531,7 +656,7 @@ export default async function autoSeed() {
     verificationStatus: 'verified',
     verifiedAt: new Date(),
     verifiedBy: admin._id,
-    qrCredentialToken: 'SEC-DOC-TOKEN-CHEN-20412',
+    qrCredentialToken: 'SEC-DOC-TOKEN-MALHOTRA-20412',
     consultationFee: 600,
     bio: 'Lead Trauma and Resuscitation specialist with expertise in multi-organ trauma, emergency stroke protocols, and critical airway management.',
     rating: 4.8,
@@ -545,9 +670,9 @@ export default async function autoSeed() {
     },
   });
 
-  // Doctor 3: Emily Rodriguez
+  // Doctor 3: Ananya Sen
   const doc3User = await getOrCreateUser({
-    name: 'Dr. Emily Rodriguez',
+    name: 'Dr. Ananya Sen',
     email: 'emily.rodriguez@shap.com',
     password: 'password123',
     role: 'doctor',
@@ -564,7 +689,7 @@ export default async function autoSeed() {
     verificationStatus: 'verified',
     verifiedAt: new Date(),
     verifiedBy: admin._id,
-    qrCredentialToken: 'SEC-DOC-TOKEN-RODRIGUEZ-30119',
+    qrCredentialToken: 'SEC-DOC-TOKEN-SEN-30119',
     consultationFee: 500,
     bio: 'Pediatrician focused on infant critical care, pediatric infectious diseases, and developmental monitoring.',
     rating: 4.9,
@@ -578,9 +703,9 @@ export default async function autoSeed() {
     },
   });
 
-  // Doctor 4: Michael Vance (Pending)
+  // Doctor 4: Alok Verma (Pending)
   const doc4User = await getOrCreateUser({
-    name: 'Dr. Michael Vance',
+    name: 'Dr. Alok Verma',
     email: 'michael.vance@shap.com',
     password: 'password123',
     role: 'doctor',
@@ -598,7 +723,7 @@ export default async function autoSeed() {
     bio: 'Neurologist with focus on stroke prevention, epilepsy, and neuro-critical recovery.',
   });
 
-  // 7. Reference Design Specialists (Dr. Mira Patel, Dr. Daniel Brooks, Dr. Sofia Chen, Dr. Ethan Ross)
+  // 7. Reference Design Specialists (Dr. Mira Patel, Dr. Devendra Sharma, Dr. Kavita Reddy, Dr. Siddharth Rao)
   // Dr. Mira Patel
   const docMiraUser = await getOrCreateUser({
     name: 'Dr. Mira Patel',
@@ -634,9 +759,9 @@ export default async function autoSeed() {
     },
   });
 
-  // Dr. Daniel Brooks
+  // Dr. Devendra Sharma
   const docDanielUser = await getOrCreateUser({
-    name: 'Dr. Daniel Brooks',
+    name: 'Dr. Devendra Sharma',
     email: 'daniel.brooks@shap.com',
     password: 'password123',
     role: 'doctor',
@@ -653,7 +778,7 @@ export default async function autoSeed() {
     verificationStatus: 'verified',
     verifiedAt: new Date(),
     verifiedBy: admin._id,
-    qrCredentialToken: 'SEC-DOC-TOKEN-BROOKS-1510',
+    qrCredentialToken: 'SEC-DOC-TOKEN-SHARMA-1510',
     consultationFee: 95,
     bio: 'Specialist in non-invasive cardiac imaging, preventive cardiovascular therapy, and complex arrhythmia monitoring.',
     workingHours: 'Mon–Fri · 8:30 AM–4:30 PM',
@@ -661,7 +786,7 @@ export default async function autoSeed() {
     totalReviews: 96,
     isAvailableForAppointments: true,
     isAvailableForEmergency: true,
-    languages: ['English'],
+    languages: ['English', 'Hindi'],
     currentPresence: {
       isPresent: true,
       organizationId: northsideOrg._id,
@@ -669,9 +794,9 @@ export default async function autoSeed() {
     },
   });
 
-  // Dr. Sofia Chen
+  // Dr. Kavita Reddy
   const docSofiaUser = await getOrCreateUser({
-    name: 'Dr. Sofia Chen',
+    name: 'Dr. Kavita Reddy',
     email: 'sofia.chen@shap.com',
     password: 'password123',
     role: 'doctor',
@@ -688,7 +813,7 @@ export default async function autoSeed() {
     verificationStatus: 'verified',
     verifiedAt: new Date(),
     verifiedBy: admin._id,
-    qrCredentialToken: 'SEC-DOC-TOKEN-CHEN-9081',
+    qrCredentialToken: 'SEC-DOC-TOKEN-REDDY-9081',
     consultationFee: 80,
     bio: 'Cardiologist focused on early detection, arterial health, and integrative heart care therapies.',
     workingHours: 'Mon–Fri · 9:00 AM–5:00 PM',
@@ -696,7 +821,7 @@ export default async function autoSeed() {
     totalReviews: 74,
     isAvailableForAppointments: true,
     isAvailableForEmergency: true,
-    languages: ['English', 'Mandarin'],
+    languages: ['English', 'Hindi'],
     currentPresence: {
       isPresent: true,
       organizationId: lakesideOrg._id,
@@ -704,9 +829,9 @@ export default async function autoSeed() {
     },
   });
 
-  // Dr. Ethan Ross
+  // Dr. Siddharth Rao
   const docEthanUser = await getOrCreateUser({
-    name: 'Dr. Ethan Ross',
+    name: 'Dr. Siddharth Rao',
     email: 'ethan.ross@shap.com',
     password: 'password123',
     role: 'doctor',
@@ -722,7 +847,7 @@ export default async function autoSeed() {
     verificationStatus: 'verified',
     verifiedAt: new Date(),
     verifiedBy: admin._id,
-    qrCredentialToken: 'SEC-DOC-TOKEN-ROSS-1002',
+    qrCredentialToken: 'SEC-DOC-TOKEN-RAO-1002',
     consultationFee: 70,
     bio: 'Family medicine physician providing comprehensive preventative care and chronic disease management.',
     workingHours: 'Mon–Fri · 9:00 AM–4:00 PM',
@@ -740,7 +865,7 @@ export default async function autoSeed() {
 
   // 8. Doctor Affiliations
   await getOrCreateAffiliation({
-    affiliationId: 'AFF-JENKINS-APEX-01',
+    affiliationId: 'AFF-SEN-APEX-01',
     doctorId: doc1._id,
     organizationId: org1._id,
     status: 'ACTIVE',
@@ -751,7 +876,7 @@ export default async function autoSeed() {
   });
 
   await getOrCreateAffiliation({
-    affiliationId: 'AFF-JENKINS-LIFELINE-02',
+    affiliationId: 'AFF-SEN-LIFELINE-02',
     doctorId: doc1._id,
     organizationId: org3._id,
     status: 'ACTIVE',
@@ -833,7 +958,7 @@ export default async function autoSeed() {
   const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
   await getOrCreateAppointment({
-    appointmentNumber: 'APT-JENKINS-001',
+    appointmentNumber: 'APT-SEN-001',
     patientId: patient._id,
     doctorId: doc1._id,
     organizationId: org1._id,
@@ -911,51 +1036,51 @@ export default async function autoSeed() {
 
   // Doctor Daily Schedule for Dr. Mira Patel
   await getOrCreateAppointment({
-    appointmentNumber: '#AP-NOAH-01',
+    appointmentNumber: '#AP-ROHAN-01',
     patientId: patient._id,
     doctorId: docMira._id,
     organizationId: riversideOrg._id,
     slotDate: tomorrowStr,
     slotTime: '1:30 PM',
     status: 'completed',
-    patientNotes: 'Noah Williams · Follow-up',
-    qrToken: 'APT-TOKEN-NOAH-01',
+    patientNotes: 'Rohan Sharma · Follow-up',
+    qrToken: 'APT-TOKEN-ROHAN-01',
   });
 
   await getOrCreateAppointment({
-    appointmentNumber: '#AP-AVERY-02',
+    appointmentNumber: '#AP-AARAV-02',
     patientId: jamieUser._id,
     doctorId: docMira._id,
     organizationId: riversideOrg._id,
     slotDate: tomorrowStr,
     slotTime: '2:30 PM',
     status: 'booked',
-    patientNotes: 'Avery James · Initial consultation (Heart-health review)',
-    qrToken: 'APT-TOKEN-AVERY-02',
+    patientNotes: 'Aarav Mehta · Initial consultation (Heart-health review)',
+    qrToken: 'APT-TOKEN-AARAV-02',
   });
 
   await getOrCreateAppointment({
-    appointmentNumber: '#AP-MORGAN-03',
+    appointmentNumber: '#AP-MEERA-03',
     patientId: patient._id,
     doctorId: docMira._id,
     organizationId: riversideOrg._id,
     slotDate: tomorrowStr,
     slotTime: '3:00 PM',
     status: 'booked',
-    patientNotes: 'Morgan Lee · Heart-health follow-up',
-    qrToken: 'APT-TOKEN-MORGAN-03',
+    patientNotes: 'Meera Nair · Heart-health follow-up',
+    qrToken: 'APT-TOKEN-MEERA-03',
   });
 
   await getOrCreateAppointment({
-    appointmentNumber: '#AP-SAM-04',
+    appointmentNumber: '#AP-SIDDHARTH-04',
     patientId: jamieUser._id,
     doctorId: docMira._id,
     organizationId: riversideOrg._id,
     slotDate: tomorrowStr,
     slotTime: '3:30 PM',
     status: 'booked',
-    patientNotes: 'Sam Taylor · Follow-up',
-    qrToken: 'APT-TOKEN-SAM-04',
+    patientNotes: 'Siddharth Verma · Follow-up',
+    qrToken: 'APT-TOKEN-SIDDHARTH-04',
   });
 
   // Module 8: Emergency Categories & Guidance

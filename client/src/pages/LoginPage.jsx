@@ -132,7 +132,7 @@ export const LoginPage = () => {
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-6 bg-white p-7 sm:p-8 rounded-xl shadow-card border border-slate-200">
-        
+
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="w-10 h-10 rounded-xl bg-[#0B4F9C] text-white flex items-center justify-center mx-auto shadow-xs">
@@ -174,14 +174,14 @@ export const LoginPage = () => {
               onClick={() => quickDemoLogin('patient@shap.com', 'password123')}
               className="p-2 bg-white hover:bg-brand-50 hover:border-brand-300 text-slate-800 font-medium rounded-md border border-slate-200 text-left transition-colors truncate"
             >
-              Patient (Alex)
+              Patient (Aarav)
             </button>
             <button
               type="button"
               onClick={() => quickDemoLogin('sarah.jenkins@shap.com', 'password123')}
               className="p-2 bg-white hover:bg-brand-50 hover:border-brand-300 text-slate-800 font-medium rounded-md border border-slate-200 text-left transition-colors truncate"
             >
-              Doctor (Dr. Jenkins)
+              Doctor (Dr. Sneha Sen)
             </button>
             <button
               type="button"

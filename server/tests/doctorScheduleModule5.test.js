@@ -76,7 +76,7 @@ describe('MODULE 5: Doctor Schedule and Availability Management Master Test Suit
 
     // 1. Doctor
     doctorUser = await User.create({
-      name: 'Dr. Marcus Vance',
+      name: 'Dr. Vikram Malhotra',
       email: 'marcus.vance@shap.com',
       password: 'HashedPassword123!',
       role: 'doctor',

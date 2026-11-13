@@ -79,7 +79,7 @@ describe('MODULE 12: Emergency Journey Tracking, Navigation, Arrival, Completion
 
     // 3. Create Organization & Staff
     orgStaffUser = await User.create({
-      name: 'Dr. Apex Admin',
+      name: 'Dr. Amit Deshmukh',
       email: `org.staff.jny.${Date.now()}@hospital.com`,
       phone: '+919876543212',
       password: 'Password123!',
@@ -115,7 +115,7 @@ describe('MODULE 12: Emergency Journey Tracking, Navigation, Arrival, Completion
 
     // 4. Create other Organization & Staff
     otherOrgStaffUser = await User.create({
-      name: 'Dr. Other Admin',
+      name: 'Dr. Suresh Nair',
       email: `other.org.${Date.now()}@hospital.com`,
       phone: '+919876543213',
       password: 'Password123!',

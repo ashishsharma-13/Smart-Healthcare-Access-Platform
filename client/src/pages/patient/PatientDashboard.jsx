@@ -80,7 +80,7 @@ export const PatientDashboard = () => {
     return 'Good evening';
   };
 
-  const firstName = user?.name ? user.name.split(' ')[0] : 'Jamie';
+  const firstName = user?.name ? user.name.split(' ')[0] : 'Aarav';
 
   return (
     <div className="space-y-6 pb-12 select-none">

@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useUI } from '../../context/UIContext';
 import {
   LayoutGrid,
+  Search,
   Stethoscope,
   Building2,
   Calendar,
@@ -80,6 +81,21 @@ export const Sidebar = () => {
           >
             <LayoutGrid className="w-4 h-4 shrink-0" />
             <span>Overview</span>
+          </NavLink>
+
+          {/* Search & Discover */}
+          <NavLink
+            to="/search"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
+                isActive
+                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+              }`
+            }
+          >
+            <Search className="w-4 h-4 shrink-0" />
+            <span>Search & Discover</span>
           </NavLink>
 
           {/* 2. Find doctors */}

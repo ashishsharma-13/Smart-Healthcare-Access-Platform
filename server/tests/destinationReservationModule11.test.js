@@ -197,7 +197,7 @@ describe('MODULE 11: Emergency Destination Selection and Resource Reservation Te
       requestCode: 'EMG-M11-TEST-001',
       emergencyRequestId: 'EMG-M11-TEST-001',
       patientId: patientUser._id,
-      patientName: 'Sarah Jenkins',
+      patientName: 'Sneha Roy',
       patientPhone: '+1-555-0199',
       emergencyType: 'cardiac',
       severity: 'critical',
@@ -665,5 +665,64 @@ describe('MODULE 11: Emergency Destination Selection and Resource Reservation Te
       .set('Authorization', `Bearer ${patientToken}`)
       .send({ requiredResources: [{ resourceType: 'er_bay', quantity: 1 }] })
       .expect(403);
+  });
+
+  // ── 13. CONCURRENT FINAL CAPACITY & ZERO OVERSELLING TEST ───────────────────
+
+  test('14. Concurrency: Two patients attempting to reserve the exact same final available emergency bed simultaneously -> zero overselling, exactly 1 succeeds, 1 receives 409 Conflict', async () => {
+    // 1. Set ER Bay available capacity to exactly 1
+    await HealthcareResource.findOneAndUpdate(
+      { organizationId: orgA._id, resourceType: 'er_bay' },
+      { $set: { totalCapacity: 1, availableCapacity: 1, reservedCapacity: 0, occupiedCapacity: 0 } }
+    );
+
+    // 2. Create second emergency request for Patient 2
+    const emergencyReq2 = await EmergencyRequest.create({
+      patientId: otherPatientUser._id,
+      patientName: 'Anita Roy',
+      patientPhone: '+919811199998',
+      emergencyType: 'TRAUMA',
+      severity: 'severe',
+      status: 'RESPONSES_RECEIVED',
+      location: { type: 'Point', coordinates: [77.21, 28.61] },
+    });
+
+    // 3. Both patients select Org A as their chosen destination
+    const selRes1 = await request(app)
+      .post(`/api/emergency/requests/${emergencyReq._id}/select-destination`)
+      .set('Authorization', `Bearer ${patientToken}`)
+      .send({ organizationId: orgA._id })
+      .expect(201);
+
+    const selRes2 = await request(app)
+      .post(`/api/emergency/requests/${emergencyReq2._id}/select-destination`)
+      .set('Authorization', `Bearer ${otherPatientToken}`)
+      .send({ organizationId: orgA._id })
+      .expect(201);
+
+    const selectionId1 = selRes1.body.data.selection.selectionId;
+    const selectionId2 = selRes2.body.data.selection.selectionId;
+
+    // 4. Fire concurrent confirmation requests for both selections
+    const [res1, res2] = await Promise.all([
+      request(app)
+        .post(`/api/organizations/me/destination-confirmations/${selectionId1}/confirm`)
+        .set('Authorization', `Bearer ${orgTokenA}`)
+        .send({ requiredResources: [{ resourceType: 'er_bay', quantity: 1 }] }),
+      request(app)
+        .post(`/api/organizations/me/destination-confirmations/${selectionId2}/confirm`)
+        .set('Authorization', `Bearer ${orgTokenA}`)
+        .send({ requiredResources: [{ resourceType: 'er_bay', quantity: 1 }] }),
+    ]);
+
+    const statuses = [res1.status, res2.status].sort();
+    // Exactly one succeeds (200), and exactly one fails with 409 (Conflict - Insufficient capacity)
+    expect(statuses).toEqual([200, 409]);
+
+    // 5. Verify database invariant: availableCapacity = 0, reservedCapacity = 1, total = 1 (ZERO OVERSELLING)
+    const bayAfter = await HealthcareResource.findOne({ organizationId: orgA._id, resourceType: 'er_bay' });
+    expect(bayAfter.availableCapacity).toBe(0);
+    expect(bayAfter.reservedCapacity).toBe(1);
+    expect(bayAfter.availableCapacity + bayAfter.reservedCapacity + bayAfter.occupiedCapacity).toBe(bayAfter.totalCapacity);
   });
 });

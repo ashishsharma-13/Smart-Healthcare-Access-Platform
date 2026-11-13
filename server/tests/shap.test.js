@@ -107,7 +107,7 @@ describe('SHAP Platform Automated Test Suite', () => {
         expect(doc.verificationStatus).toBe('verified');
       });
       const names = res.body.data.map((d) => d.userId.name);
-      expect(names).not.toContain('Dr. Michael Vance'); // Pending doctor
+      expect(names).not.toContain('Dr. Alok Verma'); // Pending doctor
     });
 
     test('Admin approves pending doctor, assigning unique Doctor ID and QR credential', async () => {
@@ -230,7 +230,7 @@ describe('SHAP Platform Automated Test Suite', () => {
             icuBed: true,
             erBay: true,
             ventilator: true,
-            specialistOnDuty: 'Dr. Sarah Jenkins (Cardiology)',
+            specialistOnDuty: 'Dr. Sneha Sen (Cardiology)',
           },
         });
 

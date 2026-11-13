@@ -21,7 +21,7 @@ describe('Doctor–Organization Affiliation Module Test Suite (17 Scenarios)', (
 
   const verifiedDoctor = {
     _id: mockDoctorId,
-    userId: { _id: mockDoctorUserId, name: 'Dr. Jane Smith', email: 'jane@shap.com' },
+    userId: { _id: mockDoctorUserId, name: 'Dr. Jaya Sharma', email: 'jaya@shap.com' },
     verificationStatus: 'verified',
     specialization: 'Cardiology',
     doctorUniqueId: 'DOC-10024',

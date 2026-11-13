@@ -65,7 +65,7 @@ beforeAll(async () => {
     emergencyRequestId: 'EMG-GOV-1001',
     patientId: testPatient._id,
     reportedByUserId: testPatient._id,
-    patientName: testPatient.name || 'Alex Mercer',
+    patientName: testPatient.name || 'Aarav Mehta',
     patientPhone: testPatient.phone || '+1-555-0199',
     emergencyType: 'Cardiac Emergency',
     emergencyCategory: 'CARDIAC_ARREST',

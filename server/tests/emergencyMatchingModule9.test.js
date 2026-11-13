@@ -351,8 +351,8 @@ describe('MODULE 9: Emergency Matching and Suitable Organization Discovery Test 
 
     // 7. Doctor Availability & QR Presence for Apex Heart Hospital
     const docUser = await User.create({
-      name: 'Dr. Sarah Cardiologist',
-      email: 'dr.sarah@shap.org',
+      name: 'Dr. Sneha Sen',
+      email: 'dr.sneha@shap.org',
       password: 'Password123!',
       role: 'doctor',
     });

@@ -103,7 +103,7 @@ export const HeroClinicalCommand = () => {
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-xs font-semibold text-white truncate">Dr. Sarah Jenkins</p>
+                  <p className="text-xs font-semibold text-white truncate">Dr. Sneha Sen</p>
                   <CheckCircle2 className="w-3.5 h-3.5 text-presence-400 shrink-0" />
                 </div>
                 <p className="text-[10px] text-presence-300 font-medium truncate">Cardiology Lead &bull; On-Site Present</p>

@@ -45,7 +45,7 @@ const ROLE_NOTIFICATIONS = {
   doctor: [
     {
       id: 'd1',
-      title: 'Next Patient: Avery James',
+      title: 'Next Patient: Aarav Mehta',
       message: 'Scheduled at 2:30 PM (In-person, Room C-02) for Initial Cardiology Consultation.',
       time: '10m ago',
       unread: true,
@@ -54,7 +54,7 @@ const ROLE_NOTIFICATIONS = {
     {
       id: 'd2',
       title: 'Reschedule Review Requested',
-      message: 'Elena Carter requested a routine reschedule for Tue, 10 Nov · 2:30 PM.',
+      message: 'Ananya Iyer requested a routine reschedule for Tue, 10 Nov · 2:30 PM.',
       time: '1h ago',
       unread: true,
       link: '/doctor/schedule',
@@ -297,6 +297,7 @@ export const Navbar = () => {
   // Generate breadcrumb from path
   const getBreadcrumb = () => {
     if (location.pathname.includes('/patient/dashboard')) return 'Overview';
+    if (location.pathname.includes('/search')) return 'Search & Discover';
     if (location.pathname.includes('/doctors')) return 'Find doctors';
     if (location.pathname.includes('/hospitals')) return 'Find hospitals';
     if (location.pathname.includes('/map')) return 'Healthcare map';

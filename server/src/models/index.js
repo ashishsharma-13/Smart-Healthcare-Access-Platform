@@ -60,4 +60,14 @@ export { AdminActionAuditLog } from './AdminActionAuditLog.js';
 export { AdminReviewNote } from './AdminReviewNote.js';
 export { PlatformConfiguration } from './PlatformConfiguration.js';
 export { ConfigurationChangeHistory } from './ConfigurationChangeHistory.js';
+export { SearchHistory } from './SearchHistory.js';
+export { SavedHealthcareProvider } from './SavedHealthcareProvider.js';
+export { PatientProfile } from './PatientProfile.js';
+export { EmergencyContact } from './EmergencyContact.js';
+export { PatientMedicalCondition } from './PatientMedicalCondition.js';
+export { PatientAllergy } from './PatientAllergy.js';
+export { PatientMedication } from './PatientMedication.js';
+export { PatientMedicalHistory } from './PatientMedicalHistory.js';
+export { PatientConsent } from './PatientConsent.js';
+export { EmergencyMedicalSnapshot } from './EmergencyMedicalSnapshot.js';
 

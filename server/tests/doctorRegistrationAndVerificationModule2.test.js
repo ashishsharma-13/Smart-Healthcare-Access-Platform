@@ -51,8 +51,8 @@ describe('MODULE 2: DOCTOR REGISTRATION AND VERIFICATION MANAGEMENT TEST SUITE',
     const res = await request(app)
       .post('/api/doctors/register')
       .send({
-        name: 'Dr. Aris Thorne',
-        email: 'aris.thorne@test.com',
+        name: 'Dr. Aarav Thapar',
+        email: 'aarav.thapar@test.com',
         phone: '+919876500001',
         password: 'password123',
         specialization: 'Cardiology',
@@ -144,7 +144,7 @@ describe('MODULE 2: DOCTOR REGISTRATION AND VERIFICATION MANAGEMENT TEST SUITE',
     const loginRes = await request(app)
       .post('/api/auth/login')
       .send({
-        email: 'aris.thorne@test.com',
+        email: 'aarav.thapar@test.com',
         password: 'password123',
       });
 
@@ -155,7 +155,7 @@ describe('MODULE 2: DOCTOR REGISTRATION AND VERIFICATION MANAGEMENT TEST SUITE',
     const searchRes = await request(app).get('/api/doctors');
     expect(searchRes.status).toBe(200);
     const doctorNames = searchRes.body.data.map((d) => d.userId?.name);
-    expect(doctorNames).not.toContain('Dr. Aris Thorne');
+    expect(doctorNames).not.toContain('Dr. Aarav Thapar');
   });
 
   // Test 5: Non-admin access to admin verification queue is blocked
@@ -302,7 +302,7 @@ describe('MODULE 2: DOCTOR REGISTRATION AND VERIFICATION MANAGEMENT TEST SUITE',
     // Confirm doctor now appears in public verified discovery
     const searchRes = await request(app).get('/api/doctors');
     const doctorNames = searchRes.body.data.map((d) => d.userId?.name);
-    expect(doctorNames).toContain('Dr. Aris Thorne');
+    expect(doctorNames).toContain('Dr. Aarav Thapar');
   });
 
   // Test 12: Approved doctor can log in and retrieve credentials
@@ -311,7 +311,7 @@ describe('MODULE 2: DOCTOR REGISTRATION AND VERIFICATION MANAGEMENT TEST SUITE',
     const loginRes = await request(app)
       .post('/api/auth/login')
       .send({
-        email: 'aris.thorne@test.com',
+        email: 'aarav.thapar@test.com',
         password: 'password123',
       });
 

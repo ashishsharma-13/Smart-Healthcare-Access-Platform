@@ -200,7 +200,7 @@ describe('MODULE 1: AUTHENTICATION AND ROLE MANAGEMENT TEST SUITE', () => {
 
   // Test 8: Unverified doctor login rejection
   test('8. Unverified Doctor Login - returns 403 Forbidden with PENDING_VERIFICATION message', async () => {
-    // Dr. Michael Vance is seeded as pending verification
+    // Dr. Alok Verma is seeded as pending verification
     const res = await request(app)
       .post('/api/auth/login')
       .send({

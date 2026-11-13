@@ -10,6 +10,7 @@ import { destinationReservationController } from '../controllers/DestinationRese
 import { emergencyJourneyController } from '../controllers/EmergencyJourneyController.js';
 import { notificationController } from '../controllers/NotificationController.js';
 import { healthcareResourceController } from '../controllers/HealthcareResourceController.js';
+import { healthcareSearchController } from '../controllers/HealthcareSearchController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -123,7 +124,10 @@ router.get('/doctors/presence', authenticate, authorize('organization'), (req, r
 router.get('/doctors/presence/history', authenticate, authorize('organization'), (req, res, next) => doctorPresenceController.getOrgPresenceHistory(req, res, next));
 
 // Public parameterized routes
+router.get('/nearby', (req, res, next) => healthcareSearchController.getNearbyOrganizations(req, res, next));
 router.get('/:id/doctors', (req, res, next) => doctorAffiliationController.getAffiliatedDoctorsForOrg(req, res, next));
+router.get('/:id/specializations', (req, res, next) => healthcareSearchController.getOrganizationSpecializations(req, res, next));
+router.get('/:id/capabilities', (req, res, next) => healthcareSearchController.getOrganizationCapabilities(req, res, next));
 router.get('/:id', (req, res, next) => organizationController.getOrganizationById(req, res, next));
 
 export default router;

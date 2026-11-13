@@ -157,7 +157,7 @@ describe('MODULE 4: Doctor Affiliation Management Master Test Suite', () => {
 
     // 5. Verified Doctor 1
     verifiedDoctorUser1 = await User.create({
-      name: 'Dr. Sarah Jenkins',
+      name: 'Dr. Sneha Sen',
       email: 'sarah.jenkins@shap.com',
       password: 'HashedPassword123!',
       role: 'doctor',
@@ -177,7 +177,7 @@ describe('MODULE 4: Doctor Affiliation Management Master Test Suite', () => {
 
     // 6. Verified Doctor 2 (for IDOR check)
     verifiedDoctorUser2 = await User.create({
-      name: 'Dr. Alex Rivera',
+      name: 'Dr. Rajesh Iyer',
       email: 'alex.rivera@shap.com',
       password: 'HashedPassword123!',
       role: 'doctor',
@@ -197,7 +197,7 @@ describe('MODULE 4: Doctor Affiliation Management Master Test Suite', () => {
 
     // 7. Unverified Doctor
     unverifiedDoctorUser = await User.create({
-      name: 'Dr. Unapproved Smith',
+      name: 'Dr. Unapproved Sharma',
       email: 'unapproved.smith@shap.com',
       password: 'HashedPassword123!',
       role: 'doctor',

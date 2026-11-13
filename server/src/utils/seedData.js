@@ -42,7 +42,7 @@ const seed = async () => {
 
   // 2. Patient
   const patient = await User.create({
-    name: 'Alex Mercer',
+    name: 'Aarav Mehta',
     email: 'patient@shap.com',
     password: 'password123',
     role: 'patient',
@@ -199,9 +199,9 @@ const seed = async () => {
   });
 
   console.log('[Seed] Creating doctors...');
-  // Doctor 1: Dr. Sarah Jenkins (Cardiology, Verified)
+  // Doctor 1: Dr. Sneha Sen (Cardiology, Verified)
   const doc1User = await User.create({
-    name: 'Dr. Sarah Jenkins',
+    name: 'Dr. Sneha Sen',
     email: 'sarah.jenkins@shap.com',
     password: 'password123',
     role: 'doctor',
@@ -219,7 +219,7 @@ const seed = async () => {
     verificationStatus: 'verified',
     verifiedAt: new Date(),
     verifiedBy: admin._id,
-    qrCredentialToken: 'SEC-DOC-TOKEN-JENKINS-10024',
+    qrCredentialToken: 'SEC-DOC-TOKEN-SEN-10024',
     consultationFee: 750,
     bio: 'Senior Consultant Cardiologist specializing in interventional cardiology, acute coronary syndrome, and heart failure management.',
     rating: 4.9,
@@ -233,9 +233,9 @@ const seed = async () => {
     },
   });
 
-  // Doctor 2: Dr. Marcus Chen (Emergency Medicine, Verified)
+  // Doctor 2: Dr. Vikram Malhotra (Emergency Medicine, Verified)
   const doc2User = await User.create({
-    name: 'Dr. Marcus Chen',
+    name: 'Dr. Vikram Malhotra',
     email: 'marcus.chen@shap.com',
     password: 'password123',
     role: 'doctor',
@@ -253,7 +253,7 @@ const seed = async () => {
     verificationStatus: 'verified',
     verifiedAt: new Date(),
     verifiedBy: admin._id,
-    qrCredentialToken: 'SEC-DOC-TOKEN-CHEN-20412',
+    qrCredentialToken: 'SEC-DOC-TOKEN-MALHOTRA-20412',
     consultationFee: 600,
     bio: 'Lead Trauma and Resuscitation specialist with expertise in multi-organ trauma, emergency stroke protocols, and critical airway management.',
     rating: 4.8,
@@ -267,9 +267,9 @@ const seed = async () => {
     },
   });
 
-  // Doctor 3: Dr. Emily Rodriguez (Pediatrics, Verified)
+  // Doctor 3: Dr. Ananya Sen (Pediatrics, Verified)
   const doc3User = await User.create({
-    name: 'Dr. Emily Rodriguez',
+    name: 'Dr. Ananya Sen',
     email: 'emily.rodriguez@shap.com',
     password: 'password123',
     role: 'doctor',
@@ -287,7 +287,7 @@ const seed = async () => {
     verificationStatus: 'verified',
     verifiedAt: new Date(),
     verifiedBy: admin._id,
-    qrCredentialToken: 'SEC-DOC-TOKEN-RODRIGUEZ-30119',
+    qrCredentialToken: 'SEC-DOC-TOKEN-SEN-30119',
     consultationFee: 500,
     bio: 'Pediatrician focused on infant critical care, pediatric infectious diseases, and developmental monitoring.',
     rating: 4.9,
@@ -301,9 +301,9 @@ const seed = async () => {
     },
   });
 
-  // Doctor 4: Dr. Michael Vance (Pending Doctor for Admin verification)
+  // Doctor 4: Dr. Alok Verma (Pending Doctor for Admin verification)
   const doc4User = await User.create({
-    name: 'Dr. Michael Vance',
+    name: 'Dr. Alok Verma',
     email: 'michael.vance@shap.com',
     password: 'password123',
     role: 'doctor',
@@ -325,7 +325,7 @@ const seed = async () => {
   // Doctor Affiliations (Many-to-Many via DoctorAffiliation entity)
   await DoctorAffiliation.create([
     {
-      affiliationId: 'AFF-JENKINS-APEX-01',
+      affiliationId: 'AFF-SEN-APEX-01',
       doctorId: doc1._id,
       organizationId: org1._id,
       status: 'ACTIVE',

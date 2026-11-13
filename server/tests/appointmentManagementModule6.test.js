@@ -107,7 +107,7 @@ describe('MODULE 6: Appointment Management Master Test Suite', () => {
 
     // 3. Verified Doctor
     doctorUser = await User.create({
-      name: 'Dr. Evelyn Carter',
+      name: 'Dr. Esha Chatterjee',
       email: 'evelyn.carter@shap.com',
       password: 'HashedPassword123!',
       role: 'doctor',
@@ -437,7 +437,7 @@ describe('MODULE 6: Appointment Management Master Test Suite', () => {
 
     // 2. Create another verified doctor
     const doc2User = await User.create({
-      name: 'Dr. Sarah Second',
+      name: 'Dr. Sneha Second',
       email: 'sarah.second@shap.com',
       password: 'HashedPassword123!',
       role: 'doctor',

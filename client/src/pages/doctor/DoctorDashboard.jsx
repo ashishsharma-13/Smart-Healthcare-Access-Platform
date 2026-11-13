@@ -35,8 +35,8 @@ export const DoctorDashboard = () => {
     {
       _id: 'apt-001',
       time: '1:30 PM',
-      patientName: 'Noah Williams',
-      patientInitials: 'NW',
+      patientName: 'Rohan Sharma',
+      patientInitials: 'RS',
       visitType: 'Follow-up',
       reason: 'Routine hypertension review',
       status: 'Completed',
@@ -46,8 +46,8 @@ export const DoctorDashboard = () => {
       _id: 'apt-002',
       time: '2:30 PM',
       slotRange: '2:30–3:00 PM',
-      patientName: 'Avery James',
-      patientInitials: 'AJ',
+      patientName: 'Aarav Mehta',
+      patientInitials: 'AM',
       visitType: 'Initial consultation',
       reason: 'Heart-health review',
       status: 'Confirmed',
@@ -57,8 +57,8 @@ export const DoctorDashboard = () => {
     {
       _id: 'apt-003',
       time: '3:00 PM',
-      patientName: 'Morgan Lee',
-      patientInitials: 'ML',
+      patientName: 'Meera Nair',
+      patientInitials: 'MN',
       visitType: 'Heart-health follow-up',
       reason: 'Post-EKG consultation',
       status: 'Confirmed',
@@ -67,8 +67,8 @@ export const DoctorDashboard = () => {
     {
       _id: 'apt-004',
       time: '3:30 PM',
-      patientName: 'Sam Taylor',
-      patientInitials: 'ST',
+      patientName: 'Siddharth Verma',
+      patientInitials: 'SV',
       visitType: 'Follow-up',
       reason: 'Cholesterol medication review',
       status: 'Confirmed',
@@ -79,14 +79,14 @@ export const DoctorDashboard = () => {
   const defaultRoutineRequests = [
     {
       _id: 'req-01',
-      patientName: 'Elena Carter',
+      patientName: 'Ananya Iyer',
       detail: 'Reschedule · Tue, 10 Nov · 2:30 PM',
       status: 'Pending',
       type: 'Reschedule',
     },
     {
       _id: 'req-02',
-      patientName: 'Oliver Reed',
+      patientName: 'Karan Malhotra',
       detail: 'New visit · Wed, 11 Nov · 11:00 AM',
       status: 'Pending',
       type: 'New booking',
@@ -153,7 +153,7 @@ export const DoctorDashboard = () => {
           const ptName =
             apt.patientId?.name ||
             apt.patientName ||
-            'Noah Williams';
+            'Rohan Sharma';
           const initials = ptName
             .replace(/^Dr\.\s*/i, '')
             .split(' ')

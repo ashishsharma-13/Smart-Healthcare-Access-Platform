@@ -66,7 +66,7 @@ describe('MODULE 7: Doctor QR-Based Presence Management Master Test Suite', () =
 
     // 1. Create Verified Doctor
     doctorUser = await User.create({
-      name: 'Dr. Gregory House',
+      name: 'Dr. Govind Hegde',
       email: `house.${Date.now()}@shap.med`,
       password: 'HashedPassword123!',
       role: 'doctor',
