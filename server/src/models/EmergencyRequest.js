@@ -123,6 +123,10 @@ const emergencyRequestSchema = new mongoose.Schema(
         'EXPIRED',
         'CANCELLED',
         'RESERVATION_RELEASED',
+        'SEARCH_EXPANDED',
+        'EXTERNAL_DESTINATION_SELECTED',
+        'RECOVERY_PENDING',
+        'RECOVERY_CONFIRMED',
         'active',
       ],
       default: 'CREATED',
@@ -131,6 +135,20 @@ const emergencyRequestSchema = new mongoose.Schema(
     selectedOrganizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
+      default: null,
+    },
+    selectedExternalFacilityId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ExternalHealthcareFacility',
+      default: null,
+    },
+    isExternalDestination: {
+      type: Boolean,
+      default: false,
+    },
+    fallbackSessionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'EmergencyFallbackSession',
       default: null,
     },
     destinationSelectionId: {

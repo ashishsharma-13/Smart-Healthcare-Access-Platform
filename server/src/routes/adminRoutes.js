@@ -6,6 +6,9 @@ import { doctorPresenceController } from '../controllers/DoctorPresenceControlle
 import { emergencyController } from '../controllers/EmergencyController.js';
 import { emergencyMatchingController } from '../controllers/EmergencyMatchingController.js';
 import { notificationController } from '../controllers/NotificationController.js';
+import { healthcareResourceTypeController } from '../controllers/HealthcareResourceTypeController.js';
+import { healthcareResourceController } from '../controllers/HealthcareResourceController.js';
+import { emergencyFallbackController } from '../controllers/EmergencyFallbackController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -63,6 +66,21 @@ router.get('/notifications/failed', (req, res, next) => notificationController.g
 router.get('/notifications/:id/deliveries', (req, res, next) => notificationController.getNotificationDeliveries(req, res, next));
 router.post('/notifications/:id/retry', (req, res, next) => notificationController.retryNotification(req, res, next));
 router.get('/notification-metrics', (req, res, next) => notificationController.getNotificationMetrics(req, res, next));
+
+// Module 14: Admin Resource Types and Monitoring
+router.get('/resource-types', (req, res, next) => healthcareResourceTypeController.listAll(req, res, next));
+router.post('/resource-types', (req, res, next) => healthcareResourceTypeController.create(req, res, next));
+router.get('/resource-types/:id', (req, res, next) => healthcareResourceTypeController.getById(req, res, next));
+router.put('/resource-types/:id', (req, res, next) => healthcareResourceTypeController.update(req, res, next));
+router.patch('/resource-types/:id/status', (req, res, next) => healthcareResourceTypeController.toggleStatus(req, res, next));
+router.get('/resources/monitoring', (req, res, next) => healthcareResourceController.getMonitoringTelemetry(req, res, next));
+
+// Module 15: Admin Emergency Fallback Monitoring & External Facilities Directory
+router.get('/emergency-fallback/sessions', (req, res, next) => emergencyFallbackController.listActiveSessions(req, res, next));
+router.get('/emergency-fallback/monitoring', (req, res, next) => emergencyFallbackController.getMonitoringKPIs(req, res, next));
+router.get('/external-facilities', (req, res, next) => emergencyFallbackController.listExternalFacilities(req, res, next));
+router.post('/external-facilities', (req, res, next) => emergencyFallbackController.createExternalFacility(req, res, next));
+router.put('/external-facilities/:id', (req, res, next) => emergencyFallbackController.updateExternalFacility(req, res, next));
 
 export default router;
 

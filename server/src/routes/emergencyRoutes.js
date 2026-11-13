@@ -3,6 +3,7 @@ import { emergencyController } from '../controllers/EmergencyController.js';
 import { emergencyBeepController } from '../controllers/EmergencyBeepController.js';
 import { destinationReservationController } from '../controllers/DestinationReservationController.js';
 import { emergencyJourneyController } from '../controllers/EmergencyJourneyController.js';
+import { emergencyFallbackController } from '../controllers/EmergencyFallbackController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -38,6 +39,15 @@ router.post('/requests/:requestId/journey/stop-sharing', authenticate, (req, res
 router.post('/requests/:requestId/journey/confirm-arrival', authenticate, (req, res) => emergencyJourneyController.confirmPatientArrival(req, res));
 router.post('/requests/:requestId/complete', authenticate, (req, res) => emergencyJourneyController.completeEmergency(req, res));
 router.get('/requests/:requestId/history', authenticate, (req, res) => emergencyJourneyController.getEmergencyHistory(req, res));
+
+// --- MODULE 15: EMERGENCY FALLBACK & RECOVERY MANAGEMENT ---
+router.get('/requests/:requestId/external-facilities', (req, res, next) => emergencyFallbackController.getExternalFacilities(req, res, next));
+router.get('/external-facilities/:facilityId', (req, res, next) => emergencyFallbackController.getExternalFacilityById(req, res, next));
+router.get('/requests/:requestId/fallback-options', (req, res, next) => emergencyFallbackController.getFallbackOptions(req, res, next));
+router.post('/requests/:requestId/select-external-facility', authenticate, (req, res, next) => emergencyFallbackController.selectExternalFacility(req, res, next));
+router.post('/requests/:requestId/retry-matching', authenticate, (req, res, next) => emergencyFallbackController.retryMatching(req, res, next));
+router.post('/requests/:requestId/change-destination', authenticate, (req, res, next) => emergencyFallbackController.changeDestination(req, res, next));
+router.get('/requests/:requestId/recovery-status', (req, res, next) => emergencyFallbackController.getRecoveryStatus(req, res, next));
 
 // Query nearby emergency-enabled facilities and their offerings
 router.get('/nearby-facilities', (req, res, next) => emergencyController.getNearbyFacilities(req, res, next));

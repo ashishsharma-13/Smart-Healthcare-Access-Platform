@@ -371,11 +371,14 @@ export class EmergencyMatchingService {
       let oldestUpdateMs = null;
 
       for (const r of resources) {
-        totalCapacity += r.totalCapacity || 0;
-        totalAvailable += r.availableCapacity || 0;
-        const updatedAt = r.updatedAt || r.createdAt;
-        if (updatedAt) {
-          const ageMs = now - new Date(updatedAt);
+        totalCapacity += r.totalCapacity || r.totalQuantity || 0;
+        if (!r.operationalStatus || r.operationalStatus === 'OPERATIONAL') {
+          totalAvailable += r.availableCapacity || r.availableQuantity || 0;
+        }
+        const dateCandidates = [r.lastVerifiedAt, r.updatedAt, r.createdAt].filter(Boolean).map(d => new Date(d).getTime());
+        if (dateCandidates.length > 0) {
+          const effectiveTimestamp = Math.min(...dateCandidates);
+          const ageMs = now.getTime() - effectiveTimestamp;
           if (oldestUpdateMs === null || ageMs > oldestUpdateMs) oldestUpdateMs = ageMs;
         }
       }
@@ -723,6 +726,17 @@ export class EmergencyMatchingService {
     // External fallback if no suitable orgs found
     let fallbackResults = [];
     if (suitableCandidates.length === 0) {
+      // Module 15: Auto-trigger Fallback Session when no initial candidates are found
+      try {
+        const { emergencyFallbackService } = await import('./EmergencyFallbackService.js');
+        await emergencyFallbackService.startFallbackSession({
+          emergencyRequestId: emergencyRequest._id,
+          reason: 'NO_CANDIDATES_FOUND',
+        });
+      } catch (fbErr) {
+        console.warn('[EmergencyMatchingService] Fallback trigger note:', fbErr.message);
+      }
+
       const fallbacks = await this.getExternalFallbackFacilities(coords, 100);
       for (const f of fallbacks) {
         const stored = await emergencyMatchResultRepository.upsertResult({

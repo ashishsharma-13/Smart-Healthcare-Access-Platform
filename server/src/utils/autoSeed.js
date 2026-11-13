@@ -14,6 +14,8 @@ import {
   Notification,
   NotificationDelivery,
 } from '../models/index.js';
+import { healthcareResourceTypeService } from '../services/HealthcareResourceTypeService.js';
+import { externalFacilityDirectoryService } from '../services/ExternalFacilityDirectoryService.js';
 
 export default async function autoSeed() {
   const getOrCreateUser = async (data) => {
@@ -82,6 +84,12 @@ export default async function autoSeed() {
     }
     return res;
   };
+
+  // Seed default Module 14 Healthcare Resource Types
+  await healthcareResourceTypeService.seedInitialTypes();
+
+  // Seed default Module 15 External Healthcare Facilities Directory
+  await externalFacilityDirectoryService.seedDefaultExternalFacilities();
 
   // 1. Admin User
   const admin = await getOrCreateUser({

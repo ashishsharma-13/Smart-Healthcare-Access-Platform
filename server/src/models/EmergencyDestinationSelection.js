@@ -27,7 +27,7 @@ const emergencyDestinationSelectionSchema = new mongoose.Schema(
     },
     selectionSource: {
       type: String,
-      enum: ['USER', 'SYSTEM'],
+      enum: ['USER', 'SYSTEM', 'RECOVERY_ROUTING'],
       default: 'USER',
     },
     selectionStatus: {

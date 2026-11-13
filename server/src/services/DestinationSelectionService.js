@@ -323,6 +323,19 @@ export class DestinationSelectionService {
         failureReason: 'INSUFFICIENT_RESOURCE_CAPACITY',
       });
 
+      // Trigger Destination Recovery (Module 15)
+      try {
+        const { destinationRecoveryService } = await import('./DestinationRecoveryService.js');
+        await destinationRecoveryService.initiateRecovery({
+          emergencyRequestId: emergencyReq._id,
+          triggerReason: 'RESERVATION_FAILED',
+          previousOrganizationId: organizationId,
+          failureNotes: 'Facility reached maximum capacity during final reservation hold.',
+        });
+      } catch (recErr) {
+        console.warn('[DestinationSelectionService] Recovery trigger note:', recErr.message);
+      }
+
       // Notify patient via socket
       const io = getSocketIO();
       if (io) {
@@ -495,6 +508,19 @@ export class DestinationSelectionService {
           organizationId,
           reason,
         });
+      }
+
+      // Trigger Destination Recovery (Module 15)
+      try {
+        const { destinationRecoveryService } = await import('./DestinationRecoveryService.js');
+        await destinationRecoveryService.initiateRecovery({
+          emergencyRequestId: emergencyReq._id,
+          triggerReason: 'CONFIRMATION_FAILED',
+          previousOrganizationId: organizationId,
+          failureNotes: reason,
+        });
+      } catch (recErr) {
+        console.warn('[DestinationSelectionService] Recovery trigger note:', recErr.message);
       }
     }
 

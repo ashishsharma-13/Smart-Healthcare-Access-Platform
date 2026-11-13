@@ -9,6 +9,7 @@ import { emergencyBeepController } from '../controllers/EmergencyBeepController.
 import { destinationReservationController } from '../controllers/DestinationReservationController.js';
 import { emergencyJourneyController } from '../controllers/EmergencyJourneyController.js';
 import { notificationController } from '../controllers/NotificationController.js';
+import { healthcareResourceController } from '../controllers/HealthcareResourceController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -100,6 +101,20 @@ router.post('/me/emergency-requests/:requestId/complete', authenticate, authoriz
 router.get('/me/notifications', authenticate, authorize('organization'), (req, res, next) => notificationController.getOrganizationNotifications(req, res, next));
 router.get('/me/notifications/unread', authenticate, authorize('organization'), (req, res, next) => notificationController.getOrganizationUnreadNotifications(req, res, next));
 router.post('/me/notifications/:id/read', authenticate, authorize('organization'), (req, res, next) => notificationController.markOrganizationNotificationAsRead(req, res, next));
+
+// Module 14: Healthcare Resource Inventory and Availability Management
+router.post('/me/resources', authenticate, authorize('organization'), (req, res, next) => healthcareResourceController.registerResource(req, res, next));
+router.get('/me/resources', authenticate, authorize('organization'), (req, res, next) => healthcareResourceController.getMyResources(req, res, next));
+router.get('/me/resources/summary', authenticate, authorize('organization'), (req, res, next) => healthcareResourceController.getOrganizationSummary(req, res, next));
+router.post('/me/resources/reconcile', authenticate, authorize('organization'), (req, res, next) => healthcareResourceController.reconcileAll(req, res, next));
+router.get('/me/resources/:resourceId', authenticate, authorize('organization'), (req, res, next) => healthcareResourceController.getResourceById(req, res, next));
+router.put('/me/resources/:resourceId', authenticate, authorize('organization'), (req, res, next) => healthcareResourceController.updateResource(req, res, next));
+router.patch('/me/resources/:resourceId/status', authenticate, authorize('organization'), (req, res, next) => healthcareResourceController.updateOperationalStatus(req, res, next));
+router.patch('/me/resources/:resourceId/capacity', authenticate, authorize('organization'), (req, res, next) => healthcareResourceController.updateCapacity(req, res, next));
+router.post('/me/resources/:resourceId/availability-adjustments', authenticate, authorize('organization'), (req, res, next) => healthcareResourceController.adjustAvailability(req, res, next));
+router.get('/me/resources/:resourceId/history', authenticate, authorize('organization'), (req, res, next) => healthcareResourceController.getResourceHistory(req, res, next));
+router.post('/me/resources/:resourceId/reconcile', authenticate, authorize('organization'), (req, res, next) => healthcareResourceController.reconcileResource(req, res, next));
+router.delete('/me/resources/:resourceId', authenticate, authorize('organization'), (req, res, next) => healthcareResourceController.deleteResource(req, res, next));
 
 router.post('/presence-qr', authenticate, authorize('organization'), (req, res, next) => doctorPresenceController.generateOrgQRCode(req, res, next));
 router.get('/presence-qr', authenticate, authorize('organization'), (req, res, next) => doctorPresenceController.listOrgQRCodes(req, res, next));

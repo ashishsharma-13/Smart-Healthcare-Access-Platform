@@ -482,6 +482,19 @@ export class EmergencyBeepService {
     } else {
       reqStatus = 'NO_RESPONSE';
       statusNotes = 'Broadcast finalized: No participating organizations accepted. Recommending external fallback facilities.';
+
+      // Module 15: Auto-trigger Emergency Fallback Session
+      const anyDeclined = allRecipients.some((r) => r.responseStatus === 'DECLINED');
+      const triggerReason = anyDeclined ? 'ALL_ORGANIZATIONS_DECLINED' : 'NO_ORGANIZATIONS_RESPONDED';
+      try {
+        const { emergencyFallbackService } = await import('./EmergencyFallbackService.js');
+        await emergencyFallbackService.startFallbackSession({
+          emergencyRequestId,
+          reason: triggerReason,
+        });
+      } catch (fbErr) {
+        console.warn('[EmergencyBeepService] Fallback trigger note:', fbErr.message);
+      }
     }
 
     const updatedRequest = await emergencyRepository.updateRequestStatus(

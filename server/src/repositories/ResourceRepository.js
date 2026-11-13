@@ -301,6 +301,184 @@ export class ResourceRepository {
       .sort({ createdAt: -1 })
       .exec();
   }
+
+  // =========================================================================
+  // MODULE 14: Healthcare Resource Inventory Management Repositories
+  // =========================================================================
+
+  async createResource(data) {
+    const resource = new HealthcareResource(data);
+    return await resource.save();
+  }
+
+  async findResourceById(idOrResourceId) {
+    const isObjectId = mongoose.Types.ObjectId.isValid(idOrResourceId);
+    const query = isObjectId
+      ? { $or: [{ _id: idOrResourceId }, { resourceId: idOrResourceId }, { resourceType: idOrResourceId }] }
+      : { $or: [{ resourceId: idOrResourceId }, { resourceType: idOrResourceId }] };
+
+    return await HealthcareResource.findOne(query)
+      .populate('organizationId', 'name slug address operatingAddress registrationNumber')
+      .populate('facilityId')
+      .populate('resourceTypeId')
+      .exec();
+  }
+
+  async findOrgResources(organizationId, filters = {}) {
+    const query = { organizationId };
+
+    if (filters.resourceTypeId) query.resourceTypeId = filters.resourceTypeId;
+    if (filters.facilityId) query.facilityId = filters.facilityId;
+    if (filters.operationalStatus) query.operationalStatus = filters.operationalStatus;
+    if (filters.resourceType) query.resourceType = filters.resourceType;
+    if (filters.search) {
+      query.$or = [
+        { resourceName: { $regex: filters.search, $options: 'i' } },
+        { resourceType: { $regex: filters.search, $options: 'i' } },
+        { resourceId: { $regex: filters.search, $options: 'i' } },
+      ];
+    }
+
+    return await HealthcareResource.find(query)
+      .populate('facilityId')
+      .populate('resourceTypeId')
+      .sort({ operationalStatus: 1, resourceType: 1, resourceName: 1 })
+      .exec();
+  }
+
+  async findOrgResourceByType(organizationId, resourceType, facilityId = null) {
+    const query = { organizationId, resourceType };
+    if (facilityId) query.facilityId = facilityId;
+    return await HealthcareResource.findOne(query)
+      .populate('facilityId')
+      .populate('resourceTypeId')
+      .exec();
+  }
+
+  async updateResource(idOrResourceId, updates) {
+    const isObjectId = mongoose.Types.ObjectId.isValid(idOrResourceId);
+    const query = isObjectId
+      ? { $or: [{ _id: idOrResourceId }, { resourceId: idOrResourceId }] }
+      : { resourceId: idOrResourceId };
+
+    // Find and update document through save or findOneAndUpdate
+    const resource = await HealthcareResource.findOne(query);
+    if (!resource) return null;
+
+    Object.assign(resource, updates);
+    resource.version = (resource.version || 1) + 1;
+    return await resource.save();
+  }
+
+  async deleteResource(idOrResourceId) {
+    const isObjectId = mongoose.Types.ObjectId.isValid(idOrResourceId);
+    const query = isObjectId
+      ? { $or: [{ _id: idOrResourceId }, { resourceId: idOrResourceId }] }
+      : { resourceId: idOrResourceId };
+
+    return await HealthcareResource.findOneAndDelete(query).exec();
+  }
+
+  async getOrganizationInventorySummary(organizationId) {
+    const resources = await HealthcareResource.find({ organizationId })
+      .populate('resourceTypeId')
+      .populate('facilityId')
+      .exec();
+
+    let totalQuantity = 0;
+    let availableQuantity = 0;
+    let reservedQuantity = 0;
+    let allocatedQuantity = 0;
+    let unavailableQuantity = 0;
+
+    let operationalCount = 0;
+    let maintenanceCount = 0;
+    let unavailableCount = 0;
+
+    const categoryBreakdown = {};
+    const typeBreakdown = [];
+
+    const now = new Date();
+    let oldestVerifiedAt = null;
+
+    resources.forEach((r) => {
+      const tot = Number(r.totalQuantity ?? r.totalCapacity) || 0;
+      const avail = Number(r.availableQuantity ?? r.availableCapacity) || 0;
+      const resv = Number(r.reservedQuantity ?? r.reservedCapacity) || 0;
+      const alloc = Number(r.allocatedQuantity ?? r.occupiedCapacity) || 0;
+      const unavail = Number(r.unavailableQuantity) || 0;
+
+      totalQuantity += tot;
+      availableQuantity += avail;
+      reservedQuantity += resv;
+      allocatedQuantity += alloc;
+      unavailableQuantity += unavail;
+
+      if (r.operationalStatus === 'OPERATIONAL') operationalCount++;
+      else if (r.operationalStatus === 'MAINTENANCE') maintenanceCount++;
+      else unavailableCount++;
+
+      const cat = r.resourceTypeId?.category || 'general';
+      if (!categoryBreakdown[cat]) {
+        categoryBreakdown[cat] = { total: 0, available: 0, reserved: 0, allocated: 0 };
+      }
+      categoryBreakdown[cat].total += tot;
+      categoryBreakdown[cat].available += avail;
+      categoryBreakdown[cat].reserved += resv;
+      categoryBreakdown[cat].allocated += alloc;
+
+      typeBreakdown.push({
+        _id: r._id,
+        resourceId: r.resourceId,
+        resourceType: r.resourceType,
+        resourceName: r.resourceName,
+        category: cat,
+        unitOfMeasure: r.resourceTypeId?.unitOfMeasure || 'units',
+        total: tot,
+        available: avail,
+        reserved: resv,
+        allocated: alloc,
+        unavailable: unavail,
+        operationalStatus: r.operationalStatus,
+        lastVerifiedAt: r.lastVerifiedAt || r.updatedAt,
+      });
+
+      const verAt = r.lastVerifiedAt || r.updatedAt;
+      if (verAt && (!oldestVerifiedAt || verAt < oldestVerifiedAt)) {
+        oldestVerifiedAt = verAt;
+      }
+    });
+
+    const utilizationRate =
+      totalQuantity > 0 ? parseFloat((((reservedQuantity + allocatedQuantity) / totalQuantity) * 100).toFixed(1)) : 0;
+
+    // Freshness status calculation (default 60m threshold)
+    let freshnessStatus = 'FRESH';
+    if (oldestVerifiedAt) {
+      const ageMinutes = (now - new Date(oldestVerifiedAt)) / (1000 * 60);
+      if (ageMinutes > 1440) freshnessStatus = 'VERY_STALE';
+      else if (ageMinutes > 60) freshnessStatus = 'STALE';
+    } else if (resources.length > 0) {
+      freshnessStatus = 'STALE';
+    }
+
+    return {
+      totalResources: resources.length,
+      totalQuantity,
+      availableQuantity,
+      reservedQuantity,
+      allocatedQuantity,
+      unavailableQuantity,
+      utilizationRate,
+      operationalCount,
+      maintenanceCount,
+      unavailableCount,
+      freshnessStatus,
+      lastVerifiedAt: oldestVerifiedAt,
+      categoryBreakdown,
+      items: typeBreakdown,
+    };
+  }
 }
 
 export const resourceRepository = new ResourceRepository();

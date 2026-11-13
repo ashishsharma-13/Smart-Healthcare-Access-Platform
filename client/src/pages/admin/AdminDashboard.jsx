@@ -37,6 +37,9 @@ import {
   Radio,
   Mail,
   Smartphone,
+  Layers,
+  Database,
+  Compass,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -119,6 +122,36 @@ export const AdminDashboard = () => {
   const [newGuidanceModalOpen, setNewGuidanceModalOpen] = useState(false);
   const [newGuidanceForm, setNewGuidanceForm] = useState({ categoryId: '', title: '', content: '', reviewStatus: 'APPROVED' });
 
+  // Module 14: Resource Types & Inventory Telemetry States
+  const [adminResourceTypes, setAdminResourceTypes] = useState([]);
+  const [resourceTelemetry, setResourceTelemetry] = useState(null);
+  const [newResourceTypeModalOpen, setNewResourceTypeModalOpen] = useState(false);
+  const [newResourceTypeForm, setNewResourceTypeForm] = useState({
+    typeName: '',
+    category: 'beds',
+    description: '',
+    unitOfMeasure: 'beds',
+    quantityTracked: true,
+    active: true,
+    displayOrder: 1,
+  });
+
+  // Module 15: Emergency Fallback & Recovery States
+  const [fallbackSessions, setFallbackSessions] = useState([]);
+  const [fallbackKPIs, setFallbackKPIs] = useState(null);
+  const [adminExternalFacilities, setAdminExternalFacilities] = useState([]);
+  const [newExternalFacilityModalOpen, setNewExternalFacilityModalOpen] = useState(false);
+  const [newExternalFacilityForm, setNewExternalFacilityForm] = useState({
+    facilityName: '',
+    facilityType: 'Apex Level-1 Public Trauma Center',
+    address: '',
+    latitude: 28.5672,
+    longitude: 77.1950,
+    contactNumber: '01126731000',
+    specialties: 'Level-1 Polytrauma, Emergency Resuscitation',
+    dataSource: 'GOVERNMENT_DIRECTORY',
+  });
+
   useEffect(() => {
     fetchAdminData();
   }, []);
@@ -140,6 +173,11 @@ export const AdminDashboard = () => {
         notifMetricsRes,
         notifFailedRes,
         notifAllRes,
+        resTypesRes,
+        resTelemetryRes,
+        fbSessionsRes,
+        fbKPIsRes,
+        extFacRes,
       ] = await Promise.all([
         api.get('/admin/stats'),
         api.get('/admin/doctors/pending'),
@@ -154,6 +192,11 @@ export const AdminDashboard = () => {
         api.get('/admin/notification-metrics').catch(() => ({ data: { success: false } })),
         api.get('/admin/notifications/failed').catch(() => ({ data: { success: false, data: [] } })),
         api.get('/admin/notifications?limit=30').catch(() => ({ data: { success: false, data: [] } })),
+        api.get('/admin/resource-types').catch(() => ({ data: { success: false, data: [] } })),
+        api.get('/admin/resources/monitoring').catch(() => ({ data: { success: false } })),
+        api.get('/admin/emergency-fallback/sessions').catch(() => ({ data: { success: false } })),
+        api.get('/admin/emergency-fallback/monitoring').catch(() => ({ data: { success: false } })),
+        api.get('/admin/external-facilities').catch(() => ({ data: { success: false } })),
       ]);
 
       if (statsRes.data?.success) setStats(statsRes.data.data);
@@ -180,6 +223,21 @@ export const AdminDashboard = () => {
       }
       if (notifAllRes?.data?.success) {
         setAllNotifications(notifAllRes.data.data || []);
+      }
+      if (resTypesRes?.data?.success) {
+        setAdminResourceTypes(resTypesRes.data.data || []);
+      }
+      if (resTelemetryRes?.data?.success) {
+        setResourceTelemetry(resTelemetryRes.data.data);
+      }
+      if (fbSessionsRes?.data?.success) {
+        setFallbackSessions(fbSessionsRes.data.sessions || []);
+      }
+      if (fbKPIsRes?.data?.success) {
+        setFallbackKPIs(fbKPIsRes.data);
+      }
+      if (extFacRes?.data?.success) {
+        setAdminExternalFacilities(extFacRes.data.facilities || []);
       }
     } catch (err) {
       console.error('Error loading admin portal data', err);
@@ -211,6 +269,76 @@ export const AdminDashboard = () => {
       setFeedback({ type: 'error', message: err.response?.data?.message || 'Retry failed' });
     } finally {
       setRetryingId(null);
+    }
+  };
+
+  const handleCreateResourceType = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.post('/admin/resource-types', newResourceTypeForm);
+      if (res.data?.success) {
+        setFeedback({ type: 'success', message: 'Healthcare resource type successfully created' });
+        setNewResourceTypeModalOpen(false);
+        setNewResourceTypeForm({
+          typeName: '',
+          category: 'beds',
+          description: '',
+          unitOfMeasure: 'beds',
+          quantityTracked: true,
+          active: true,
+          displayOrder: 1,
+        });
+        const typesRes = await api.get('/admin/resource-types');
+        if (typesRes.data?.success) setAdminResourceTypes(typesRes.data.data || []);
+      }
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.response?.data?.message || 'Failed to create resource type' });
+    }
+  };
+
+  const handleToggleResourceTypeStatus = async (id, currentActive) => {
+    try {
+      const res = await api.patch(`/admin/resource-types/${id}/status`, { active: !currentActive });
+      if (res.data?.success) {
+        setFeedback({ type: 'success', message: res.data.message });
+        const typesRes = await api.get('/admin/resource-types');
+        if (typesRes.data?.success) setAdminResourceTypes(typesRes.data.data || []);
+      }
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.response?.data?.message || 'Failed to toggle status' });
+    }
+  };
+
+  const handleCreateExternalFacility = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...newExternalFacilityForm,
+        latitude: Number(newExternalFacilityForm.latitude),
+        longitude: Number(newExternalFacilityForm.longitude),
+        specialties: newExternalFacilityForm.specialties
+          ? newExternalFacilityForm.specialties.split(',').map((s) => s.trim())
+          : [],
+      };
+      const res = await api.post('/admin/external-facilities', payload);
+      if (res.data?.success) {
+        setFeedback({ type: 'success', message: 'External healthcare facility registered successfully' });
+        setNewExternalFacilityModalOpen(false);
+        setNewExternalFacilityForm({
+          facilityName: '',
+          facilityType: 'Apex Level-1 Public Trauma Center',
+          address: '',
+          latitude: 28.5672,
+          longitude: 77.1950,
+          contactNumber: '01126731000',
+          specialties: 'Level-1 Polytrauma, Emergency Resuscitation',
+          dataSource: 'GOVERNMENT_DIRECTORY',
+        });
+        const facRes = await api.get('/admin/external-facilities');
+        if (facRes.data?.success) setAdminExternalFacilities(facRes.data.facilities || []);
+      }
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.response?.data?.message || 'Failed to register external facility' });
     }
   };
 
@@ -792,6 +920,38 @@ export const AdminDashboard = () => {
             {failedDeliveries.length > 0 && (
               <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
                 {failedDeliveries.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('resources')}
+            className={`flex items-center gap-2 py-3 px-3.5 text-xs font-semibold border-b-2 transition-all ${
+              activeTab === 'resources'
+                ? 'border-brand-600 text-brand-700 bg-white shadow-xs rounded-t-lg'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Resource Types & Inventory</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
+              {adminResourceTypes.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('fallback')}
+            className={`flex items-center gap-2 py-3 px-3.5 text-xs font-semibold border-b-2 transition-all ${
+              activeTab === 'fallback'
+                ? 'border-brand-600 text-brand-700 bg-white shadow-xs rounded-t-lg'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Compass className="w-3.5 h-3.5" />
+            <span>Fallback & Recovery</span>
+            {fallbackSessions.length > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                {fallbackSessions.length}
               </span>
             )}
           </button>
@@ -2060,6 +2220,608 @@ export const AdminDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* TAB 9: Emergency Fallback & Recovery Oversight (Module 15) */}
+        {activeTab === 'fallback' && (
+          <div className="p-6 space-y-6">
+            {/* Fallback Telemetry KPI Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-slate-500 uppercase">Active Fallbacks</div>
+                <div className="text-2xl font-bold text-amber-600 mt-1">
+                  {fallbackKPIs?.activeSessionsCount ?? fallbackSessions.length}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">Live sessions</div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-slate-500 uppercase">Total Fallback Cases</div>
+                <div className="text-2xl font-bold text-slate-900 mt-1">
+                  {fallbackKPIs?.totalSessions ?? fallbackSessions.length}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">Recorded all-time</div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-slate-500 uppercase">No Candidates</div>
+                <div className="text-2xl font-bold text-slate-700 mt-1">
+                  {fallbackKPIs?.breakdown?.noCandidatesCount ?? 0}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">Initial search empty</div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-slate-500 uppercase">All Declined</div>
+                <div className="text-2xl font-bold text-red-600 mt-1">
+                  {fallbackKPIs?.breakdown?.allDeclinedCount ?? 0}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">No hospital accepted</div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-slate-500 uppercase">No Response</div>
+                <div className="text-2xl font-bold text-amber-700 mt-1">
+                  {fallbackKPIs?.breakdown?.noResponseCount ?? 0}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">Broadcast timed out</div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-slate-500 uppercase">External Directory</div>
+                <div className="text-2xl font-bold text-brand-600 mt-1">
+                  {fallbackKPIs?.externalFacilitiesCount ?? adminExternalFacilities.length}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">Public trauma centers</div>
+              </div>
+            </div>
+
+            {/* Active Fallback Sessions Table */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4 text-amber-600" />
+                    <span>Active Fallback & Recovery Sessions ({fallbackSessions.length})</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Emergencies currently operating in expanded search, destination recovery, or external trauma center routing.
+                  </p>
+                </div>
+              </div>
+
+              <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-xs">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[10px] border-b border-slate-200">
+                    <tr>
+                      <th className="p-3">Session / Request</th>
+                      <th className="p-3">Patient</th>
+                      <th className="p-3">Trigger Reason</th>
+                      <th className="p-3 text-center">Search Level</th>
+                      <th className="p-3 text-center">Radius</th>
+                      <th className="p-3">Status</th>
+                      <th className="p-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {fallbackSessions.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="p-6 text-center text-slate-400">
+                          No emergency requests currently in fallback mode. All dispatch cases resolved normally.
+                        </td>
+                      </tr>
+                    ) : (
+                      fallbackSessions.map((session) => (
+                        <tr key={session._id} className="hover:bg-slate-50/50">
+                          <td className="p-3">
+                            <span className="font-mono font-bold text-brand-700">{session.fallbackSessionId}</span>
+                            <span className="block text-[10px] text-slate-400 font-mono">
+                              REQ: {session.emergencyRequestId?.requestCode || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="p-3 font-semibold text-slate-900">
+                            {session.emergencyRequestId?.patientName || 'Emergency Patient'}
+                          </td>
+                          <td className="p-3">
+                            <Badge variant="urgent" size="xs">
+                              {session.triggerReason}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-center font-bold text-slate-700">
+                            Level {session.currentSearchLevel || 1} / 5
+                          </td>
+                          <td className="p-3 text-center font-bold text-blue-700">
+                            {session.currentSearchRadiusKm || 5} km
+                          </td>
+                          <td className="p-3">
+                            <Badge variant="emergency" size="xs">
+                              {session.status}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-right">
+                            {session.emergencyRequestId?._id && (
+                              <a
+                                href={`/emergency/fallback?requestId=${session.emergencyRequestId._id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs font-bold text-brand-600 hover:text-brand-800"
+                              >
+                                <span>Inspect</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* External Healthcare Facilities Directory */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-slate-700" />
+                    <span>External Healthcare Facilities Directory ({adminExternalFacilities.length})</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    High-trust public, government, and municipal tertiary trauma centers used when no private partner hospitals are available.
+                  </p>
+                </div>
+                <Button
+                  size="xs"
+                  variant="primary"
+                  onClick={() => setNewExternalFacilityModalOpen(true)}
+                  className="bg-brand-600 hover:bg-brand-700 text-white"
+                >
+                  + Register External Facility
+                </Button>
+              </div>
+
+              <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-xs">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[10px] border-b border-slate-200">
+                    <tr>
+                      <th className="p-3">Facility Name</th>
+                      <th className="p-3">Type</th>
+                      <th className="p-3">Contact</th>
+                      <th className="p-3">Data Source</th>
+                      <th className="p-3">Verification</th>
+                      <th className="p-3 text-right">Coordinates</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {adminExternalFacilities.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="p-6 text-center text-slate-400">
+                          No external healthcare facilities registered in directory.
+                        </td>
+                      </tr>
+                    ) : (
+                      adminExternalFacilities.map((fac) => (
+                        <tr key={fac._id || fac.externalFacilityId} className="hover:bg-slate-50/50">
+                          <td className="p-3">
+                            <span className="font-bold text-slate-900 block">{fac.facilityName}</span>
+                            <span className="text-[10px] text-slate-400 truncate block max-w-xs">{fac.address}</span>
+                          </td>
+                          <td className="p-3 text-slate-600 font-medium">{fac.facilityType}</td>
+                          <td className="p-3 font-mono font-bold text-slate-800">{fac.contactNumber || '108'}</td>
+                          <td className="p-3">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                              {fac.dataSource}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <Badge variant="success" size="xs">
+                              {fac.verificationStatus}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-right font-mono text-[11px] text-slate-500">
+                            {fac.latitude?.toFixed(4)}, {fac.longitude?.toFixed(4)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 8: Resource Types & Inventory Telemetry (Module 14) */}
+        {activeTab === 'resources' && (
+          <div className="p-6 space-y-6">
+            {/* Telemetry KPI Overview */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-slate-500 uppercase">Total Resources</div>
+                <div className="text-2xl font-bold text-slate-900 mt-1">
+                  {resourceTelemetry?.totalResources ?? 0}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">Across all facilities</div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-emerald-600 uppercase">Total Available</div>
+                <div className="text-2xl font-bold text-emerald-700 mt-1">
+                  {resourceTelemetry?.availableCapacity ?? 0}
+                </div>
+                <div className="text-[11px] text-emerald-500 mt-0.5">Ready for dispatch</div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-amber-600 uppercase">Reserved (Hold)</div>
+                <div className="text-2xl font-bold text-amber-700 mt-1">
+                  {resourceTelemetry?.reservedCapacity ?? 0}
+                </div>
+                <div className="text-[11px] text-amber-500 mt-0.5">Temporary hold</div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-blue-600 uppercase">Allocated</div>
+                <div className="text-2xl font-bold text-blue-700 mt-1">
+                  {resourceTelemetry?.allocatedCapacity ?? 0}
+                </div>
+                <div className="text-[11px] text-blue-500 mt-0.5">Occupied beds/units</div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-rose-600 uppercase">Stale Inventories</div>
+                <div className="text-2xl font-bold text-rose-700 mt-1">
+                  {(resourceTelemetry?.staleCount || 0) + (resourceTelemetry?.veryStaleCount || 0)}
+                </div>
+                <div className="text-[11px] text-rose-500 mt-0.5">&gt; 60m without update</div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-indigo-600 uppercase">Utilization</div>
+                <div className="text-2xl font-bold text-indigo-700 mt-1">
+                  {resourceTelemetry?.overallUtilization ?? 0}%
+                </div>
+                <div className="text-[11px] text-indigo-500 mt-0.5">Committed capacity</div>
+              </div>
+            </div>
+
+            {/* Resource Types Standard Catalog */}
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+              <div className="p-4 bg-slate-50/70 border-b border-slate-200 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Healthcare Resource Types Catalog</h3>
+                  <p className="text-xs text-slate-500">
+                    Standard nomenclature categories available for participating hospitals to register and track.
+                  </p>
+                </div>
+                <Button
+                  size="xs"
+                  variant="primary"
+                  onClick={() => setNewResourceTypeModalOpen(true)}
+                  className="bg-brand-600 hover:bg-brand-700 text-white"
+                >
+                  + Define Resource Type
+                </Button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                    <tr>
+                      <th className="p-3">Type Name & Identifier</th>
+                      <th className="p-3">Category</th>
+                      <th className="p-3">Unit</th>
+                      <th className="p-3">Description</th>
+                      <th className="p-3">Status</th>
+                      <th className="p-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {adminResourceTypes.map((type) => (
+                      <tr key={type._id} className="hover:bg-slate-50/50">
+                        <td className="p-3 font-semibold text-slate-900">
+                          <div>{type.typeName}</div>
+                          <div className="text-[10px] font-mono text-slate-400">{type.resourceTypeId}</div>
+                        </td>
+                        <td className="p-3">
+                          <span className="capitalize px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium text-[11px]">
+                            {type.category}
+                          </span>
+                        </td>
+                        <td className="p-3 text-slate-600">{type.unitOfMeasure}</td>
+                        <td className="p-3 text-slate-500 max-w-sm truncate">{type.description || '—'}</td>
+                        <td className="p-3">
+                          <Badge variant={type.active ? 'success' : 'default'} size="xs">
+                            {type.active ? 'ACTIVE' : 'INACTIVE'}
+                          </Badge>
+                        </td>
+                        <td className="p-3 text-right">
+                          <button
+                            onClick={() => handleToggleResourceTypeStatus(type._id, type.active)}
+                            className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                              type.active
+                                ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                            }`}
+                          >
+                            {type.active ? 'Deactivate' : 'Activate'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Participating Organizations Telemetry Table */}
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+              <div className="p-4 bg-slate-50/70 border-b border-slate-200">
+                <h3 className="font-bold text-slate-900 text-sm">Participating Facility Inventory Telemetry</h3>
+                <p className="text-xs text-slate-500">
+                  Real-time hospital capacity distribution and availability freshness monitoring.
+                </p>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                    <tr>
+                      <th className="p-3">Hospital / Organization</th>
+                      <th className="p-3 text-center">Tracked Resources</th>
+                      <th className="p-3 text-center">Total Capacity</th>
+                      <th className="p-3 text-center text-emerald-700">Available</th>
+                      <th className="p-3 text-center text-amber-700">Committed (Hold/Allocated)</th>
+                      <th className="p-3 text-center">Stale Resources</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {(resourceTelemetry?.organizations || []).length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="p-6 text-center text-slate-400">
+                          No hospital facilities have registered resources yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      (resourceTelemetry?.organizations || []).map((org) => (
+                        <tr key={org.organizationId} className="hover:bg-slate-50/50">
+                          <td className="p-3 font-semibold text-slate-900">{org.organizationName}</td>
+                          <td className="p-3 text-center font-bold text-slate-700">{org.resourceCount}</td>
+                          <td className="p-3 text-center font-bold text-slate-800">{org.totalCapacity}</td>
+                          <td className="p-3 text-center font-bold text-emerald-700">{org.availableCapacity}</td>
+                          <td className="p-3 text-center font-bold text-amber-700">
+                            {org.reservedCapacity + org.allocatedCapacity}
+                          </td>
+                          <td className="p-3 text-center">
+                            {org.staleCount > 0 ? (
+                              <Badge variant="urgent" size="xs">
+                                {org.staleCount} STALE
+                              </Badge>
+                            ) : (
+                              <Badge variant="success" size="xs">
+                                FRESH
+                              </Badge>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 9: Emergency Fallback & Recovery Oversight (Module 15) */}
+        {activeTab === 'fallback' && (
+          <div className="p-6 space-y-6">
+            {/* Fallback Telemetry KPI Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-slate-500 uppercase">Active Fallbacks</div>
+                <div className="text-2xl font-bold text-amber-600 mt-1">
+                  {fallbackKPIs?.activeSessionsCount ?? fallbackSessions.length}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">Live sessions</div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-slate-500 uppercase">Total Fallback Cases</div>
+                <div className="text-2xl font-bold text-slate-900 mt-1">
+                  {fallbackKPIs?.totalSessions ?? fallbackSessions.length}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">Recorded all-time</div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-slate-500 uppercase">No Candidates</div>
+                <div className="text-2xl font-bold text-slate-700 mt-1">
+                  {fallbackKPIs?.breakdown?.noCandidatesCount ?? 0}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">Initial search empty</div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-slate-500 uppercase">All Declined</div>
+                <div className="text-2xl font-bold text-red-600 mt-1">
+                  {fallbackKPIs?.breakdown?.allDeclinedCount ?? 0}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">No hospital accepted</div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-slate-500 uppercase">No Response</div>
+                <div className="text-2xl font-bold text-amber-700 mt-1">
+                  {fallbackKPIs?.breakdown?.noResponseCount ?? 0}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">Broadcast timed out</div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="text-xs font-semibold text-slate-500 uppercase">External Directory</div>
+                <div className="text-2xl font-bold text-brand-600 mt-1">
+                  {fallbackKPIs?.externalFacilitiesCount ?? adminExternalFacilities.length}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">Public trauma centers</div>
+              </div>
+            </div>
+
+            {/* Active Fallback Sessions Table */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4 text-amber-600" />
+                    <span>Active Fallback & Recovery Sessions ({fallbackSessions.length})</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Emergencies currently operating in expanded search, destination recovery, or external trauma center routing.
+                  </p>
+                </div>
+              </div>
+
+              <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-xs">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[10px] border-b border-slate-200">
+                    <tr>
+                      <th className="p-3">Session / Request</th>
+                      <th className="p-3">Patient</th>
+                      <th className="p-3">Trigger Reason</th>
+                      <th className="p-3 text-center">Search Level</th>
+                      <th className="p-3 text-center">Radius</th>
+                      <th className="p-3">Status</th>
+                      <th className="p-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {fallbackSessions.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="p-6 text-center text-slate-400">
+                          No emergency requests currently in fallback mode. All dispatch cases resolved normally.
+                        </td>
+                      </tr>
+                    ) : (
+                      fallbackSessions.map((session) => (
+                        <tr key={session._id} className="hover:bg-slate-50/50">
+                          <td className="p-3">
+                            <span className="font-mono font-bold text-brand-700">{session.fallbackSessionId}</span>
+                            <span className="block text-[10px] text-slate-400 font-mono">
+                              REQ: {session.emergencyRequestId?.requestCode || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="p-3 font-semibold text-slate-900">
+                            {session.emergencyRequestId?.patientName || 'Emergency Patient'}
+                          </td>
+                          <td className="p-3">
+                            <Badge variant="urgent" size="xs">
+                              {session.triggerReason}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-center font-bold text-slate-700">
+                            Level {session.currentSearchLevel || 1} / 5
+                          </td>
+                          <td className="p-3 text-center font-bold text-blue-700">
+                            {session.currentSearchRadiusKm || 5} km
+                          </td>
+                          <td className="p-3">
+                            <Badge variant="emergency" size="xs">
+                              {session.status}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-right">
+                            {session.emergencyRequestId?._id && (
+                              <a
+                                href={`/emergency/fallback?requestId=${session.emergencyRequestId._id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs font-bold text-brand-600 hover:text-brand-800"
+                              >
+                                <span>Inspect</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* External Healthcare Facilities Directory */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-slate-700" />
+                    <span>External Healthcare Facilities Directory ({adminExternalFacilities.length})</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    High-trust public, government, and municipal tertiary trauma centers used when no private partner hospitals are available.
+                  </p>
+                </div>
+                <Button
+                  size="xs"
+                  variant="primary"
+                  onClick={() => setNewExternalFacilityModalOpen(true)}
+                  className="bg-brand-600 hover:bg-brand-700 text-white"
+                >
+                  + Register External Facility
+                </Button>
+              </div>
+
+              <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-xs">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[10px] border-b border-slate-200">
+                    <tr>
+                      <th className="p-3">Facility Name</th>
+                      <th className="p-3">Type</th>
+                      <th className="p-3">Contact</th>
+                      <th className="p-3">Data Source</th>
+                      <th className="p-3">Verification</th>
+                      <th className="p-3 text-right">Coordinates</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {adminExternalFacilities.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="p-6 text-center text-slate-400">
+                          No external healthcare facilities registered in directory.
+                        </td>
+                      </tr>
+                    ) : (
+                      adminExternalFacilities.map((fac) => (
+                        <tr key={fac._id || fac.externalFacilityId} className="hover:bg-slate-50/50">
+                          <td className="p-3">
+                            <span className="font-bold text-slate-900 block">{fac.facilityName}</span>
+                            <span className="text-[10px] text-slate-400 truncate block max-w-xs">{fac.address}</span>
+                          </td>
+                          <td className="p-3 text-slate-600 font-medium">{fac.facilityType}</td>
+                          <td className="p-3 font-mono font-bold text-slate-800">{fac.contactNumber || '108'}</td>
+                          <td className="p-3">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                              {fac.dataSource}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <Badge variant="success" size="xs">
+                              {fac.verificationStatus}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-right font-mono text-[11px] text-slate-500">
+                            {fac.latitude?.toFixed(4)}, {fac.longitude?.toFixed(4)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* MODAL 1: Doctor Application Details Dossier Modal */}
@@ -3009,6 +3771,250 @@ export const AdminDashboard = () => {
                   loading={actionLoading}
                 >
                   Apply Correction
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* MODAL: Define Resource Type (Module 14) */}
+      {newResourceTypeModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+        >
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 shadow-modal border border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="text-base font-bold text-slate-900">Define Healthcare Resource Type</h3>
+              <button
+                onClick={() => setNewResourceTypeModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateResourceType} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Standard Type Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Hyperbaric Oxygen Chamber"
+                  value={newResourceTypeForm.typeName}
+                  onChange={(e) => setNewResourceTypeForm({ ...newResourceTypeForm, typeName: e.target.value })}
+                  className="w-full text-sm py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+                  <select
+                    value={newResourceTypeForm.category}
+                    onChange={(e) => setNewResourceTypeForm({ ...newResourceTypeForm, category: e.target.value })}
+                    className="w-full text-sm py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                  >
+                    <option value="beds">Beds</option>
+                    <option value="critical_care">Critical Care</option>
+                    <option value="surgical">Surgical</option>
+                    <option value="blood_bank">Blood Bank</option>
+                    <option value="imaging">Imaging</option>
+                    <option value="laboratory">Laboratory</option>
+                    <option value="general">General</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Unit of Measure</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. units, beds, rooms, machines"
+                    value={newResourceTypeForm.unitOfMeasure}
+                    onChange={(e) => setNewResourceTypeForm({ ...newResourceTypeForm, unitOfMeasure: e.target.value })}
+                    className="w-full text-sm py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Clinical Description</label>
+                <textarea
+                  rows="2"
+                  placeholder="Clinical purpose and operational constraints"
+                  value={newResourceTypeForm.description}
+                  onChange={(e) => setNewResourceTypeForm({ ...newResourceTypeForm, description: e.target.value })}
+                  className="w-full text-sm py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-4 text-xs font-medium text-slate-700">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newResourceTypeForm.quantityTracked}
+                    onChange={(e) =>
+                      setNewResourceTypeForm({ ...newResourceTypeForm, quantityTracked: e.target.checked })
+                    }
+                    className="rounded text-brand-600 focus:ring-brand-500"
+                  />
+                  <span>Quantity Tracked</span>
+                </label>
+
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newResourceTypeForm.active}
+                    onChange={(e) => setNewResourceTypeForm({ ...newResourceTypeForm, active: e.target.checked })}
+                    className="rounded text-brand-600 focus:ring-brand-500"
+                  />
+                  <span>Active for Organizations</span>
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                <Button size="sm" variant="outline" type="button" onClick={() => setNewResourceTypeModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button size="sm" variant="primary" type="submit" className="bg-brand-600 hover:bg-brand-700 text-white">
+                  Save Resource Type
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Register External Healthcare Facility (Module 15) */}
+      {newExternalFacilityModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+        >
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 shadow-modal border border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="text-base font-bold text-slate-900">Register External Healthcare Facility</h3>
+              <button
+                onClick={() => setNewExternalFacilityModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateExternalFacility} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Facility Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. AIIMS Apex Trauma Center"
+                  value={newExternalFacilityForm.facilityName}
+                  onChange={(e) =>
+                    setNewExternalFacilityForm({ ...newExternalFacilityForm, facilityName: e.target.value })
+                  }
+                  className="w-full text-sm py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Facility Type</label>
+                  <select
+                    value={newExternalFacilityForm.facilityType}
+                    onChange={(e) =>
+                      setNewExternalFacilityForm({ ...newExternalFacilityForm, facilityType: e.target.value })
+                    }
+                    className="w-full text-sm py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                  >
+                    <option value="Apex Level-1 Public Trauma Center">Apex Level-1 Public Trauma Center</option>
+                    <option value="Central Government Multi-Speciality Trauma Block">Central Govt Trauma Block</option>
+                    <option value="Regional Public Hospital">Regional Public Hospital</option>
+                    <option value="Municipal Emergency Center">Municipal Emergency Center</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Emergency Helpline</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 011-26731000 or 108"
+                    value={newExternalFacilityForm.contactNumber}
+                    onChange={(e) =>
+                      setNewExternalFacilityForm({ ...newExternalFacilityForm, contactNumber: e.target.value })
+                    }
+                    className="w-full text-sm py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Full Physical Address</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Street, Area, City, Pin Code"
+                  value={newExternalFacilityForm.address}
+                  onChange={(e) =>
+                    setNewExternalFacilityForm({ ...newExternalFacilityForm, address: e.target.value })
+                  }
+                  className="w-full text-sm py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Latitude</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    required
+                    value={newExternalFacilityForm.latitude}
+                    onChange={(e) =>
+                      setNewExternalFacilityForm({ ...newExternalFacilityForm, latitude: e.target.value })
+                    }
+                    className="w-full text-sm py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Longitude</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    required
+                    value={newExternalFacilityForm.longitude}
+                    onChange={(e) =>
+                      setNewExternalFacilityForm({ ...newExternalFacilityForm, longitude: e.target.value })
+                    }
+                    className="w-full text-sm py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Specialties (comma-separated)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Level-1 Polytrauma, Emergency Surgery, ICU"
+                  value={newExternalFacilityForm.specialties}
+                  onChange={(e) =>
+                    setNewExternalFacilityForm({ ...newExternalFacilityForm, specialties: e.target.value })
+                  }
+                  className="w-full text-sm py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                <Button size="sm" variant="outline" type="button" onClick={() => setNewExternalFacilityModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button size="sm" variant="primary" type="submit" className="bg-brand-600 hover:bg-brand-700 text-white">
+                  Register Facility
                 </Button>
               </div>
             </form>

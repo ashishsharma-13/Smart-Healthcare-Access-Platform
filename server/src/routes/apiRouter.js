@@ -7,8 +7,11 @@ import emergencyRoutes from './emergencyRoutes.js';
 import adminRoutes from './adminRoutes.js';
 import matchingRoutes from './matchingRoutes.js';
 import emergencyBeepRoutes from './emergencyBeepRoutes.js';
+import emergencyFallbackRoutes from './emergencyFallbackRoutes.js';
 import notificationRoutes from './notificationRoutes.js';
 import { internalReservationRoutes, emergencyDestinationRoutes, organizationReservationRoutes } from './destinationReservationRoutes.js';
+import { healthcareResourceTypeController } from '../controllers/HealthcareResourceTypeController.js';
+import { healthcareResourceController } from '../controllers/HealthcareResourceController.js';
 import { doctorAffiliationController } from '../controllers/DoctorAffiliationController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
@@ -61,7 +64,15 @@ router.use('/internal/emergency-matching', matchingRoutes);
 router.use('/emergency-matching', matchingRoutes);
 router.use('/internal/emergency-beep', emergencyBeepRoutes);
 router.use('/emergency-beep', emergencyBeepRoutes);
+router.use('/internal/emergency-fallback', emergencyFallbackRoutes);
+router.use('/emergency-fallback', emergencyFallbackRoutes);
 router.use('/internal/reservations', internalReservationRoutes);
 router.use('/reservations', internalReservationRoutes);
+
+// Module 14: Public Resource Types & Internal Resource Operations
+router.get('/resource-types', (req, res, next) => healthcareResourceTypeController.listActive(req, res, next));
+router.get('/internal/organizations/:organizationId/resources', (req, res, next) => healthcareResourceController.getInternalOrgResources(req, res, next));
+router.get('/internal/resources/:resourceId/availability', (req, res, next) => healthcareResourceController.getInternalResourceAvailability(req, res, next));
+router.post('/internal/resources/:resourceId/reconcile', (req, res, next) => healthcareResourceController.reconcileResource(req, res, next));
 
 export default router;
