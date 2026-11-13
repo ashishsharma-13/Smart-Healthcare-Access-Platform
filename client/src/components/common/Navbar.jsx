@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useUI } from '../../context/UIContext';
 import { useSocket } from '../../context/SocketContext';
+import api from '../../services/api';
 import {
   Plus,
   Bell,
@@ -133,17 +134,83 @@ export const Navbar = () => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const socket = socketContext?.socket || null;
 
   const notificationsRef = useRef(null);
   const profileRef = useRef(null);
 
-  useEffect(() => {
+  // Fetch real notifications from backend with fallback to role defaults
+  const fetchRealNotifications = async () => {
+    if (!user) return;
+    try {
+      const res = await api.get('/notifications/my?limit=15');
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        if (res.data.data.length > 0) {
+          const formatted = res.data.data.map((n) => ({
+            id: n.notificationId || n._id,
+            _id: n._id,
+            title: n.title,
+            message: n.message,
+            time: new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            unread: n.status !== 'READ',
+            link: n.actionUrl || '/notifications',
+            priority: n.priority,
+            type: n.notificationType,
+          }));
+          setNotifications(formatted);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Notification fetch warning:', err.message);
+    }
+
+    // Role defaults fallback
     if (user?.role && ROLE_NOTIFICATIONS[user.role]) {
       setNotifications(ROLE_NOTIFICATIONS[user.role]);
     } else {
       setNotifications(ROLE_NOTIFICATIONS.patient);
     }
-  }, [user?.role]);
+  };
+
+  useEffect(() => {
+    fetchRealNotifications();
+  }, [user]);
+
+  // Real-time socket notification listener
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewNotification = (newNotif) => {
+      const formatted = {
+        id: newNotif.notificationId || newNotif._id || `LIVE-${Date.now()}`,
+        _id: newNotif._id,
+        title: newNotif.title,
+        message: newNotif.message,
+        time: 'Just now',
+        unread: true,
+        link: newNotif.actionUrl || '/notifications',
+        priority: newNotif.priority,
+        type: newNotif.type,
+      };
+
+      setNotifications((prev) => [formatted, ...prev.slice(0, 14)]);
+
+      // Audio notification if available
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.play().catch(() => {});
+      } catch (e) {}
+    };
+
+    socket.on('notification:new', handleNewNotification);
+    socket.on('notification:received', handleNewNotification);
+
+    return () => {
+      socket.off('notification:new', handleNewNotification);
+      socket.off('notification:received', handleNewNotification);
+    };
+  }, [socket]);
 
   // Click outside listener for dropdowns
   useEffect(() => {
@@ -162,11 +229,19 @@ export const Navbar = () => {
   const unreadCount = notifications.filter((n) => n.unread).length;
   const hasUnread = unreadCount > 0 || !!incomingEmergency;
 
-  const handleMarkAllRead = () => {
+  const handleMarkAllRead = async () => {
+    try {
+      await api.post('/notifications/my/read-all');
+    } catch (e) {}
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
   };
 
-  const handleNotificationClick = (item) => {
+  const handleNotificationClick = async (item) => {
+    try {
+      if (item._id || (item.id && !item.id.startsWith('p') && !item.id.startsWith('d') && !item.id.startsWith('o') && !item.id.startsWith('a'))) {
+        await api.post(`/notifications/${item._id || item.id}/read`);
+      }
+    } catch (e) {}
     setNotifications((prev) =>
       prev.map((n) => (n.id === item.id ? { ...n, unread: false } : n))
     );
@@ -396,6 +471,23 @@ export const Navbar = () => {
                             </p>
                           </div>
                         ))}
+                      </div>
+
+                      <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                        <Link
+                          to="/notifications"
+                          onClick={() => setNotificationsOpen(false)}
+                          className="font-bold text-brand-600 hover:text-brand-800 transition flex items-center gap-1 cursor-pointer"
+                        >
+                          View all notifications &rarr;
+                        </Link>
+                        <Link
+                          to="/notifications?tab=preferences"
+                          onClick={() => setNotificationsOpen(false)}
+                          className="text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                        >
+                          Preferences
+                        </Link>
                       </div>
                     </div>
                   )}

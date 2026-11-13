@@ -3,6 +3,9 @@ import { adminController } from '../controllers/AdminController.js';
 import { doctorAffiliationController } from '../controllers/DoctorAffiliationController.js';
 import { appointmentController } from '../controllers/AppointmentController.js';
 import { doctorPresenceController } from '../controllers/DoctorPresenceController.js';
+import { emergencyController } from '../controllers/EmergencyController.js';
+import { emergencyMatchingController } from '../controllers/EmergencyMatchingController.js';
+import { notificationController } from '../controllers/NotificationController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -35,6 +38,31 @@ router.get('/appointments/:id', (req, res, next) => appointmentController.getApp
 // Module 7: Admin Doctor Presence Monitoring & Auditable Correction
 router.get('/presence', (req, res, next) => doctorPresenceController.getAdminPresenceLogs(req, res, next));
 router.post('/presence/:id/correct', (req, res, next) => doctorPresenceController.correctPresenceLog(req, res, next));
+
+// Module 8: Admin Emergency Categories & Guidance Management
+router.get('/emergency/categories', (req, res, next) => emergencyController.adminGetCategories(req, res, next));
+router.post('/emergency/categories', (req, res, next) => emergencyController.adminCreateCategory(req, res, next));
+router.put('/emergency/categories/:id', (req, res, next) => emergencyController.adminUpdateCategory(req, res, next));
+router.get('/emergency/guidance', (req, res, next) => emergencyController.adminGetGuidance(req, res, next));
+router.post('/emergency/guidance', (req, res, next) => emergencyController.adminCreateGuidance(req, res, next));
+router.put('/emergency/guidance/:id', (req, res, next) => emergencyController.adminUpdateGuidance(req, res, next));
+router.post('/emergency/guidance/:id/approve', (req, res, next) => emergencyController.adminApproveGuidance(req, res, next));
+
+// Module 9: Admin Emergency Capabilities & Matching Configuration
+router.get('/emergency/capabilities', (req, res, next) => emergencyMatchingController.listCapabilities(req, res, next));
+router.post('/emergency/capabilities', (req, res, next) => emergencyMatchingController.createCapability(req, res, next));
+router.put('/emergency/capabilities/:id', (req, res, next) => emergencyMatchingController.updateCapability(req, res, next));
+router.post('/emergency/category-mappings', (req, res, next) => emergencyMatchingController.createCategoryMapping(req, res, next));
+router.get('/emergency/matching/configuration', (req, res, next) => emergencyMatchingController.getConfiguration(req, res, next));
+router.put('/emergency/matching/configuration', (req, res, next) => emergencyMatchingController.updateConfiguration(req, res, next));
+router.get('/emergency/matching/audit', (req, res, next) => emergencyMatchingController.getAuditResults(req, res, next));
+
+// Module 13: Admin Notification Monitoring, Dead-letter & Manual Retry
+router.get('/notifications', (req, res, next) => notificationController.getAdminNotifications(req, res, next));
+router.get('/notifications/failed', (req, res, next) => notificationController.getFailedDeliveries(req, res, next));
+router.get('/notifications/:id/deliveries', (req, res, next) => notificationController.getNotificationDeliveries(req, res, next));
+router.post('/notifications/:id/retry', (req, res, next) => notificationController.retryNotification(req, res, next));
+router.get('/notification-metrics', (req, res, next) => notificationController.getNotificationMetrics(req, res, next));
 
 export default router;
 

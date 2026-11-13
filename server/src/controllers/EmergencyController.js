@@ -3,6 +3,7 @@ import { emergencyMatchingService } from '../services/EmergencyMatchingService.j
 import { resourceReservationService } from '../services/ResourceReservationService.js';
 import { emergencyRepository } from '../repositories/EmergencyRepository.js';
 import { organizationRepository } from '../repositories/OrganizationRepository.js';
+import { emergencyRequestService } from '../services/EmergencyRequestService.js';
 
 export class EmergencyController {
   async getNearbyFacilities(req, res, next) {
@@ -267,6 +268,192 @@ export class EmergencyController {
       }
 
       res.json({ success: true, count: emergencies.length, data: emergencies });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // --- MODULE 8: EMERGENCY MODE & REQUEST CREATION METHODS ---
+  async getCategories(req, res, next) {
+    try {
+      const categories = await emergencyRequestService.getCategories(req.query.all === 'true');
+      res.json({
+        success: true,
+        count: categories.length,
+        data: categories,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getGuidance(req, res, next) {
+    try {
+      const result = await emergencyRequestService.getGuidanceForCategory(req.params.categoryId);
+      res.json({
+        success: true,
+        available: result.available,
+        category: result.category,
+        data: result.guidance,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async createEmergencyRequest(req, res, next) {
+    try {
+      const {
+        categoryId,
+        categorySlug,
+        categoryName,
+        emergencyCategoryId,
+        emergencyType,
+        description,
+        ambulanceRequirement,
+        latitude,
+        longitude,
+        lat,
+        lng,
+        address,
+        locationAddress,
+        locationAccuracy,
+        locationSource,
+        locationConfirmed,
+        patientDetails,
+        idempotencyKey,
+      } = req.body;
+
+      const result = await emergencyRequestService.createEmergencyRequest({
+        user: req.user,
+        categoryId: categoryId || emergencyCategoryId,
+        categorySlug: categorySlug || emergencyType,
+        categoryName,
+        description,
+        ambulanceRequirement,
+        latitude: latitude !== undefined ? latitude : lat,
+        longitude: longitude !== undefined ? longitude : lng,
+        address: address || locationAddress,
+        locationAccuracy,
+        locationSource,
+        locationConfirmed,
+        patientDetails,
+        idempotencyKey,
+      });
+
+      const statusCode = result.isDuplicate ? 200 : 201;
+      res.status(statusCode).json({
+        success: true,
+        message: result.message,
+        isDuplicate: result.isDuplicate,
+        emergencyRequestId: result.emergencyRequest.emergencyRequestId || result.emergencyRequest.requestCode,
+        data: result.emergencyRequest,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getMyEmergencyRequests(req, res, next) {
+    try {
+      const requests = await emergencyRequestService.getMyRequests(req.user._id);
+      res.json({
+        success: true,
+        count: requests.length,
+        data: requests,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getEmergencyRequestDetails(req, res, next) {
+    try {
+      const result = await emergencyRequestService.getRequestById(req.params.id, req.user);
+      res.json({
+        success: true,
+        data: result.request,
+        events: result.events,
+        broadcasts: result.broadcasts,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async cancelEmergencyRequest(req, res, next) {
+    try {
+      const { reason } = req.body;
+      const updated = await emergencyRequestService.cancelRequest(req.params.id, req.user, reason);
+      res.json({
+        success: true,
+        message: 'Emergency request cancelled successfully',
+        data: updated,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // --- Admin Emergency Categories & Guidance Management ---
+  async adminGetCategories(req, res, next) {
+    try {
+      const categories = await emergencyRequestService.adminListCategories();
+      res.json({ success: true, count: categories.length, data: categories });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async adminCreateCategory(req, res, next) {
+    try {
+      const category = await emergencyRequestService.adminCreateCategory(req.user, req.body);
+      res.status(201).json({ success: true, message: 'Emergency category created', data: category });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async adminUpdateCategory(req, res, next) {
+    try {
+      const category = await emergencyRequestService.adminUpdateCategory(req.user, req.params.id, req.body);
+      res.json({ success: true, message: 'Emergency category updated', data: category });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async adminGetGuidance(req, res, next) {
+    try {
+      const guidance = await emergencyRequestService.adminListGuidance(req.query);
+      res.json({ success: true, count: guidance.length, data: guidance });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async adminCreateGuidance(req, res, next) {
+    try {
+      const guidance = await emergencyRequestService.adminCreateGuidance(req.user, req.body);
+      res.status(201).json({ success: true, message: 'Emergency guidance created', data: guidance });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async adminUpdateGuidance(req, res, next) {
+    try {
+      const guidance = await emergencyRequestService.adminUpdateGuidance(req.user, req.params.id, req.body);
+      res.json({ success: true, message: 'Emergency guidance updated', data: guidance });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async adminApproveGuidance(req, res, next) {
+    try {
+      const guidance = await emergencyRequestService.adminApproveGuidance(req.user, req.params.id);
+      res.json({ success: true, message: 'Emergency guidance approved and published', data: guidance });
     } catch (err) {
       next(err);
     }

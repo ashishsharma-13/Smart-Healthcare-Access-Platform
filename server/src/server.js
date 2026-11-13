@@ -4,6 +4,8 @@ import app from './app.js';
 import { connectDB } from './config/db.js';
 import { initSocket } from './sockets/socketHandler.js';
 import { resourceReservationService } from './services/ResourceReservationService.js';
+import { notificationOutboxService } from './services/NotificationOutboxService.js';
+import { notificationRetryService } from './services/NotificationRetryService.js';
 import { User } from './models/User.js';
 
 const PORT = process.env.PORT || 5000;
@@ -33,6 +35,16 @@ const startServer = async () => {
       console.error('[Reservation Cron] Error checking expired reservations:', err.message);
     }
   }, 30000);
+
+  // Module 13: Background Transactional Outbox Worker & Retry Processor (every 10 seconds)
+  setInterval(async () => {
+    try {
+      await notificationOutboxService.processPendingEvents();
+      await notificationRetryService.processPendingRetries();
+    } catch (err) {
+      console.error('[Notification Worker Error]', err.message);
+    }
+  }, 10000);
 
   server.listen(PORT, () => {
     console.log(`=======================================================`);

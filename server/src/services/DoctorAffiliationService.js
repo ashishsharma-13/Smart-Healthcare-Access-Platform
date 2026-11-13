@@ -3,6 +3,7 @@ import { doctorAffiliationRepository } from '../repositories/DoctorAffiliationRe
 import { affiliationRequestRepository } from '../repositories/AffiliationRequestRepository.js';
 import { doctorRepository } from '../repositories/DoctorRepository.js';
 import { organizationRepository } from '../repositories/OrganizationRepository.js';
+import { notificationService } from './NotificationService.js';
 import { getSocketIO } from '../sockets/socketHandler.js';
 import { User, Doctor, DoctorAffiliation, AffiliationRequest } from '../models/index.js';
 
@@ -64,6 +65,18 @@ export class DoctorAffiliationService {
       });
     }
 
+    if (organization.userId) {
+      notificationService.createNotification({
+        recipientUserId: organization.userId,
+        organizationId: organization._id,
+        notificationType: 'AFFILIATION_REQUEST',
+        title: 'New Doctor Affiliation Request',
+        message: `Dr. ${doctor.userId?.name || doctor.name || 'Practitioner'} has requested affiliation with your facility.`,
+        priority: 'NORMAL',
+        actionUrl: '/organization/affiliations',
+      }).catch((e) => console.warn('[Notification Warning]', e.message));
+    }
+
     return await doctorAffiliationRepository.findById(affiliation._id);
   }
 
@@ -119,6 +132,19 @@ export class DoctorAffiliationService {
         organizationName: organization.name,
         status: 'PENDING',
       });
+    }
+
+    if (doctor.userId) {
+      const doctorUid = doctor.userId._id || doctor.userId;
+      notificationService.createNotification({
+        recipientUserId: doctorUid,
+        organizationId: organization._id,
+        notificationType: 'AFFILIATION_REQUEST',
+        title: 'Hospital Affiliation Invitation',
+        message: `${organization.name} has invited you to join their clinical medical staff.`,
+        priority: 'NORMAL',
+        actionUrl: '/doctor/affiliations',
+      }).catch((e) => console.warn('[Notification Warning]', e.message));
     }
 
     return await doctorAffiliationRepository.findById(affiliation._id);
@@ -240,6 +266,19 @@ export class DoctorAffiliationService {
         organizationName: organization.name,
         status: 'ACTIVE',
       });
+    }
+
+    if (doctor.userId) {
+      const doctorUid = doctor.userId._id || doctor.userId;
+      notificationService.createNotification({
+        recipientUserId: doctorUid,
+        organizationId: organization._id,
+        notificationType: 'AFFILIATION_ACCEPTED',
+        title: 'Affiliation Approved & Active',
+        message: `${organization.name} has approved your clinical affiliation. You are now active on staff.`,
+        priority: 'NORMAL',
+        actionUrl: '/doctor/affiliations',
+      }).catch((e) => console.warn('[Notification Warning]', e.message));
     }
 
     return updated;
@@ -803,6 +842,19 @@ export class DoctorAffiliationService {
       const docUserIdStr = affiliation.doctorId?.userId?._id?.toString() || affiliation.doctorId?.userId?.toString();
       if (orgIdStr) io.to(`org:${orgIdStr}`).emit('affiliation:terminated', { affiliationId: affiliation._id, reason });
       if (docUserIdStr) io.to(`user:${docUserIdStr}`).emit('affiliation:terminated', { affiliationId: affiliation._id, reason });
+    }
+
+    const docUserId = affiliation.doctorId?.userId?._id || affiliation.doctorId?.userId;
+    if (docUserId) {
+      notificationService.createNotification({
+        recipientUserId: docUserId,
+        organizationId: affiliation.organizationId._id || affiliation.organizationId,
+        notificationType: 'AFFILIATION_TERMINATED',
+        title: 'Clinical Affiliation Terminated',
+        message: `Clinical affiliation has been terminated. Reason: ${reason || 'Administrative update'}.`,
+        priority: 'NORMAL',
+        actionUrl: '/doctor/affiliations',
+      }).catch((e) => console.warn('[Notification Warning]', e.message));
     }
 
     return updated;

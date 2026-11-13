@@ -293,23 +293,34 @@ export const PatientDashboard = () => {
 
         {/* Right Column (Col 4) */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Emergency Card strictly per Reference Image 2 */}
+          {/* Emergency Card strictly per Reference Image 2 & Module 8 */}
           <div className="p-6 rounded-2xl bg-[#FEF2F2] border border-rose-200/80 shadow-xs space-y-3">
-            <div className="flex items-center space-x-2">
-              <Siren className="w-4 h-4 text-rose-600 shrink-0" />
-              <h2 className="text-sm font-bold text-rose-950">Need urgent facility access?</h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Siren className="w-4 h-4 text-rose-600 shrink-0 animate-pulse" />
+                <h2 className="text-sm font-black text-rose-950">Emergency Mode Access</h2>
+              </div>
+              <span className="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">24/7 Active</span>
             </div>
-            <p className="text-xs text-rose-800/90 leading-relaxed">
-              Send an Emergency Beep to suitable participating facilities and compare their responses.
+            <p className="text-xs text-rose-800/90 leading-relaxed font-medium">
+              Create an urgent emergency request with GPS coordinates, review approved first-aid protocols, and alert emergency facilities.
             </p>
-            <Link
-              to="/emergency/activate"
-              className="w-full py-3 bg-[#DC2626] hover:bg-red-700 text-white font-bold text-xs text-center block rounded-xl shadow-xs transition active:scale-95 cursor-pointer mt-2"
-            >
-              Start Emergency Beep
-            </Link>
+            <div className="flex flex-col gap-2 pt-1">
+              <Link
+                to="/emergency/activate"
+                className="w-full py-3 bg-[#DC2626] hover:bg-red-700 text-white font-extrabold text-xs text-center block rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+              >
+                Activate Emergency Mode
+              </Link>
+              <Link
+                to="/emergency/history"
+                className="w-full py-2 bg-white/80 hover:bg-white text-rose-900 font-bold text-xs text-center block rounded-xl border border-rose-200 transition cursor-pointer"
+              >
+                View Emergency Request History
+              </Link>
+            </div>
             <p className="text-[10px] text-rose-600/80 leading-normal pt-1">
-              Immediate danger? Call your local emergency number. SHAP does not replace emergency services.
+              Immediate life-threat? Call <strong>112 / 108</strong> directly. Digital requests register and alert in parallel.
             </p>
           </div>
 

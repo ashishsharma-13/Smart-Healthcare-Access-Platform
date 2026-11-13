@@ -49,6 +49,7 @@ import { OrganizationDoctorsPage } from './pages/organization/OrganizationDoctor
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminEmergencyMonitor } from './pages/admin/AdminEmergencyMonitor';
+import { NotificationsPage } from './pages/common/NotificationsPage';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
@@ -107,6 +108,16 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <DashboardRedirect />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Module 13 Unified Notifications Center */}
+              <Route
+                path="/notifications"
+                element={
+                  <ProtectedRoute>
+                    <NotificationsPage />
                   </ProtectedRoute>
                 }
               />

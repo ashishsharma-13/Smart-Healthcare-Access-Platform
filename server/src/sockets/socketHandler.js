@@ -49,9 +49,19 @@ export const initSocket = (server) => {
       socket.join(idStr);
       socket.join(`org:${idStr}`);
       socket.join(`facility:${idStr}`);
+      socket.join(`/topic/organizations/${idStr}/emergency-beeps`);
       if (slug) socket.join(slug.toString());
       console.log(`[Socket] ${socket.id} joined hospital rooms: [${idStr}, org:${idStr}, facility:${idStr}]`);
     };
+
+    // Auto-join user room for private notifications
+    if (socket.user) {
+      const uId = socket.user._id.toString();
+      socket.join(uId);
+      socket.join(`user:${uId}`);
+      socket.join('/user/queue/notifications');
+      console.log(`[Socket] ${socket.id} joined user notification rooms: [${uId}, user:${uId}]`);
+    }
 
     // Auto-join organization room if user is an organization
     if (socket.organization) {
@@ -74,17 +84,25 @@ export const initSocket = (server) => {
     // Join emergency room for updates on a specific emergency request
     socket.on('emergency:subscribe', ({ emergencyRequestId }) => {
       if (emergencyRequestId) {
-        const room = `emergency:${emergencyRequestId}`;
-        socket.join(room);
-        console.log(`[Socket] ${socket.id} subscribed to ${room}`);
+        const idStr = emergencyRequestId.toString();
+        socket.join(`emergency:${idStr}`);
+        socket.join(`/topic/emergency/${idStr}/responses`);
+        socket.join(`/topic/emergency/${idStr}/destination`);
+        socket.join(`/topic/emergency/${idStr}/reservation`);
+        socket.join(`/topic/emergency/${idStr}/journey`);
+        console.log(`[Socket] ${socket.id} subscribed to emergency:${idStr}`);
       }
     });
 
     socket.on('emergency:unsubscribe', ({ emergencyRequestId }) => {
       if (emergencyRequestId) {
-        const room = `emergency:${emergencyRequestId}`;
-        socket.leave(room);
-        console.log(`[Socket] ${socket.id} left ${room}`);
+        const idStr = emergencyRequestId.toString();
+        socket.leave(`emergency:${idStr}`);
+        socket.leave(`/topic/emergency/${idStr}/responses`);
+        socket.leave(`/topic/emergency/${idStr}/destination`);
+        socket.leave(`/topic/emergency/${idStr}/reservation`);
+        socket.leave(`/topic/emergency/${idStr}/journey`);
+        console.log(`[Socket] ${socket.id} left emergency:${idStr}`);
       }
     });
 

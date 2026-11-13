@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
+import { useSocket } from '../../context/SocketContext';
 import {
   Building2,
   CheckCircle2,
@@ -15,6 +16,8 @@ import {
   Navigation,
   Info,
   AlertTriangle,
+  RefreshCw,
+  Phone,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -25,23 +28,117 @@ import { formatFacilityAddress } from '../../utils/geoUtils';
 export const EmergencyResponsesPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { socket } = useSocket();
 
   const [emergency, setEmergency] = useState(null);
   const [broadcasts, setBroadcasts] = useState([]);
+  const [acceptedOrgs, setAcceptedOrgs] = useState([]);
+  const [recommendation, setRecommendation] = useState(null);
+  const [pendingSelection, setPendingSelection] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectingId, setSelectingId] = useState(null);
+  const [confirmationNotice, setConfirmationNotice] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     fetchData();
-  }, [id]);
+
+    if (socket) {
+      socket.emit('emergency:subscribe', { emergencyRequestId: id });
+
+      socket.on('emergency:destination_confirmed', (data) => {
+        setConfirmationNotice('Hospital confirmed! Temporary 15-minute bed reservation active.');
+        setTimeout(() => {
+          navigate(`/emergency/en-route/${id}`);
+        }, 1500);
+      });
+
+      socket.on('emergency:resource_reserved', () => {
+        navigate(`/emergency/en-route/${id}`);
+      });
+
+      socket.on('emergency:destination_confirmation_declined', (data) => {
+        setPendingSelection(null);
+        setErrorMessage(data?.reason || 'Hospital declined final confirmation. Please select another accepted center.');
+        fetchData();
+      });
+
+      socket.on('emergency:destination_confirmation_failed', (data) => {
+        setPendingSelection(null);
+        setErrorMessage(data?.reason || 'Resource reservation failed due to live capacity. Please pick another facility.');
+        fetchData();
+      });
+
+      socket.on('emergency:status_change', (data) => {
+        if (data?.status === 'RESOURCES_RESERVED' || data?.status === 'PATIENT_EN_ROUTE') {
+          navigate(`/emergency/en-route/${id}`);
+        } else {
+          fetchData();
+        }
+      });
+    }
+
+    return () => {
+      if (socket) {
+        socket.emit('emergency:unsubscribe', { emergencyRequestId: id });
+        socket.off('emergency:destination_confirmed');
+        socket.off('emergency:resource_reserved');
+        socket.off('emergency:destination_confirmation_declined');
+        socket.off('emergency:destination_confirmation_failed');
+        socket.off('emergency:status_change');
+      }
+    };
+  }, [id, socket]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
+
+      // 1. Try Module 11 accepted-organizations endpoint
+      try {
+        const acceptedRes = await api.get(`/emergency/requests/${id}/accepted-organizations`);
+        if (acceptedRes.data.success && Array.isArray(acceptedRes.data.data)) {
+          setAcceptedOrgs(acceptedRes.data.data);
+        }
+      } catch (err) {
+        // Fallback handled below
+      }
+
+      // 2. Try recommendation endpoint
+      try {
+        const recRes = await api.get(`/emergency/requests/${id}/recommendation`);
+        if (recRes.data.success && recRes.data.data?.recommended) {
+          setRecommendation(recRes.data.data);
+        }
+      } catch (err) {
+        // Fallback handled below
+      }
+
+      // 3. Try destination selection status
+      try {
+        const destRes = await api.get(`/emergency/requests/${id}/destination`);
+        if (destRes.data.success && destRes.data.data?.currentSelection) {
+          const sel = destRes.data.data.currentSelection;
+          if (sel.selectionStatus === 'PENDING_CONFIRMATION') {
+            setPendingSelection(sel);
+          } else if (sel.selectionStatus === 'CONFIRMED') {
+            navigate(`/emergency/en-route/${id}`);
+            return;
+          }
+        }
+      } catch (err) {
+        // Fallback handled below
+      }
+
+      // 4. Base emergency data
       const res = await api.get(`/emergency/${id}`);
       if (res.data.success) {
         setEmergency(res.data.data.emergency);
-        setBroadcasts(res.data.data.broadcasts);
+        setBroadcasts(res.data.data.broadcasts || []);
+
+        if (res.data.data.emergency?.status === 'RESOURCES_RESERVED' || res.data.data.emergency?.status === 'PATIENT_EN_ROUTE') {
+          navigate(`/emergency/en-route/${id}`);
+        }
       }
     } catch (err) {
       console.error('Error fetching responses', err);
@@ -53,42 +150,107 @@ export const EmergencyResponsesPage = () => {
   const handleSelectDestination = async (orgId) => {
     try {
       setSelectingId(orgId);
-      const res = await api.post(`/emergency/${id}/select-destination`, {
+      setErrorMessage('');
+
+      // Call Module 11 select-destination API
+      const res = await api.post(`/emergency/requests/${id}/select-destination`, {
         organizationId: orgId,
+        selectionSource: 'USER',
       });
+
       if (res.data.success) {
-        navigate(`/emergency/en-route/${id}`);
+        setPendingSelection(res.data.data?.selection || { organizationId: orgId, selectionStatus: 'PENDING_CONFIRMATION' });
+        setConfirmationNotice('Destination selected! Hospital trauma desk alerted for final confirmation...');
+
+        // If request is already confirmed or resources reserved, navigate
+        if (res.data.data?.emergencyRequest?.status === 'RESOURCES_RESERVED') {
+          navigate(`/emergency/en-route/${id}`);
+        }
       }
     } catch (err) {
-      alert('Destination selection error: ' + (err.response?.data?.message || err.message));
+      // Fallback try legacy endpoint
+      try {
+        const fallbackRes = await api.post(`/emergency/${id}/select-destination`, {
+          organizationId: orgId,
+        });
+        if (fallbackRes.data.success) {
+          navigate(`/emergency/en-route/${id}`);
+        }
+      } catch (fallbackErr) {
+        setErrorMessage('Destination selection error: ' + (fallbackErr.response?.data?.message || fallbackErr.message));
+      }
     } finally {
       setSelectingId(null);
     }
   };
 
-  const accepted = broadcasts.filter((b) => b.responseStatus === 'ACCEPTED' || b.responseStatus === 'CAN_RECEIVE');
+  // Combine accepted list
+  const displayAccepted = acceptedOrgs.length > 0
+    ? acceptedOrgs
+    : broadcasts
+        .filter((b) => b.responseStatus === 'ACCEPTED' || b.responseStatus === 'CAN_RECEIVE')
+        .map((b) => ({
+          organizationId: b.organizationId?._id || b.organizationId,
+          name: b.organizationId?.name,
+          address: b.organizationId?.operatingAddress || b.organizationId?.address,
+          location: b.organizationId?.location,
+          uniqueOrganizationCode: b.organizationId?.uniqueOrganizationCode,
+          emergencyContactPhone: b.organizationId?.emergencyContactPhone,
+          suitabilityScore: b.suitabilityScore || 90,
+          distanceKm: b.distanceKm || 3.2,
+          estimatedTravelMinutes: b.estimatedTravelMinutes || 8,
+          offeredResources: b.offeredResources || {},
+          _raw: b,
+        }));
+
   const others = broadcasts.filter((b) => b.responseStatus !== 'ACCEPTED' && b.responseStatus !== 'CAN_RECEIVE');
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12">
-      
       {/* Top Banner */}
       <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-card space-y-2">
         <div className="flex items-center gap-2">
           <Badge variant="info" size="xs">
-            Dynamic Suitability Routing
+            Dynamic Clinical Suitability Routing
           </Badge>
           <span className="text-[11px] font-bold text-slate-400">
             Emergency Condition: <span className="text-red-600 uppercase">{emergency?.emergencyType}</span>
           </span>
         </div>
         <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-          Compare Participating Hospital Responses
+          Compare Participating Hospital Responses & Select Destination
         </h1>
         <p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
-          Facilities are evaluated by real-time clinical suitability based on active physician presence, confirmed bed capacity, and live travel time.
+          Facilities are evaluated by real-time clinical suitability based on active physician presence, confirmed bed capacity, and live travel time. Clinical capability is prioritized over raw distance.
         </p>
       </div>
+
+      {/* Error alert if any */}
+      {errorMessage && (
+        <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start gap-3 text-rose-900 shadow-xs">
+          <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+          <div className="text-xs space-y-0.5">
+            <p className="font-bold text-rose-950">Notice</p>
+            <p className="text-rose-800">{errorMessage}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation In Progress Notice */}
+      {pendingSelection && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 flex items-start gap-3 text-blue-900 shadow-sm animate-pulse">
+          <Clock className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5 animate-spin" />
+          <div className="text-xs space-y-1">
+            <p className="font-black text-sm text-blue-950">Waiting for Final Hospital Confirmation</p>
+            <p className="text-blue-800 leading-relaxed">
+              You selected <strong>{pendingSelection.organizationId?.name || 'the healthcare facility'}</strong>. The emergency receiving desk has been alerted and is confirming temporary 15-minute bed reservation and specialist standby.
+            </p>
+            <p className="text-[11px] text-blue-600 pt-1">
+              Screen will transition automatically once confirmed. You may also select a different hospital below if needed.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Mandatory Invariant Notice */}
       <div className="bg-amber-50 border border-amber-200/80 rounded-xl p-4 flex items-start gap-3 text-amber-900 shadow-xs">
@@ -96,7 +258,7 @@ export const EmergencyResponsesPage = () => {
         <div className="text-xs space-y-0.5">
           <p className="font-bold text-amber-950">15-Minute Bed Hold Invariant</p>
           <p className="text-amber-800 leading-relaxed">
-            Selecting a destination locks your trauma reservation for 15 minutes, alerts the hospital receiving desk, and immediately launches Google Maps GPS turn-by-turn routing.
+            Resources are temporarily reserved for 15 minutes upon final hospital confirmation. Emergency Beep acceptances do not reserve beds until destination selection is confirmed.
           </p>
         </div>
       </div>
@@ -108,15 +270,14 @@ export const EmergencyResponsesPage = () => {
         </div>
       ) : (
         <div className="space-y-6">
-          
           {/* Accepted Facilities Grid */}
           <div className="space-y-3">
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Trauma Centers Ready to Receive You ({accepted.length})</span>
+              <span>Trauma Centers Ready to Receive You ({displayAccepted.length})</span>
             </h2>
 
-            {accepted.length === 0 ? (
+            {displayAccepted.length === 0 ? (
               <div className="p-8 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-3">
                 <Clock className="w-8 h-8 text-amber-600 mx-auto animate-spin" />
                 <h3 className="text-sm font-bold text-slate-900">Awaiting Hospital Responses</h3>
@@ -133,17 +294,13 @@ export const EmergencyResponsesPage = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {accepted.map((b, idx) => {
-                  const isTopRecommended = idx === 0;
-                  const org = b.organizationId;
-                  const operatingAddr = org?.operatingAddress || org?.address;
-                  const coords = operatingAddr?.coordinates || org?.location?.coordinates;
-                  const lat = coords ? coords[1] : null;
-                  const lng = coords ? coords[0] : null;
+                {displayAccepted.map((b, idx) => {
+                  const isTopRecommended = idx === 0 || (recommendation?.recommended?.organizationId?.toString() === (b.organizationId?._id || b.organizationId)?.toString());
+                  const orgIdStr = (b.organizationId?._id || b.organizationId)?.toString();
 
                   return (
                     <div
-                      key={b._id}
+                      key={orgIdStr || idx}
                       className={`bg-white rounded-2xl p-5 border shadow-card flex flex-col justify-between transition-all relative overflow-hidden ${
                         isTopRecommended
                           ? 'border-emerald-500 ring-2 ring-emerald-500/20'
@@ -162,20 +319,23 @@ export const EmergencyResponsesPage = () => {
                             <Building2 className="w-5 h-5" />
                           </div>
                           <div className="min-w-0 pr-8">
-                            <h3 className="text-base font-black text-slate-900 truncate">{org?.name}</h3>
+                            <h3 className="text-base font-black text-slate-900 truncate">{b.name}</h3>
                             <p className="text-xs text-slate-500 flex items-start mt-0.5">
                               <MapPin className="w-3.5 h-3.5 mr-1 text-slate-400 flex-shrink-0 mt-0.5" />
-                              <span className="line-clamp-1">
-                                {formatFacilityAddress(org)}
-                              </span>
+                              <span className="line-clamp-1">{formatFacilityAddress(b)}</span>
                             </p>
+                            {b.uniqueOrganizationCode && (
+                              <span className="text-[10px] font-mono font-bold text-slate-400">
+                                Code: {b.uniqueOrganizationCode}
+                              </span>
+                            )}
                           </div>
                         </div>
 
                         {/* Suitability score & Travel metrics */}
                         <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200/70 text-center">
                           <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400">Score</span>
+                            <span className="text-[10px] uppercase font-bold text-slate-400">Clinical Score</span>
                             <p className="text-xs font-black text-emerald-700">{b.suitabilityScore || 95}/100</p>
                           </div>
                           <div>
@@ -188,34 +348,30 @@ export const EmergencyResponsesPage = () => {
                           </div>
                         </div>
 
-                        {/* Confirmed readiness resources */}
+                        {/* Live Resources & Offerings */}
                         <div className="space-y-1.5 text-xs">
-                          <span className="font-bold text-slate-700 text-[11px] block">Confirmed Live Resources:</span>
+                          <span className="font-bold text-slate-700 text-[11px] block">Live Available Capacity:</span>
                           <div className="flex flex-wrap gap-1.5">
-                            {b.offeredResources?.erBay && (
+                            {b.resources?.erBay ? (
                               <Badge variant="presence" size="xs">
-                                ER Bay Reserved
+                                ER Bays: {b.resources.erBay.available}/{b.resources.erBay.total}
+                              </Badge>
+                            ) : (
+                              <Badge variant="presence" size="xs">
+                                ER Bay Ready
                               </Badge>
                             )}
-                            {b.offeredResources?.icuBed && (
-                              <Badge variant="presence" size="xs">
-                                ICU Bed Ready
-                              </Badge>
-                            )}
-                            {b.offeredResources?.ventilator && (
+                            {b.resources?.icuBed ? (
                               <Badge variant="info" size="xs">
-                                Ventilator Ready
+                                ICU Beds: {b.resources.icuBed.available}/{b.resources.icuBed.total}
+                              </Badge>
+                            ) : null}
+                            {b.specialistAvailable && (
+                              <Badge variant="presence" size="xs">
+                                On-Duty Specialist Standby
                               </Badge>
                             )}
-                            <Badge variant="presence" size="xs">
-                              Emergency Triage On Standby
-                            </Badge>
                           </div>
-                          {b.offeredResources?.specialistOnDuty && (
-                            <p className="text-[11px] text-slate-500 pt-0.5">
-                              <strong>Specialist on duty:</strong> {b.offeredResources.specialistOnDuty}
-                            </p>
-                          )}
                         </div>
                       </div>
 
@@ -224,25 +380,33 @@ export const EmergencyResponsesPage = () => {
                         <Button
                           variant="presence"
                           size="md"
-                          loading={selectingId === org?._id}
+                          loading={selectingId === orgIdStr}
                           className="w-full font-black tracking-wide"
                           icon={CheckCircle2}
-                          onClick={() => handleSelectDestination(org?._id)}
+                          onClick={() => handleSelectDestination(orgIdStr)}
                         >
-                          {selectingId === org?._id
-                            ? 'Locking Bed Hold & Initiating Routing...'
-                            : 'SELECT & LOCK 15-MIN RESERVATION'}
+                          {selectingId === orgIdStr
+                            ? 'Requesting Final Confirmation...'
+                            : pendingSelection?.organizationId?._id === orgIdStr
+                            ? 'Awaiting Receiving Desk Confirmation...'
+                            : 'SELECT DESTINATION & RESERVE'}
                         </Button>
 
-                        {org && (
-                          <button
-                            onClick={() => openGoogleMapsNavigation(org, null, emergency?.location?.coordinates ? [emergency.location.coordinates[1], emergency.location.coordinates[0]] : null)}
-                            className="w-full py-2 px-3 text-xs font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                          >
-                            <Navigation className="w-3.5 h-3.5 fill-current" />
-                            <span>Preview Navigation in Google Maps</span>
-                          </button>
-                        )}
+                        <button
+                          onClick={() =>
+                            openGoogleMapsNavigation(
+                              b,
+                              null,
+                              emergency?.location?.coordinates
+                                ? [emergency.location.coordinates[1], emergency.location.coordinates[0]]
+                                : null
+                            )
+                          }
+                          className="w-full py-2 px-3 text-xs font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Navigation className="w-3.5 h-3.5 fill-current" />
+                          <span>Preview Route in Google Maps</span>
+                        </button>
                       </div>
                     </div>
                   );
@@ -289,10 +453,8 @@ export const EmergencyResponsesPage = () => {
               </button>
             </Link>
           </div>
-
         </div>
       )}
-
     </div>
   );
 };

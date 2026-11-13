@@ -151,20 +151,24 @@ export const getUserCurrentLocation = async (forceRefresh = false) => {
       async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
+        const accuracy = Math.round(pos.coords.accuracy || 10);
         const coords = { lat, lng };
 
         sessionStorage.setItem('shap_user_coords', JSON.stringify(coords));
         const address = await reverseGeocode(lat, lng);
         sessionStorage.setItem('shap_user_address', address);
 
-        resolve({ lat, lng, address });
+        resolve({ lat, lng, address, accuracy, source: 'GPS' });
       },
       () => {
         // Fallback if permission denied
         const fallback = {
           lat: 28.6139,
           lng: 77.2090,
-          address: 'Current Location (Delhi Center)',
+          address: 'Connaught Place, New Delhi',
+          accuracy: null,
+          source: 'MANUAL',
+          permissionDenied: true,
         };
         resolve(fallback);
       },

@@ -5,6 +5,10 @@ import organizationRoutes from './organizationRoutes.js';
 import appointmentRoutes from './appointmentRoutes.js';
 import emergencyRoutes from './emergencyRoutes.js';
 import adminRoutes from './adminRoutes.js';
+import matchingRoutes from './matchingRoutes.js';
+import emergencyBeepRoutes from './emergencyBeepRoutes.js';
+import notificationRoutes from './notificationRoutes.js';
+import { internalReservationRoutes, emergencyDestinationRoutes, organizationReservationRoutes } from './destinationReservationRoutes.js';
 import { doctorAffiliationController } from '../controllers/DoctorAffiliationController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
@@ -52,5 +56,12 @@ router.use('/organization', organizationRoutes);
 router.use('/appointments', appointmentRoutes);
 router.use('/emergency', emergencyRoutes);
 router.use('/admin', adminRoutes);
+router.use('/notifications', notificationRoutes);
+router.use('/internal/emergency-matching', matchingRoutes);
+router.use('/emergency-matching', matchingRoutes);
+router.use('/internal/emergency-beep', emergencyBeepRoutes);
+router.use('/emergency-beep', emergencyBeepRoutes);
+router.use('/internal/reservations', internalReservationRoutes);
+router.use('/reservations', internalReservationRoutes);
 
 export default router;

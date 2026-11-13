@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import { emergencyRepository } from '../repositories/EmergencyRepository.js';
 import { emergencyMatchingService } from './EmergencyMatchingService.js';
+import { notificationService } from './NotificationService.js';
+import { notificationOutboxService } from './NotificationOutboxService.js';
 import { getSocketIO } from '../sockets/socketHandler.js';
 
 export class EmergencyBroadcastService {
@@ -169,6 +171,21 @@ export class EmergencyBroadcastService {
         totalBroadcasted: matchingResults.length,
       });
     }
+
+    // Module 13: Enqueue Outbox Event & Notification for Patient & Organizations
+    notificationOutboxService.enqueueEvent({
+      eventType: 'EMERGENCY_BEEP_BROADCAST',
+      aggregateType: 'EmergencyRequest',
+      aggregateId: emergencyRequest._id,
+      payload: {
+        recipientUserId: patientId,
+        emergencyRequestId: emergencyRequest._id,
+        title: 'Emergency Beep Broadcasted',
+        message: `Alert broadcasted in parallel to ${matchingResults.length} participating emergency facilities.`,
+        priority: 'EMERGENCY',
+        actionUrl: `/emergency/responses/${emergencyRequest._id}`,
+      },
+    }).catch((e) => console.warn('[Outbox Warning]', e.message));
 
     return {
       emergencyRequest: broadcastedRequest,
@@ -405,6 +422,21 @@ export class EmergencyBroadcastService {
     if (!updatedBroadcast) {
       throw new Error('Broadcast record not found for this organization and emergency');
     }
+
+    try {
+      const { EmergencyBroadcastRecipient } = await import('../models/EmergencyBroadcastRecipient.js');
+      await EmergencyBroadcastRecipient.findOneAndUpdate(
+        { emergencyRequestId, organizationId, responseStatus: 'PENDING' },
+        {
+          $set: {
+            responseStatus: normalizedStatus,
+            respondedAt: new Date(),
+            declineReason,
+            offeredResources,
+          },
+        }
+      );
+    } catch (_) {}
 
     // Update emergency request state to RESPONSES_RECEIVED if still in BROADCASTED
     const currentReq = await emergencyRepository.findRequestById(emergencyRequestId);

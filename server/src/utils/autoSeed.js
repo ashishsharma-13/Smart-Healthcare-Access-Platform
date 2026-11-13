@@ -5,6 +5,14 @@ import {
   DoctorAffiliation,
   HealthcareResource,
   Appointment,
+  EmergencyCategory,
+  EmergencyGuidance,
+  EmergencyCapability,
+  OrganizationEmergencyCapability,
+  EmergencyCategoryCapability,
+  EmergencyMatchingConfiguration,
+  Notification,
+  NotificationDelivery,
 } from '../models/index.js';
 
 export default async function autoSeed() {
@@ -937,6 +945,449 @@ export default async function autoSeed() {
     patientNotes: 'Sam Taylor · Follow-up',
     qrToken: 'APT-TOKEN-SAM-04',
   });
+
+  // Module 8: Emergency Categories & Guidance
+  const seedCategories = [
+    {
+      categoryId: 'CAT-CARDIAC',
+      categoryName: 'Cardiac',
+      slug: 'cardiac',
+      description: 'Severe chest pain, tightness radiating to arm or jaw, suspected myocardial infarction',
+      displayOrder: 1,
+      icon: 'HeartPulse',
+      active: true,
+      guidance: {
+        title: 'Cardiac Emergency First-Aid Protocol',
+        content: '1. Have the patient sit down, rest, and try to stay calm.\n2. Loosen any tight clothing around the neck and chest.\n3. If the patient has prescribed nitroglycerin, assist them in taking it.\n4. Administer chewable aspirin (160-325 mg) if the patient is conscious and not allergic.\n5. If patient becomes unresponsive and stops breathing normally, begin CPR immediately (100-120 chest compressions per minute).\n6. Do not leave the patient unattended.',
+      },
+    },
+    {
+      categoryId: 'CAT-STROKE',
+      categoryName: 'Stroke',
+      slug: 'stroke',
+      description: 'Facial drooping, arm drift, slurred speech, sudden loss of balance or consciousness',
+      displayOrder: 2,
+      icon: 'Brain',
+      active: true,
+      guidance: {
+        title: 'Stroke (FAST Protocol) First-Aid Guidelines',
+        content: '1. Check FAST: Face drooping, Arm weakness, Speech difficulty, Time to call.\n2. Note the exact time when symptoms first appeared (crucial for thrombolytic window).\n3. Keep the patient in a safe, comfortable recovery position on their side if conscious.\n4. Do NOT give food, water, or medication (including aspirin, as stroke could be hemorrhagic).\n5. Keep airway clear and monitor breathing continuously.',
+      },
+    },
+    {
+      categoryId: 'CAT-TRAUMA',
+      categoryName: 'Accident/Trauma',
+      slug: 'trauma',
+      description: 'Motor vehicle collision, blunt trauma, severe laceration, active arterial bleeding',
+      displayOrder: 3,
+      icon: 'Activity',
+      active: true,
+      guidance: {
+        title: 'Severe Trauma and Hemorrhage Management',
+        content: '1. Ensure scene safety before approaching.\n2. Apply continuous firm direct pressure on active bleeding wounds using a sterile cloth or clean fabric.\n3. Do NOT move the victim if spinal, neck, or head injury is suspected unless in immediate environmental danger.\n4. Keep patient warm with blankets to prevent hypothermia and clinical shock.\n5. Do not remove penetrating objects embedded in the body.',
+      },
+    },
+    {
+      categoryId: 'CAT-PREGNANCY',
+      categoryName: 'Pregnancy-related',
+      slug: 'pregnancy',
+      description: 'Active precipitous labor, heavy vaginal bleeding, preeclampsia symptoms or severe pelvic pain',
+      displayOrder: 4,
+      icon: 'Baby',
+      active: true,
+      guidance: {
+        title: 'Obstetric Emergency Guidance',
+        content: '1. Position the mother lying on her left side to maximize placental blood flow and relieve vena cava compression.\n2. If bleeding is present, keep clean towels or pads in place (do not insert anything internally).\n3. Reassure the mother and encourage slow, steady breathing.\n4. Prepare clean towels, warm blankets, and infant wraps if delivery is imminent.\n5. Keep emergency medical services dispatch updated on contraction frequency.',
+      },
+    },
+    {
+      categoryId: 'CAT-BURNS',
+      categoryName: 'Burns',
+      slug: 'burns',
+      description: 'Second or third degree thermal burns, chemical burns, or electrical contact injuries',
+      displayOrder: 5,
+      icon: 'Flame',
+      active: true,
+      guidance: {
+        title: 'Severe Burn First-Aid Protocol',
+        content: '1. Stop the burning process immediately (smother flames, isolate power source).\n2. Cool thermal burns under clean, cool running water for 10-20 minutes.\n3. Do NOT use ice, butter, grease, or topical ointments on major burns.\n4. Gently cover burned areas with a clean, dry, non-adherent dressing or clean plastic cling wrap.\n5. Keep the victim warm to prevent rapid body heat loss.',
+      },
+    },
+    {
+      categoryId: 'CAT-POISONING',
+      categoryName: 'Poisoning',
+      slug: 'poisoning',
+      description: 'Ingestion or inhalation of toxic chemicals, household poisons, or medication overdose',
+      displayOrder: 6,
+      icon: 'AlertTriangle',
+      active: true,
+      guidance: {
+        title: 'Acute Poisoning and Toxic Exposure Response',
+        content: '1. If inhaled, immediately move person into fresh, ventilated air.\n2. Do NOT induce vomiting or administer ipecac unless explicitly instructed by poison control or clinicians.\n3. If chemical contacted eyes or skin, flush copiously with clean water for at least 15 minutes.\n4. Locate and retain the chemical container, bottle, or packaging for the emergency clinical team.\n5. Monitor airway, breathing, and state of consciousness.',
+      },
+    },
+    {
+      categoryId: 'CAT-SNAKE_BITE',
+      categoryName: 'Snake bite',
+      slug: 'snake_bite',
+      description: 'Venomous snake bite with puncture marks, rapid swelling, numbness or tissue necrosis',
+      displayOrder: 7,
+      icon: 'AlertTriangle',
+      active: true,
+      guidance: {
+        title: 'Snakebite & Envenomation Protocol',
+        content: '1. Keep patient strictly calm and still; movement accelerates venom distribution.\n2. Immobilize the bitten extremity at or slightly below heart level.\n3. Remove rings, watches, and tight clothing from the affected limb before swelling occurs.\n4. Do NOT cut the wound, attempt suction, or apply a tourniquet or ice.\n5. Note the snake appearance or take a photo from a safe distance if possible.',
+      },
+    },
+    {
+      categoryId: 'CAT-FRACTURE',
+      categoryName: 'Fracture',
+      slug: 'fracture',
+      description: 'Open or compound bone fracture, visible deformity, severe joint dislocation or inability to bear weight',
+      displayOrder: 8,
+      icon: 'Bone',
+      active: true,
+      guidance: {
+        title: 'Orthopedic Fracture Stabilization',
+        content: '1. Support and immobilize the injured extremity in the position found.\n2. Do NOT attempt to push bone ends back or straighten deformed limbs.\n3. If an open wound exists, cover loosely with a sterile dressing.\n4. Apply wrapped cold packs around the injured area to minimize swelling (avoid direct ice on bare skin).\n5. Check circulation distal to the fracture (ensure pulse, warmth, and skin sensation).',
+      },
+    },
+    {
+      categoryId: 'CAT-CHILD',
+      categoryName: 'Child emergency',
+      slug: 'child',
+      description: 'Pediatric febrile seizure, cyanosis, severe respiratory retractions or unresponsive infant',
+      displayOrder: 9,
+      icon: 'Baby',
+      active: true,
+      guidance: {
+        title: 'Pediatric Emergency Response',
+        content: '1. In case of seizure, clear the floor of hard or sharp objects and turn child on their side.\n2. Do NOT put anything inside the child\'s mouth.\n3. For breathing difficulty, keep the child in their preferred comfortable seated position.\n4. Never shake an unresponsive infant; check responsiveness by tapping feet or gently rubbing chest.\n5. Keep infant warm and calm while emergency teams are in transit.',
+      },
+    },
+    {
+      categoryId: 'CAT-RESPIRATORY',
+      categoryName: 'Respiratory emergency',
+      slug: 'respiratory',
+      description: 'Acute severe shortness of breath, anaphylaxis, asthma attack with stridor or hypoxia',
+      displayOrder: 10,
+      icon: 'Wind',
+      active: true,
+      guidance: {
+        title: 'Acute Respiratory Distress & Anaphylaxis Protocol',
+        content: '1. Help the patient sit upright in a "tripod" position leaning forward with hands on knees.\n2. Loosen collars and tight garments around chest and throat.\n3. If patient has a prescribed rescue inhaler or epinephrine auto-injector (EpiPen) for anaphylaxis, assist immediately.\n4. Ensure fresh airflow and calm, reassuring environment.\n5. If patient collapses and breathing stops, initiate CPR immediately.',
+      },
+    },
+  ];
+
+  for (const catData of seedCategories) {
+    let cat = await EmergencyCategory.findOne({ slug: catData.slug });
+    if (!cat) {
+      cat = await EmergencyCategory.create({
+        categoryId: catData.categoryId,
+        categoryName: catData.categoryName,
+        slug: catData.slug,
+        description: catData.description,
+        displayOrder: catData.displayOrder,
+        icon: catData.icon,
+        active: catData.active,
+      });
+    }
+
+    let gdn = await EmergencyGuidance.findOne({ categoryId: cat._id });
+    if (!gdn) {
+      await EmergencyGuidance.create({
+        categoryId: cat._id,
+        title: catData.guidance.title,
+        content: catData.guidance.content,
+        version: 1,
+        reviewStatus: 'APPROVED',
+        reviewedBy: admin._id,
+        reviewedAt: new Date(),
+        active: true,
+      });
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  MODULE 9: Emergency Capabilities & Category-Capability Mappings
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // 1. Standard Clinical Capabilities
+  const standardCapabilities = [
+    { capabilityCode: 'ER_BAY', capabilityName: 'Emergency Bay', category: 'CRITICAL_CARE', description: '24/7 Resuscitation & Emergency Treatment Bay' },
+    { capabilityCode: 'ICU_BED', capabilityName: 'Intensive Care Unit Bed', category: 'CRITICAL_CARE', description: 'Advanced Level-3 Critical Care ICU Bed' },
+    { capabilityCode: 'VENTILATOR', capabilityName: 'Mechanical Ventilator', category: 'CRITICAL_CARE', description: 'Invasive/Non-invasive Mechanical Ventilator' },
+    { capabilityCode: 'CARDIAC_CATH_LAB', capabilityName: 'Cardiac Catheterization Lab', category: 'CRITICAL_CARE', description: 'Primary PCI & Emergency Angiography Suite' },
+    { capabilityCode: 'STROKE_UNIT', capabilityName: 'Comprehensive Stroke Unit', category: 'CRITICAL_CARE', description: 'Hyperacute Stroke Center with IV-Thrombolysis' },
+    { capabilityCode: 'TRAUMA_BAY', capabilityName: 'Level-1 Trauma Bay', category: 'CRITICAL_CARE', description: 'Advanced Trauma Resuscitation Suite' },
+    { capabilityCode: 'CT_SCANNER', capabilityName: '24/7 CT Scanner', category: 'DIAGNOSTIC', description: 'Immediate Non-Contrast & Angio Head/Body CT' },
+    { capabilityCode: 'MRI', capabilityName: 'Emergency MRI', category: 'DIAGNOSTIC', description: 'High-Field MRI with Acute Neuro Protocol' },
+    { capabilityCode: 'NEUROSURGERY', capabilityName: 'Neurosurgery Service', category: 'SURGICAL', description: '24/7 On-Call Craniotomy & Neuro-trauma Surgery' },
+    { capabilityCode: 'BLOOD_BANK', capabilityName: 'Certified Blood Bank', category: 'SUPPORT', description: 'Massive Transfusion Protocol with O-negative blood' },
+    { capabilityCode: 'NICU', capabilityName: 'Neonatal ICU', category: 'SPECIALTY', description: 'Level-3 Neonatal Intensive Care' },
+    { capabilityCode: 'PICU', capabilityName: 'Pediatric ICU', category: 'SPECIALTY', description: 'Specialized Pediatric Critical Care' },
+    { capabilityCode: 'BURNS_UNIT', capabilityName: 'Burns Treatment Center', category: 'SPECIALTY', description: 'Specialized Sterile Burn Debridement Unit' },
+    { capabilityCode: 'TOXICOLOGY', capabilityName: 'Toxicology & Poison Antidote Unit', category: 'SPECIALTY', description: 'Complete Emergency Antidote Stock & Toxin Protocol' },
+    { capabilityCode: 'OB_OR', capabilityName: 'Obstetrics OR', category: 'SURGICAL', description: 'Emergency Cesarean Operating Suite' },
+  ];
+
+  const capabilityDocMap = {};
+  for (const cap of standardCapabilities) {
+    let doc = await EmergencyCapability.findOne({ capabilityCode: cap.capabilityCode });
+    if (!doc) {
+      doc = await EmergencyCapability.create({ ...cap, active: true });
+    }
+    capabilityDocMap[cap.capabilityCode] = doc;
+  }
+
+  // 2. Category-Capability Mappings (OPEN DECISION: DRAFT clinical mappings)
+  const categoryCapabilityRules = {
+    cardiac: {
+      mandatory: ['CARDIAC_CATH_LAB', 'ICU_BED'],
+      optional: ['VENTILATOR', 'ER_BAY'],
+    },
+    stroke: {
+      mandatory: ['CT_SCANNER', 'STROKE_UNIT'],
+      optional: ['NEUROSURGERY', 'ICU_BED'],
+    },
+    trauma: {
+      mandatory: ['TRAUMA_BAY', 'BLOOD_BANK'],
+      optional: ['CT_SCANNER', 'ER_BAY'],
+    },
+    burns: {
+      mandatory: ['BURNS_UNIT'],
+      optional: ['ICU_BED', 'ER_BAY'],
+    },
+    poisoning: {
+      mandatory: ['TOXICOLOGY'],
+      optional: ['ICU_BED', 'VENTILATOR'],
+    },
+    child: {
+      mandatory: ['PICU'],
+      optional: ['NICU', 'ER_BAY'],
+    },
+    respiratory: {
+      mandatory: ['VENTILATOR', 'ER_BAY'],
+      optional: ['ICU_BED'],
+    },
+    bleeding: {
+      mandatory: ['BLOOD_BANK', 'ER_BAY'],
+      optional: ['TRAUMA_BAY'],
+    },
+    unconscious: {
+      mandatory: ['CT_SCANNER', 'ER_BAY'],
+      optional: ['ICU_BED'],
+    },
+    fracture: {
+      mandatory: ['ER_BAY'],
+      optional: ['CT_SCANNER'],
+    },
+  };
+
+  for (const [catSlug, rules] of Object.entries(categoryCapabilityRules)) {
+    const cat = await EmergencyCategory.findOne({ slug: catSlug });
+    if (!cat) continue;
+
+    for (const code of rules.mandatory) {
+      const capDoc = capabilityDocMap[code];
+      if (!capDoc) continue;
+      const existing = await EmergencyCategoryCapability.findOne({
+        categoryId: cat._id,
+        capabilityId: capDoc._id,
+      });
+      if (!existing) {
+        await EmergencyCategoryCapability.create({
+          categoryId: cat._id,
+          capabilityId: capDoc._id,
+          requirementType: 'MANDATORY',
+          priority: 1,
+          approvalStatus: 'DRAFT',
+          active: true,
+        });
+      }
+    }
+
+    for (const code of rules.optional) {
+      const capDoc = capabilityDocMap[code];
+      if (!capDoc) continue;
+      const existing = await EmergencyCategoryCapability.findOne({
+        categoryId: cat._id,
+        capabilityId: capDoc._id,
+      });
+      if (!existing) {
+        await EmergencyCategoryCapability.create({
+          categoryId: cat._id,
+          capabilityId: capDoc._id,
+          requirementType: 'OPTIONAL',
+          priority: 2,
+          approvalStatus: 'DRAFT',
+          active: true,
+        });
+      }
+    }
+  }
+
+  // 3. Organization Emergency Capabilities for Seeded Hospitals
+  const allParticipatingOrgs = await Organization.find({
+    verificationStatus: { $in: ['verified', 'VERIFIED', 'approved', 'APPROVED'] },
+  });
+
+  for (const org of allParticipatingOrgs) {
+    // Grant core capabilities to verified hospitals
+    const defaultCodes = ['ER_BAY', 'ICU_BED', 'VENTILATOR', 'CT_SCANNER', 'BLOOD_BANK'];
+    // If name contains Trauma or Heart, grant additional capabilities
+    if (org.name?.toLowerCase().includes('heart') || org.name?.toLowerCase().includes('cardiac')) {
+      defaultCodes.push('CARDIAC_CATH_LAB');
+    }
+    if (org.name?.toLowerCase().includes('trauma') || org.name?.toLowerCase().includes('metro')) {
+      defaultCodes.push('TRAUMA_BAY', 'NEUROSURGERY');
+    }
+    if (org.name?.toLowerCase().includes('stroke') || org.name?.toLowerCase().includes('neuro')) {
+      defaultCodes.push('STROKE_UNIT', 'NEUROSURGERY');
+    }
+
+    for (const code of defaultCodes) {
+      const capDoc = capabilityDocMap[code];
+      if (!capDoc) continue;
+      const existing = await OrganizationEmergencyCapability.findOne({
+        organizationId: org._id,
+        capabilityId: capDoc._id,
+      });
+      if (!existing) {
+        await OrganizationEmergencyCapability.create({
+          organizationId: org._id,
+          capabilityId: capDoc._id,
+          verificationStatus: 'VERIFIED',
+          lastVerifiedAt: new Date(),
+        });
+      }
+    }
+  }
+
+  // 4. Default Matching Configuration
+  let matchingConfig = await EmergencyMatchingConfiguration.findOne({ active: true });
+  if (!matchingConfig) {
+    await EmergencyMatchingConfiguration.create({
+      searchRadii: [10, 25, 50],
+      weights: {
+        capability: 0.30,
+        resource: 0.20,
+        specialist: 0.15,
+        presence: 0.10,
+        travelTime: 0.15,
+        distance: 0.05,
+        freshness: 0.05,
+      },
+      resourceStalenessThresholdMinutes: 60,
+      resourceVeryStalenessThresholdMinutes: 1440,
+      presenceStalenessThresholdMinutes: 480,
+      active: true,
+      configVersion: '1.0',
+    });
+  }
+
+  // Seed Module 13 Initial Notifications if none exist
+  const existingNotifs = await Notification.countDocuments();
+  if (existingNotifs === 0) {
+    const seedNotifs = [];
+
+    if (typeof patient !== 'undefined' && patient) {
+      seedNotifs.push({
+        recipientUserId: patient._id,
+        notificationType: 'APPOINTMENT_BOOKED',
+        title: 'Appointment Confirmed',
+        message: 'Your consultation with Dr. Mira Patel has been scheduled.',
+        priority: 'NORMAL',
+        status: 'DELIVERED',
+        actionUrl: '/patient/appointments',
+      });
+      seedNotifs.push({
+        recipientUserId: patient._id,
+        notificationType: 'EMERGENCY_BEEP_BROADCAST',
+        title: 'Emergency Beep Network Active',
+        message: 'Perimeter monitoring active across regional participating emergency facilities.',
+        priority: 'NORMAL',
+        status: 'READ',
+        readAt: new Date(),
+        actionUrl: '/emergency/activate',
+      });
+    }
+
+    if (typeof docMiraUser !== 'undefined' && docMiraUser) {
+      seedNotifs.push({
+        recipientUserId: docMiraUser._id,
+        notificationType: 'DOCTOR_VERIFICATION',
+        title: 'Credentials Verified',
+        message: 'Your state medical council license and practice credentials have been verified.',
+        priority: 'NORMAL',
+        status: 'READ',
+        readAt: new Date(),
+        actionUrl: '/doctor/dashboard',
+      });
+      seedNotifs.push({
+        recipientUserId: docMiraUser._id,
+        notificationType: 'AFFILIATION_ACCEPTED',
+        title: 'Hospital Affiliation Active',
+        message: 'Your clinical affiliation with Apex Metro Hospital is active.',
+        priority: 'NORMAL',
+        status: 'DELIVERED',
+        actionUrl: '/doctor/affiliations',
+      });
+    }
+
+    if (typeof org1 !== 'undefined' && org1) {
+      const orgOwner = org1.userId || (await User.findOne({ role: 'organization' }));
+      if (orgOwner) {
+        seedNotifs.push({
+          recipientUserId: orgOwner._id || orgOwner,
+          organizationId: org1._id,
+          notificationType: 'ORGANIZATION_VERIFICATION',
+          title: 'Accreditation Approved',
+          message: 'Facility verified as Level 1 Trauma Center with 24/7 emergency dispatch capability.',
+          priority: 'NORMAL',
+          status: 'DELIVERED',
+          actionUrl: '/organization/dashboard',
+        });
+        seedNotifs.push({
+          recipientUserId: orgOwner._id || orgOwner,
+          organizationId: org1._id,
+          notificationType: 'AFFILIATION_REQUEST',
+          title: 'Practitioner Badge Verified',
+          message: 'Dr. Mira Patel scanned badge QR at Main Reception / Cardiology Wing.',
+          priority: 'NORMAL',
+          status: 'READ',
+          readAt: new Date(),
+          actionUrl: '/organization/doctors',
+        });
+      }
+    }
+
+    if (typeof admin !== 'undefined' && admin) {
+      seedNotifs.push({
+        recipientUserId: admin._id,
+        notificationType: 'GENERAL_SYSTEM',
+        title: 'Audit Stream Operational',
+        message: 'All real-time Socket.io and emergency dispatch nodes verified healthy.',
+        priority: 'LOW',
+        status: 'READ',
+        readAt: new Date(),
+        actionUrl: '/admin/dashboard',
+      });
+    }
+
+    for (const notifData of seedNotifs) {
+      const savedNotif = await Notification.create(notifData);
+      await NotificationDelivery.create({
+        notificationId: savedNotif._id,
+        channel: 'IN_APP',
+        providerName: 'IN_APP_DB',
+        status: 'DELIVERED',
+        attemptCount: 1,
+        deliveredAt: new Date(),
+      });
+    }
+  }
 
   console.log('[AutoSeed] Seed data successfully populated.');
 }

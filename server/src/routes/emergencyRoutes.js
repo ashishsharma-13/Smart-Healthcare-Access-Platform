@@ -1,13 +1,48 @@
 import express from 'express';
 import { emergencyController } from '../controllers/EmergencyController.js';
+import { emergencyBeepController } from '../controllers/EmergencyBeepController.js';
+import { destinationReservationController } from '../controllers/DestinationReservationController.js';
+import { emergencyJourneyController } from '../controllers/EmergencyJourneyController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Query nearby emergency-enabled facilities and their offerings (Step 1 -> Step 2)
+// --- MODULE 8: EMERGENCY CATEGORIES & GUIDANCE ---
+router.get('/categories', (req, res, next) => emergencyController.getCategories(req, res, next));
+router.get('/guidance/:categoryId', (req, res, next) => emergencyController.getGuidance(req, res, next));
+
+// --- MODULE 8: EMERGENCY REQUEST CREATION & MANAGEMENT ---
+router.post('/requests', authenticate, (req, res, next) => emergencyController.createEmergencyRequest(req, res, next));
+router.get('/requests/my', authenticate, (req, res, next) => emergencyController.getMyEmergencyRequests(req, res, next));
+router.get('/requests/:id', authenticate, (req, res, next) => emergencyController.getEmergencyRequestDetails(req, res, next));
+router.post('/requests/:id/cancel', authenticate, (req, res, next) => emergencyController.cancelEmergencyRequest(req, res, next));
+
+// --- MODULE 10: EMERGENCY BEEP PATIENT RESPONSES & BROADCAST STATUS ---
+router.get('/requests/:id/responses', authenticate, (req, res, next) => emergencyBeepController.getPatientResponses(req, res, next));
+router.get('/requests/:id/broadcast-status', authenticate, (req, res, next) => emergencyBeepController.getPatientBroadcastStatus(req, res, next));
+
+// --- MODULE 11: EMERGENCY DESTINATION SELECTION & RESOURCE RESERVATION ---
+router.get('/requests/:requestId/accepted-organizations', authenticate, (req, res, next) => destinationReservationController.getAcceptedOrganizations(req, res, next));
+router.get('/requests/:requestId/recommendation', authenticate, (req, res, next) => destinationReservationController.getRecommendation(req, res, next));
+router.post('/requests/:requestId/select-destination', authenticate, (req, res, next) => destinationReservationController.selectDestination(req, res, next));
+router.get('/requests/:requestId/destination', authenticate, (req, res, next) => destinationReservationController.getDestination(req, res, next));
+router.get('/requests/:requestId/reservation', authenticate, (req, res, next) => destinationReservationController.getReservation(req, res, next));
+router.post('/requests/:requestId/confirm-en-route', authenticate, (req, res, next) => destinationReservationController.confirmEnRoute(req, res, next));
+
+// --- MODULE 12: EMERGENCY JOURNEY TRACKING, NAVIGATION, ARRIVAL, COMPLETION & HISTORY ---
+router.post('/requests/:requestId/journey/start', authenticate, (req, res) => emergencyJourneyController.startJourney(req, res));
+router.get('/requests/:requestId/journey', authenticate, (req, res) => emergencyJourneyController.getJourney(req, res));
+router.post('/requests/:requestId/journey/location', authenticate, (req, res) => emergencyJourneyController.recordLocationUpdate(req, res));
+router.get('/requests/:requestId/journey/location', authenticate, (req, res) => emergencyJourneyController.getLatestLocation(req, res));
+router.post('/requests/:requestId/journey/stop-sharing', authenticate, (req, res) => emergencyJourneyController.stopLocationSharing(req, res));
+router.post('/requests/:requestId/journey/confirm-arrival', authenticate, (req, res) => emergencyJourneyController.confirmPatientArrival(req, res));
+router.post('/requests/:requestId/complete', authenticate, (req, res) => emergencyJourneyController.completeEmergency(req, res));
+router.get('/requests/:requestId/history', authenticate, (req, res) => emergencyJourneyController.getEmergencyHistory(req, res));
+
+// Query nearby emergency-enabled facilities and their offerings
 router.get('/nearby-facilities', (req, res, next) => emergencyController.getNearbyFacilities(req, res, next));
 
-// Patient dispatches Emergency Beep to chosen hospital(s) (Step 2 -> Step 3)
+// Patient dispatches Emergency Beep to chosen hospital(s)
 router.post('/dispatch', authenticate, (req, res, next) => emergencyController.dispatchEmergency(req, res, next));
 
 // Patient creates Emergency Beep (parallel blast compatibility)

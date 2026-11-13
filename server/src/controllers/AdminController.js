@@ -2,6 +2,7 @@ import { doctorRepository } from '../repositories/DoctorRepository.js';
 import { doctorService } from '../services/DoctorService.js';
 import { organizationRepository } from '../repositories/OrganizationRepository.js';
 import { organizationService } from '../services/OrganizationService.js';
+import { notificationService } from '../services/NotificationService.js';
 import { User, Doctor, Organization, EmergencyRequest, Appointment } from '../models/index.js';
 
 export class AdminController {
@@ -112,6 +113,16 @@ export class AdminController {
   async approveDoctor(req, res, next) {
     try {
       const updated = await doctorService.approveDoctor(req.params.id, req.user._id);
+      if (updated?.userId) {
+        notificationService.createNotification({
+          recipientUserId: updated.userId,
+          notificationType: 'DOCTOR_VERIFICATION',
+          title: 'Doctor Medical License Verified',
+          message: 'Your practitioner profile and license have been verified and approved.',
+          priority: 'NORMAL',
+          actionUrl: '/doctor/dashboard',
+        }).catch((e) => console.warn('[Notification Warning]', e.message));
+      }
       res.json({ success: true, message: 'Doctor successfully approved and verified', data: updated });
     } catch (err) {
       if (err.message && err.message.includes('already been verified')) {
@@ -131,6 +142,16 @@ export class AdminController {
         });
       }
       const updated = await doctorService.rejectDoctor(req.params.id, reason, req.user._id);
+      if (updated?.userId) {
+        notificationService.createNotification({
+          recipientUserId: updated.userId,
+          notificationType: 'DOCTOR_VERIFICATION',
+          title: 'Doctor Application Rejected',
+          message: `Your verification application was not approved: ${reason}`,
+          priority: 'HIGH',
+          actionUrl: '/doctor/profile',
+        }).catch((e) => console.warn('[Notification Warning]', e.message));
+      }
       res.json({ success: true, message: 'Doctor verification rejected', data: updated });
     } catch (err) {
       next(err);
@@ -196,6 +217,17 @@ export class AdminController {
   async approveOrganization(req, res, next) {
     try {
       const updated = await organizationService.approveOrganization(req.params.id, req.user._id);
+      if (updated?.userId) {
+        notificationService.createNotification({
+          recipientUserId: updated.userId,
+          organizationId: updated._id,
+          notificationType: 'ORGANIZATION_VERIFICATION',
+          title: 'Organization Accreditation Approved',
+          message: 'Your healthcare facility accreditation has been verified and activated.',
+          priority: 'NORMAL',
+          actionUrl: '/organization/dashboard',
+        }).catch((e) => console.warn('[Notification Warning]', e.message));
+      }
       res.json({ success: true, message: 'Organization successfully approved and accredited', data: updated });
     } catch (err) {
       if (err.message && err.message.includes('already been verified')) {
@@ -215,6 +247,17 @@ export class AdminController {
         });
       }
       const updated = await organizationService.rejectOrganization(req.params.id, reason, req.user._id);
+      if (updated?.userId) {
+        notificationService.createNotification({
+          recipientUserId: updated.userId,
+          organizationId: updated._id,
+          notificationType: 'ORGANIZATION_VERIFICATION',
+          title: 'Organization Application Rejected',
+          message: `Your accreditation application was not approved: ${reason}`,
+          priority: 'HIGH',
+          actionUrl: '/organization/profile',
+        }).catch((e) => console.warn('[Notification Warning]', e.message));
+      }
       res.json({ success: true, message: 'Organization verification rejected', data: updated });
     } catch (err) {
       next(err);

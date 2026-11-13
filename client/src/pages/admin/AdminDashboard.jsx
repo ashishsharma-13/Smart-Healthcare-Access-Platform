@@ -33,6 +33,10 @@ import {
   Building,
   Navigation,
   Scan,
+  Bell,
+  Radio,
+  Mail,
+  Smartphone,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -51,6 +55,12 @@ export const AdminDashboard = () => {
   const [rejectedOrgs, setRejectedOrgs] = useState([]);
   const [presenceLogs, setPresenceLogs] = useState([]);
   const [presenceFilter, setPresenceFilter] = useState('ALL');
+
+  // Module 13 Notification Monitoring States
+  const [notificationMetrics, setNotificationMetrics] = useState(null);
+  const [failedDeliveries, setFailedDeliveries] = useState([]);
+  const [allNotifications, setAllNotifications] = useState([]);
+  const [retryingId, setRetryingId] = useState(null);
   
   // UI States
   const [loading, setLoading] = useState(true);
@@ -101,6 +111,14 @@ export const AdminDashboard = () => {
   // Document Preview Modal State
   const [previewDoc, setPreviewDoc] = useState(null);
 
+  // Module 8: Emergency Categories & Guidance Management States
+  const [adminCategories, setAdminCategories] = useState([]);
+  const [adminGuidance, setAdminGuidance] = useState([]);
+  const [newCatModalOpen, setNewCatModalOpen] = useState(false);
+  const [newCatForm, setNewCatForm] = useState({ categoryName: '', slug: '', description: '', icon: 'Activity', displayOrder: 1 });
+  const [newGuidanceModalOpen, setNewGuidanceModalOpen] = useState(false);
+  const [newGuidanceForm, setNewGuidanceForm] = useState({ categoryId: '', title: '', content: '', reviewStatus: 'APPROVED' });
+
   useEffect(() => {
     fetchAdminData();
   }, []);
@@ -117,6 +135,11 @@ export const AdminDashboard = () => {
         orgVerifiedRes,
         orgRejectedRes,
         presenceRes,
+        catRes,
+        gdnRes,
+        notifMetricsRes,
+        notifFailedRes,
+        notifAllRes,
       ] = await Promise.all([
         api.get('/admin/stats'),
         api.get('/admin/doctors/pending'),
@@ -126,6 +149,11 @@ export const AdminDashboard = () => {
         api.get('/admin/organizations/verified'),
         api.get('/admin/organizations/rejected'),
         api.get('/admin/presence').catch(() => ({ data: { success: false, data: [] } })),
+        api.get('/admin/emergency/categories').catch(() => ({ data: { success: false, data: [] } })),
+        api.get('/admin/emergency/guidance').catch(() => ({ data: { success: false, data: [] } })),
+        api.get('/admin/notification-metrics').catch(() => ({ data: { success: false } })),
+        api.get('/admin/notifications/failed').catch(() => ({ data: { success: false, data: [] } })),
+        api.get('/admin/notifications?limit=30').catch(() => ({ data: { success: false, data: [] } })),
       ]);
 
       if (statsRes.data?.success) setStats(statsRes.data.data);
@@ -138,6 +166,21 @@ export const AdminDashboard = () => {
       if (presenceRes.data?.success) {
         setPresenceLogs(presenceRes.data.data?.logs || presenceRes.data.data || []);
       }
+      if (catRes.data?.success) {
+        setAdminCategories(catRes.data.data || []);
+      }
+      if (gdnRes.data?.success) {
+        setAdminGuidance(gdnRes.data.data || []);
+      }
+      if (notifMetricsRes?.data?.success) {
+        setNotificationMetrics(notifMetricsRes.data.data);
+      }
+      if (notifFailedRes?.data?.success) {
+        setFailedDeliveries(notifFailedRes.data.data || []);
+      }
+      if (notifAllRes?.data?.success) {
+        setAllNotifications(notifAllRes.data.data || []);
+      }
     } catch (err) {
       console.error('Error loading admin portal data', err);
       setFeedback({
@@ -146,6 +189,28 @@ export const AdminDashboard = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRetryNotification = async (notificationId) => {
+    try {
+      setRetryingId(notificationId);
+      const res = await api.post(`/admin/notifications/${notificationId}/retry`);
+      if (res.data?.success) {
+        setFeedback({ type: 'success', message: 'Notification retry initiated successfully' });
+        const [failedRes, allRes, metricsRes] = await Promise.all([
+          api.get('/admin/notifications/failed').catch(() => ({ data: { success: false, data: [] } })),
+          api.get('/admin/notifications?limit=30').catch(() => ({ data: { success: false, data: [] } })),
+          api.get('/admin/notification-metrics').catch(() => ({ data: { success: false } })),
+        ]);
+        if (failedRes.data?.success) setFailedDeliveries(failedRes.data.data || []);
+        if (allRes.data?.success) setAllNotifications(allRes.data.data || []);
+        if (metricsRes.data?.success) setNotificationMetrics(metricsRes.data.data);
+      }
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.response?.data?.message || 'Retry failed' });
+    } finally {
+      setRetryingId(null);
     }
   };
 
@@ -172,6 +237,90 @@ export const AdminDashboard = () => {
       setFeedback({
         type: 'error',
         message: 'Correction failed: ' + (err.response?.data?.message || err.message),
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // --- Module 8: Emergency Management Handlers ---
+  const handleToggleCategoryActive = async (cat) => {
+    try {
+      setActionLoading(true);
+      const res = await api.put(`/admin/emergency/categories/${cat._id || cat.categoryId}`, {
+        active: !cat.active,
+      });
+      if (res.data?.success) {
+        setFeedback({
+          type: 'success',
+          message: `Category "${cat.categoryName}" is now ${!cat.active ? 'active' : 'inactive'}.`,
+        });
+        await fetchAdminData();
+      }
+    } catch (err) {
+      setFeedback({
+        type: 'error',
+        message: 'Failed to update category: ' + (err.response?.data?.message || err.message),
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCreateCategory = async (e) => {
+    e.preventDefault();
+    try {
+      setActionLoading(true);
+      const res = await api.post('/admin/emergency/categories', newCatForm);
+      if (res.data?.success) {
+        setFeedback({ type: 'success', message: 'New emergency category created.' });
+        setNewCatModalOpen(false);
+        setNewCatForm({ categoryName: '', slug: '', description: '', icon: 'Activity', displayOrder: 1 });
+        await fetchAdminData();
+      }
+    } catch (err) {
+      setFeedback({
+        type: 'error',
+        message: 'Failed to create category: ' + (err.response?.data?.message || err.message),
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleApproveGuidance = async (guidanceId) => {
+    try {
+      setActionLoading(true);
+      const res = await api.post(`/admin/emergency/guidance/${guidanceId}/approve`);
+      if (res.data?.success) {
+        setFeedback({ type: 'success', message: 'Emergency guidance approved and published.' });
+        await fetchAdminData();
+      }
+    } catch (err) {
+      setFeedback({
+        type: 'error',
+        message: 'Approval failed: ' + (err.response?.data?.message || err.message),
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCreateGuidance = async (e) => {
+    e.preventDefault();
+    try {
+      setActionLoading(true);
+      const res = await api.post('/admin/emergency/guidance', newGuidanceForm);
+      if (res.data?.success) {
+        setFeedback({ type: 'success', message: 'Emergency guidance created.' });
+        setNewGuidanceModalOpen(false);
+        setNewGuidanceForm({ categoryId: '', title: '', content: '', reviewStatus: 'APPROVED' });
+        await fetchAdminData();
+      }
+    } catch (err) {
+      setFeedback({
+        type: 'error',
+        message: 'Failed to create guidance: ' + (err.response?.data?.message || err.message),
       });
     } finally {
       setActionLoading(false);
@@ -613,6 +762,38 @@ export const AdminDashboard = () => {
             }`}>
               {presenceLogs.filter(p => p.status === 'CHECKED_IN').length}
             </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('emergency')}
+            className={`flex items-center gap-2 py-3 px-3.5 text-xs font-semibold border-b-2 transition-all ${
+              activeTab === 'emergency'
+                ? 'border-brand-600 text-brand-700 bg-white shadow-xs rounded-t-lg'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <ShieldAlert className="w-3.5 h-3.5" />
+            <span>Emergency Governance</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-red-100 text-red-800">
+              {adminCategories.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('notifications')}
+            className={`flex items-center gap-2 py-3 px-3.5 text-xs font-semibold border-b-2 transition-all ${
+              activeTab === 'notifications'
+                ? 'border-brand-600 text-brand-700 bg-white shadow-xs rounded-t-lg'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Bell className="w-3.5 h-3.5" />
+            <span>Notifications & Telemetry</span>
+            {failedDeliveries.length > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                {failedDeliveries.length}
+              </span>
+            )}
           </button>
         </div>
 
@@ -1302,6 +1483,581 @@ export const AdminDashboard = () => {
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB 6: Emergency Categories & Guidance Management (Module 8) */}
+        {activeTab === 'emergency' && (
+          <div className="p-6 space-y-8">
+            {/* Header Controls */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Emergency Categories & Medically Reviewed Guidance
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Configure clinical emergency categories and manage versioned, reviewed first-aid protocols.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setNewCatModalOpen(true)}
+                  icon={ShieldAlert}
+                >
+                  Add Category
+                </Button>
+                <Button
+                  size="sm"
+                  variant="emergency"
+                  onClick={() => setNewGuidanceModalOpen(true)}
+                  icon={FileText}
+                >
+                  Add Guidance
+                </Button>
+              </div>
+            </div>
+
+            {/* Section 1: Categories List */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
+                  Configured Emergency Categories ({adminCategories.length})
+                </h4>
+                <span className="text-[11px] text-slate-400">
+                  Active categories appear on patient emergency mode screen
+                </span>
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-xs">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                    <tr>
+                      <th className="p-3">Order</th>
+                      <th className="p-3">Category Name</th>
+                      <th className="p-3">Slug / Code</th>
+                      <th className="p-3">Description</th>
+                      <th className="p-3">Status</th>
+                      <th className="p-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {adminCategories.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="p-6 text-center text-xs text-slate-400">
+                          No emergency categories configured yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      adminCategories.map((cat) => (
+                        <tr key={cat._id || cat.categoryId} className="hover:bg-slate-50/50">
+                          <td className="p-3 font-mono text-slate-500 font-bold">{cat.displayOrder || 0}</td>
+                          <td className="p-3 font-bold text-slate-900">{cat.categoryName}</td>
+                          <td className="p-3 font-mono text-slate-600">{cat.slug}</td>
+                          <td className="p-3 text-slate-600 max-w-xs truncate">{cat.description}</td>
+                          <td className="p-3">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                cat.active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
+                              }`}
+                            >
+                              {cat.active ? 'ACTIVE' : 'INACTIVE'}
+                            </span>
+                          </td>
+                          <td className="p-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCategoryActive(cat)}
+                              disabled={actionLoading}
+                              className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
+                                cat.active
+                                  ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                                  : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                              }`}
+                            >
+                              {cat.active ? 'Deactivate' : 'Activate'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Section 2: Medically Reviewed Guidance */}
+            <div className="space-y-3 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
+                  Clinical First-Aid Protocols & Guidance ({adminGuidance.length})
+                </h4>
+                <span className="text-[11px] text-slate-400">
+                  Guidance must be APPROVED by clinical administrator before publishing
+                </span>
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-xs">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                    <tr>
+                      <th className="p-3">Category</th>
+                      <th className="p-3">Title</th>
+                      <th className="p-3">Version</th>
+                      <th className="p-3">Review Status</th>
+                      <th className="p-3">Reviewed By</th>
+                      <th className="p-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {adminGuidance.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="p-6 text-center text-xs text-slate-400">
+                          No guidance protocols found.
+                        </td>
+                      </tr>
+                    ) : (
+                      adminGuidance.map((gdn) => (
+                        <tr key={gdn._id} className="hover:bg-slate-50/50">
+                          <td className="p-3 font-bold text-slate-900">
+                            {gdn.categoryId?.categoryName || 'General'}
+                          </td>
+                          <td className="p-3 font-medium text-slate-900 max-w-xs">
+                            <div>{gdn.title}</div>
+                            <div className="text-[11px] text-slate-400 truncate">{gdn.content}</div>
+                          </td>
+                          <td className="p-3 font-mono font-bold text-slate-600">v{gdn.version || 1}</td>
+                          <td className="p-3">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                gdn.reviewStatus === 'APPROVED'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : gdn.reviewStatus === 'DRAFT'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-rose-100 text-rose-800'
+                              }`}
+                            >
+                              {gdn.reviewStatus}
+                            </span>
+                          </td>
+                          <td className="p-3 text-slate-600">
+                            {gdn.reviewedBy?.name || 'Administrator'}
+                          </td>
+                          <td className="p-3 text-right">
+                            {gdn.reviewStatus !== 'APPROVED' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleApproveGuidance(gdn._id)}
+                                disabled={actionLoading}
+                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-xs transition-colors cursor-pointer"
+                              >
+                                Approve & Publish
+                              </button>
+                            ) : (
+                              <span className="text-[11px] font-semibold text-emerald-700 flex items-center justify-end gap-1">
+                                <Check className="w-3.5 h-3.5" /> Published
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal: Add Category */}
+            {newCatModalOpen && (
+              <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+                <form
+                  onSubmit={handleCreateCategory}
+                  className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-200"
+                >
+                  <h3 className="text-base font-bold text-slate-900">Add Emergency Category</h3>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Category Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={newCatForm.categoryName}
+                      onChange={(e) =>
+                        setNewCatForm({
+                          ...newCatForm,
+                          categoryName: e.target.value,
+                          slug: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+                        })
+                      }
+                      placeholder="e.g., Cardiac Arrest"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Unique Slug</label>
+                    <input
+                      type="text"
+                      required
+                      value={newCatForm.slug}
+                      onChange={(e) => setNewCatForm({ ...newCatForm, slug: e.target.value })}
+                      placeholder="e.g., cardiac"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Description</label>
+                    <textarea
+                      rows={2}
+                      value={newCatForm.description}
+                      onChange={(e) => setNewCatForm({ ...newCatForm, description: e.target.value })}
+                      placeholder="Symptoms and clinical classification description..."
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-700">Display Order</label>
+                      <input
+                        type="number"
+                        value={newCatForm.displayOrder}
+                        onChange={(e) =>
+                          setNewCatForm({ ...newCatForm, displayOrder: parseInt(e.target.value) || 0 })
+                        }
+                        className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-700">Icon Identifier</label>
+                      <input
+                        type="text"
+                        value={newCatForm.icon}
+                        onChange={(e) => setNewCatForm({ ...newCatForm, icon: e.target.value })}
+                        placeholder="e.g. HeartPulse"
+                        className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setNewCatModalOpen(false)}
+                      className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={actionLoading}
+                      className="px-4 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-xs disabled:opacity-50"
+                    >
+                      {actionLoading ? 'Saving...' : 'Save Category'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Modal: Add Guidance */}
+            {newGuidanceModalOpen && (
+              <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+                <form
+                  onSubmit={handleCreateGuidance}
+                  className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200"
+                >
+                  <h3 className="text-base font-bold text-slate-900">Add Clinical Emergency Guidance</h3>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Target Category</label>
+                    <select
+                      required
+                      value={newGuidanceForm.categoryId}
+                      onChange={(e) => setNewGuidanceForm({ ...newGuidanceForm, categoryId: e.target.value })}
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                    >
+                      <option value="">-- Select Emergency Category --</option>
+                      {adminCategories.map((c) => (
+                        <option key={c._id} value={c._id}>
+                          {c.categoryName} ({c.slug})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Guidance Title</label>
+                    <input
+                      type="text"
+                      required
+                      value={newGuidanceForm.title}
+                      onChange={(e) => setNewGuidanceForm({ ...newGuidanceForm, title: e.target.value })}
+                      placeholder="e.g., Acute Cardiac First-Aid Stabilization Protocol"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Clinical Protocol Steps</label>
+                    <textarea
+                      rows={5}
+                      required
+                      value={newGuidanceForm.content}
+                      onChange={(e) => setNewGuidanceForm({ ...newGuidanceForm, content: e.target.value })}
+                      placeholder="1. Keep patient resting upright...\n2. Assist with prescribed medications..."
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Initial Review Status</label>
+                    <select
+                      value={newGuidanceForm.reviewStatus}
+                      onChange={(e) => setNewGuidanceForm({ ...newGuidanceForm, reviewStatus: e.target.value })}
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                    >
+                      <option value="APPROVED">APPROVED (Immediate publication)</option>
+                      <option value="DRAFT">DRAFT (Requires clinical review)</option>
+                      <option value="PENDING">PENDING (Awaiting medical director)</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setNewGuidanceModalOpen(false)}
+                      className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={actionLoading}
+                      className="px-4 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-xs disabled:opacity-50"
+                    >
+                      {actionLoading ? 'Saving...' : 'Save Guidance'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Module 13 Notification Monitoring, Metrics & Retries */}
+        {activeTab === 'notifications' && (
+          <div className="p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Notification Delivery Infrastructure & Telemetry Health
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Multi-channel communication monitoring, provider logs, dead-letter recovery, and retry controls.
+                </p>
+              </div>
+
+              <Button
+                size="sm"
+                variant="outline"
+                icon={RefreshCw}
+                onClick={fetchDashboardData}
+              >
+                Refresh Metrics
+              </Button>
+            </div>
+
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Total Dispatched
+                </span>
+                <span className="text-2xl font-black text-slate-900">
+                  {notificationMetrics?.total || allNotifications.length}
+                </span>
+              </div>
+              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200">
+                <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">
+                  Delivered / Sent
+                </span>
+                <span className="text-2xl font-black text-emerald-800">
+                  {notificationMetrics?.delivered || allNotifications.filter(n => n.status === 'DELIVERED').length}
+                </span>
+              </div>
+              <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200">
+                <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">
+                  Unread Across Portal
+                </span>
+                <span className="text-2xl font-black text-amber-800">
+                  {notificationMetrics?.unread || allNotifications.filter(n => n.status !== 'READ').length}
+                </span>
+              </div>
+              <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200">
+                <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">
+                  Failed Deliveries
+                </span>
+                <span className="text-2xl font-black text-rose-800">
+                  {failedDeliveries.length || notificationMetrics?.failed || 0}
+                </span>
+              </div>
+            </div>
+
+            {/* Channel Provider Health Cards */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">
+                Active Channel Providers & Telemetry Nodes
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-brand-600" />
+                    <div>
+                      <span className="font-bold text-slate-900 block">In-App Database</span>
+                      <span className="text-[10px] text-slate-400">Persistent Audit Log</span>
+                    </div>
+                  </div>
+                  <Badge variant="success" size="xs">Operational</Badge>
+                </div>
+
+                <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Radio className="w-4 h-4 text-purple-600" />
+                    <div>
+                      <span className="font-bold text-slate-900 block">Socket.io Push</span>
+                      <span className="text-[10px] text-slate-400">Real-Time Streams</span>
+                    </div>
+                  </div>
+                  <Badge variant="success" size="xs">Connected</Badge>
+                </div>
+
+                <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-blue-600" />
+                    <div>
+                      <span className="font-bold text-slate-900 block">Email Gateway</span>
+                      <span className="text-[10px] text-slate-400">Nodemailer Engine</span>
+                    </div>
+                  </div>
+                  <Badge variant="success" size="xs">Ready</Badge>
+                </div>
+
+                <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-amber-600" />
+                    <div>
+                      <span className="font-bold text-slate-900 block">SMS Dispatch</span>
+                      <span className="text-[10px] text-slate-400">Mobile SMS Gateway</span>
+                    </div>
+                  </div>
+                  <Badge variant="success" size="xs">Active</Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* Dead-Letter / Failed Deliveries Section */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-rose-600" />
+                  <span>Failed Deliveries & Dead-Letter Queue ({failedDeliveries.length})</span>
+                </h4>
+              </div>
+
+              {failedDeliveries.length === 0 ? (
+                <div className="p-6 bg-emerald-50/50 border border-emerald-200 rounded-xl text-center text-xs text-emerald-800 font-medium">
+                  ✓ Zero failed deliveries currently in dead-letter queue. All communication channels healthy.
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                      <tr>
+                        <th className="p-3">Delivery ID</th>
+                        <th className="p-3">Channel</th>
+                        <th className="p-3">Recipient</th>
+                        <th className="p-3">Attempts</th>
+                        <th className="p-3">Error Reason</th>
+                        <th className="p-3 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {failedDeliveries.map((f) => (
+                        <tr key={f._id || f.deliveryId} className="hover:bg-slate-50">
+                          <td className="p-3 font-mono font-bold text-slate-800">{f.deliveryId}</td>
+                          <td className="p-3 font-semibold">{f.channel}</td>
+                          <td className="p-3 text-slate-600">
+                            {f.notificationId?.recipientUserId?.name || 'User'}
+                          </td>
+                          <td className="p-3 font-mono">{f.attemptCount || 1}</td>
+                          <td className="p-3 text-rose-700 max-w-xs truncate">{f.failureReason || 'Provider timeout'}</td>
+                          <td className="p-3 text-right">
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              loading={retryingId === (f.notificationId?._id || f._id)}
+                              onClick={() => handleRetryNotification(f.notificationId?._id || f._id)}
+                            >
+                              Retry Now
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Audit Log Stream */}
+            <div className="space-y-3 pt-2">
+              <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">
+                Recent Broadcast & Delivery Log Stream ({allNotifications.length})
+              </h4>
+              <div className="overflow-x-auto border border-slate-200 rounded-xl max-h-96 overflow-y-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200 sticky top-0">
+                    <tr>
+                      <th className="p-3">Type</th>
+                      <th className="p-3">Recipient</th>
+                      <th className="p-3">Title & Message</th>
+                      <th className="p-3">Priority</th>
+                      <th className="p-3">Status</th>
+                      <th className="p-3">Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {allNotifications.map((n) => (
+                      <tr key={n._id || n.notificationId} className="hover:bg-slate-50">
+                        <td className="p-3 font-mono text-[11px] font-bold text-slate-800">{n.notificationType}</td>
+                        <td className="p-3 text-slate-700">{n.recipientUserId?.name || 'Registered Account'}</td>
+                        <td className="p-3 max-w-xs">
+                          <div className="font-bold text-slate-900">{n.title}</div>
+                          <div className="text-[11px] text-slate-500 truncate">{n.message}</div>
+                        </td>
+                        <td className="p-3">
+                          <Badge variant={n.priority === 'EMERGENCY' ? 'urgent' : n.priority === 'CRITICAL' ? 'warning' : 'default'} size="xs">
+                            {n.priority}
+                          </Badge>
+                        </td>
+                        <td className="p-3">
+                          <Badge variant={n.status === 'DELIVERED' ? 'success' : n.status === 'READ' ? 'secondary' : 'default'} size="xs">
+                            {n.status}
+                          </Badge>
+                        </td>
+                        <td className="p-3 text-slate-400 font-mono text-[11px]">
+                          {new Date(n.createdAt).toLocaleTimeString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
       </div>

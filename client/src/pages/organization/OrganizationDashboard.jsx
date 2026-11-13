@@ -21,6 +21,8 @@ import {
   MapPin,
   Navigation,
   FileCheck2,
+  Radio,
+  Compass,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -54,6 +56,9 @@ export const OrganizationDashboard = () => {
   const { socket } = useSocket();
   const [profile, setProfile] = useState(null);
   const [broadcasts, setBroadcasts] = useState([]);
+  const [pendingConfirmations, setPendingConfirmations] = useState([]);
+  const [reservations, setReservations] = useState([]);
+  const [incomingPatients, setIncomingPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionNotice, setActionNotice] = useState('');
@@ -139,8 +144,15 @@ export const OrganizationDashboard = () => {
         });
       });
 
+      socket.on('emergency:destination_selected_pending_confirmation', (data) => {
+        playAlertBeep();
+        setActionNotice('Patient selected your facility! Final confirmation requested.');
+        fetchOrgData(false);
+      });
+
       socket.on('emergency:destination_confirmed', () => fetchOrgData(false));
       socket.on('emergency:patient_en_route', () => fetchOrgData(false));
+      socket.on('emergency:patient_arrived', () => fetchOrgData(false));
     }
 
     return () => {
@@ -148,8 +160,10 @@ export const OrganizationDashboard = () => {
         socket.off('emergency-broadcast-incoming');
         socket.off('emergency-broadcast-new');
         socket.off('emergency:incoming_beep');
+        socket.off('emergency:destination_selected_pending_confirmation');
         socket.off('emergency:destination_confirmed');
         socket.off('emergency:patient_en_route');
+        socket.off('emergency:patient_arrived');
       }
     };
   }, [socket]);
@@ -167,6 +181,36 @@ export const OrganizationDashboard = () => {
           if (profRes.data.data.slug) socket.emit('join-facility-room', profRes.data.data.slug);
           if (profRes.data.data.name) socket.emit('join-facility-room', profRes.data.data.name);
         }
+      }
+
+      // Fetch pending destination confirmations
+      try {
+        const confRes = await api.get('/organizations/me/destination-confirmations');
+        if (confRes.data.success && Array.isArray(confRes.data.data)) {
+          setPendingConfirmations(confRes.data.data);
+        }
+      } catch (err) {
+        // Fallback
+      }
+
+      // Fetch active reservations
+      try {
+        const resRes = await api.get('/organizations/me/reservations');
+        if (resRes.data.success && Array.isArray(resRes.data.data)) {
+          setReservations(resRes.data.data);
+        }
+      } catch (err) {
+        // Fallback
+      }
+
+      // Module 12: Fetch incoming en-route patients
+      try {
+        const incRes = await api.get('/organizations/me/incoming-patients');
+        if (incRes.data.success && Array.isArray(incRes.data.data)) {
+          setIncomingPatients(incRes.data.data);
+        }
+      } catch (err) {
+        // Fallback
       }
 
       try {
@@ -187,6 +231,76 @@ export const OrganizationDashboard = () => {
       console.error('Error fetching org portal', err);
     } finally {
       if (showLoading) setLoading(false);
+    }
+  };
+
+  const handleConfirmFinalSelection = async (selectionId) => {
+    try {
+      setActionLoading(true);
+      const res = await api.post(`/organizations/me/destination-confirmations/${selectionId}/confirm`, {
+        requiredResources: [{ resourceType: 'er_bay', quantity: 1 }],
+      });
+      if (res.data.success) {
+        setActionNotice('Destination confirmed & 1x ER Bay temporarily reserved for 15 minutes.');
+        setTimeout(() => setActionNotice(''), 5000);
+        fetchOrgData(false);
+      }
+    } catch (err) {
+      alert('Confirmation failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeclineFinalSelection = async (selectionId) => {
+    const reason = prompt('Specify reason for declining patient receiving:');
+    if (!reason) return;
+    try {
+      setActionLoading(true);
+      const res = await api.post(`/organizations/me/destination-confirmations/${selectionId}/decline`, {
+        reason,
+      });
+      if (res.data.success) {
+        setActionNotice('Destination declined.');
+        setTimeout(() => setActionNotice(''), 4000);
+        fetchOrgData(false);
+      }
+    } catch (err) {
+      alert('Error declining: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleMarkArrivalByReservation = async (reservationId) => {
+    try {
+      setActionLoading(true);
+      const res = await api.post(`/organizations/me/reservations/${reservationId}/mark-arrived`);
+      if (res.data.success) {
+        setActionNotice('Patient arrival verified! Ready for bed allocation.');
+        setTimeout(() => setActionNotice(''), 5000);
+        fetchOrgData(false);
+      }
+    } catch (err) {
+      alert('Error recording arrival: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAllocateReservation = async (reservationId) => {
+    try {
+      setActionLoading(true);
+      const res = await api.post(`/organizations/me/reservations/${reservationId}/allocate`);
+      if (res.data.success) {
+        setActionNotice('Resource officially allocated! Emergency admission completed.');
+        setTimeout(() => setActionNotice(''), 5000);
+        fetchOrgData(false);
+      }
+    } catch (err) {
+      alert('Allocation error: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -427,6 +541,253 @@ export const OrganizationDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Module 11: Pending Destination Final Confirmations Desk */}
+      {pendingConfirmations.length > 0 && (
+        <div className="bg-amber-50/80 border-2 border-amber-300 rounded-2xl p-6 shadow-md space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-amber-200">
+            <div className="flex items-center space-x-2.5">
+              <span className="w-3 h-3 rounded-full bg-amber-500 animate-ping"></span>
+              <h2 className="text-base font-black text-amber-950">
+                Action Required: Patient Final Destination Confirmations ({pendingConfirmations.length})
+              </h2>
+            </div>
+            <Badge variant="hold" size="xs">
+              Awaiting Receiving Desk Confirmation
+            </Badge>
+          </div>
+
+          <p className="text-xs text-amber-800">
+            The following patients have chosen your trauma center as their final destination among all accepted facilities. Confirming will atomically lock a 15-minute temporary bed reservation and dispatch navigation routing.
+          </p>
+
+          <div className="space-y-3">
+            {pendingConfirmations.map((sel) => {
+              const req = sel.emergencyRequestId;
+              return (
+                <div
+                  key={sel._id || sel.selectionId}
+                  className="bg-white p-4 rounded-xl border border-amber-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4"
+                >
+                  <div className="space-y-1 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-slate-900 capitalize">
+                        {req?.emergencyType || 'Emergency'} Patient
+                      </span>
+                      <Badge variant="emergency" size="xs">
+                        {req?.severity || 'CRITICAL'}
+                      </Badge>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        Ref: {sel.selectionId}
+                      </span>
+                    </div>
+                    <p className="text-slate-600">
+                      <strong>Patient:</strong> {req?.patientName || req?.patientId?.name || 'Emergency Patient'} &bull;{' '}
+                      <strong>Contact:</strong> {req?.patientPhone || req?.patientId?.phone || 'GPS Contact'}
+                    </p>
+                    <p className="text-slate-500 text-[11px]">
+                      Selected at: {new Date(sel.selectedAt || sel.createdAt).toLocaleTimeString()}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end md:self-center">
+                    <Button
+                      size="sm"
+                      variant="presence"
+                      disabled={actionLoading}
+                      onClick={() => handleConfirmFinalSelection(sel._id || sel.selectionId)}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1 inline" />
+                      Confirm & Hold 1x ER Bay
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-rose-600 hover:bg-rose-50"
+                      disabled={actionLoading}
+                      onClick={() => handleDeclineFinalSelection(sel._id || sel.selectionId)}
+                    >
+                      <XCircle className="w-3.5 h-3.5 mr-1 inline" />
+                      Decline
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Module 11: Active Bed Reservations & Reception Desk */}
+      {reservations.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-card space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center space-x-2">
+              <BedDouble className="w-5 h-5 text-emerald-600" />
+              <h2 className="text-base font-black text-slate-900">
+                Active Bed Reservations & Arrival Management ({reservations.length})
+              </h2>
+            </div>
+            <span className="text-xs text-slate-400 font-medium">15-Minute Temporary Holds</span>
+          </div>
+
+          <div className="space-y-3">
+            {reservations.map((res) => {
+              const req = res.emergencyRequestId;
+              const isExpired = new Date(res.expiresAt) < new Date();
+              const isAllocated = res.status === 'ALLOCATED';
+              const isArrived = res.status === 'PATIENT_ARRIVED';
+
+              return (
+                <div
+                  key={res._id || res.reservationId}
+                  className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-900">{req?.patientName || 'Emergency Patient'}</span>
+                      <Badge
+                        variant={isAllocated ? 'presence' : isArrived ? 'info' : isExpired ? 'neutral' : 'hold'}
+                        size="xs"
+                      >
+                        {res.status}
+                      </Badge>
+                      <span className="font-mono text-[10px] text-slate-400">{res.reservationId}</span>
+                    </div>
+                    <p className="text-slate-600">
+                      <strong>Reserved:</strong> 1x {res.resourceType?.toUpperCase() || 'ER BAY'} &bull;{' '}
+                      <strong>Condition:</strong> {req?.emergencyType || 'Trauma'} ({req?.severity || 'CRITICAL'})
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      Hold Expires:{' '}
+                      <span className={`font-bold ${isExpired ? 'text-rose-600' : 'text-emerald-700'}`}>
+                        {new Date(res.expiresAt).toLocaleTimeString()}
+                      </span>
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end md:self-center">
+                    {!isArrived && !isAllocated && (
+                      <Button
+                        size="xs"
+                        variant="primary"
+                        disabled={actionLoading}
+                        onClick={() => handleMarkArrivalByReservation(res._id || res.reservationId)}
+                      >
+                        <CheckCircle2 className="w-3 h-3 mr-1 inline" />
+                        Mark Arrived
+                      </Button>
+                    )}
+                    {isArrived && !isAllocated && (
+                      <Button
+                        size="xs"
+                        variant="presence"
+                        disabled={actionLoading}
+                        onClick={() => handleAllocateReservation(res._id || res.reservationId)}
+                      >
+                        <BedDouble className="w-3 h-3 mr-1 inline" />
+                        Allocate Bed & Admit
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Module 12: Incoming En-Route Patients (Live Telemetry) */}
+      {incomingPatients.length > 0 && (
+        <div className="bg-white rounded-2xl border border-blue-200 p-6 shadow-card space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-blue-100">
+            <div className="flex items-center space-x-2">
+              <Compass className="w-5 h-5 text-blue-600 animate-pulse" />
+              <h2 className="text-base font-black text-slate-900">
+                Incoming En-Route Patients ({incomingPatients.length})
+              </h2>
+            </div>
+            <span className="text-xs text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+              Live Inbound Telemetry
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {incomingPatients.map((item) => {
+              const req = item.emergencyRequest;
+              const resv = item.reservation;
+              const jny = item.journey;
+              const isSharing = jny?.isSharingLocation;
+              const isArrived = resv?.status === 'PATIENT_ARRIVED' || req?.status === 'ARRIVED';
+              const isAllocated = resv?.status === 'ALLOCATED';
+
+              return (
+                <div
+                  key={req?._id || jny?._id}
+                  className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-slate-900">{req?.patientName || 'Emergency Patient'}</span>
+                      <Badge variant={isArrived ? 'presence' : 'emergency'} size="xs">
+                        {req?.status || 'PATIENT_EN_ROUTE'}
+                      </Badge>
+                      <span className="font-mono text-[10px] text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded">
+                        #{req?.requestCode}
+                      </span>
+                      {isSharing && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
+                          <Radio className="w-2.5 h-2.5 animate-pulse" />
+                          GPS Active
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-slate-600">
+                      <strong>Triage:</strong> {req?.emergencyType?.toUpperCase()} ({req?.severity || 'CRITICAL'}) &bull;{' '}
+                      <strong>Phone:</strong> {req?.patientPhone || 'N/A'}
+                    </p>
+                    {jny?.estimatedDurationMin && (
+                      <p className="text-[11px] text-blue-700 font-semibold">
+                        Estimated Arrival: ~{jny.estimatedDurationMin} mins ({jny.estimatedDistanceKm} km)
+                      </p>
+                    )}
+                    {item.latestLocation && (
+                      <p className="text-[10px] font-mono text-slate-400">
+                        GPS: {item.latestLocation.latitude?.toFixed(4)}, {item.latestLocation.longitude?.toFixed(4)} (±{item.latestLocation.accuracyMeters}m)
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end md:self-center">
+                    {!isArrived && !isAllocated && (
+                      <Button
+                        size="xs"
+                        variant="primary"
+                        disabled={actionLoading}
+                        onClick={() => handleMarkArrivalByReservation(resv?._id || resv?.reservationId)}
+                      >
+                        <CheckCircle2 className="w-3 h-3 mr-1 inline" />
+                        Verify Arrival at ER
+                      </Button>
+                    )}
+                    {isArrived && !isAllocated && (
+                      <Button
+                        size="xs"
+                        variant="presence"
+                        disabled={actionLoading}
+                        onClick={() => handleAllocateReservation(resv?._id || resv?.reservationId)}
+                      >
+                        <BedDouble className="w-3 h-3 mr-1 inline" />
+                        Allocate Bay & Admit
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Live Emergency Broadcast Reception Desk */}
       <div className="bg-white/70 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 sm:p-8 space-y-4">

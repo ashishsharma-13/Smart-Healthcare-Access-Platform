@@ -1,4 +1,5 @@
 import { appointmentNotificationRepository } from '../repositories/AppointmentNotificationRepository.js';
+import { notificationService } from './NotificationService.js';
 import { getSocketIO } from '../sockets/socketHandler.js';
 
 export class AppointmentNotificationService {
@@ -16,6 +17,24 @@ export class AppointmentNotificationService {
         message,
         sentAt: new Date(),
       });
+
+      // Also create unified Module 13 Notification record non-blockingly
+      const typeMap = {
+        BOOKING_CONFIRMATION: 'APPOINTMENT_BOOKED',
+        CANCELLATION: 'APPOINTMENT_CANCELLED',
+        RESCHEDULE: 'APPOINTMENT_RESCHEDULED',
+        REMINDER: 'APPOINTMENT_REMINDER',
+      };
+
+      const unifiedType = typeMap[notificationType] || 'APPOINTMENT_BOOKED';
+      notificationService.createNotification({
+        recipientUserId: recipientId,
+        notificationType: unifiedType,
+        title: notificationType.replace(/_/g, ' '),
+        message,
+        priority: 'NORMAL',
+        actionUrl: '/patient/appointments',
+      }).catch((e) => console.warn('[NotificationService Warning]', e.message));
 
       // Safely broadcast via socket if active
       const io = getSocketIO();

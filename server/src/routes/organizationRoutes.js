@@ -4,6 +4,11 @@ import { doctorAffiliationController } from '../controllers/DoctorAffiliationCon
 import { doctorScheduleController } from '../controllers/DoctorScheduleController.js';
 import { doctorPresenceController } from '../controllers/DoctorPresenceController.js';
 import { appointmentController } from '../controllers/AppointmentController.js';
+import { emergencyMatchingController } from '../controllers/EmergencyMatchingController.js';
+import { emergencyBeepController } from '../controllers/EmergencyBeepController.js';
+import { destinationReservationController } from '../controllers/DestinationReservationController.js';
+import { emergencyJourneyController } from '../controllers/EmergencyJourneyController.js';
+import { notificationController } from '../controllers/NotificationController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -61,6 +66,40 @@ router.get('/me/presence-qr', authenticate, authorize('organization'), (req, res
 router.post('/me/presence-qr/:id/revoke', authenticate, authorize('organization'), (req, res, next) => doctorPresenceController.revokeOrgQRCode(req, res, next));
 router.get('/me/doctors/presence', authenticate, authorize('organization'), (req, res, next) => doctorPresenceController.getOrgLiveDoctors(req, res, next));
 router.get('/me/doctors/presence/history', authenticate, authorize('organization'), (req, res, next) => doctorPresenceController.getOrgPresenceHistory(req, res, next));
+
+// Module 9: Organization Emergency Capabilities
+router.get('/me/emergency-capabilities', authenticate, authorize('organization'), (req, res, next) => emergencyMatchingController.getOrgCapabilities(req, res, next));
+router.put('/me/emergency-capabilities', authenticate, authorize('organization'), (req, res, next) => emergencyMatchingController.updateOrgCapabilities(req, res, next));
+
+// Module 10: Organization Emergency Beep Handling
+router.get('/me/emergency-beeps', authenticate, authorize('organization'), (req, res, next) => emergencyBeepController.getOrgIncoming(req, res, next));
+router.get('/me/emergency-beeps/history', authenticate, authorize('organization'), (req, res, next) => emergencyBeepController.getOrgHistory(req, res, next));
+router.get('/me/emergency-beeps/:recipientId', authenticate, authorize('organization'), (req, res, next) => emergencyBeepController.getOrgBeepDetail(req, res, next));
+router.post('/me/emergency-beeps/:recipientId/accept', authenticate, authorize('organization'), (req, res, next) => emergencyBeepController.acceptBeep(req, res, next));
+router.post('/me/emergency-beeps/:recipientId/decline', authenticate, authorize('organization'), (req, res, next) => emergencyBeepController.declineBeep(req, res, next));
+
+// Module 11: Destination Confirmations & Resource Reservation Desk
+router.get('/me/destination-confirmations', authenticate, authorize('organization'), (req, res, next) => destinationReservationController.getOrgDestinationConfirmations(req, res, next));
+router.get('/me/destination-confirmations/:selectionId', authenticate, authorize('organization'), (req, res, next) => destinationReservationController.getOrgDestinationConfirmationDetails(req, res, next));
+router.post('/me/destination-confirmations/:selectionId/confirm', authenticate, authorize('organization'), (req, res, next) => destinationReservationController.confirmDestination(req, res, next));
+router.post('/me/destination-confirmations/:selectionId/decline', authenticate, authorize('organization'), (req, res, next) => destinationReservationController.declineDestination(req, res, next));
+
+router.get('/me/reservations', authenticate, authorize('organization'), (req, res, next) => destinationReservationController.getOrgReservations(req, res, next));
+router.get('/me/reservations/:reservationId', authenticate, authorize('organization'), (req, res, next) => destinationReservationController.getOrgReservationDetails(req, res, next));
+router.post('/me/reservations/:reservationId/mark-arrived', authenticate, authorize('organization'), (req, res, next) => destinationReservationController.markPatientArrived(req, res, next));
+router.post('/me/reservations/:reservationId/allocate', authenticate, authorize('organization'), (req, res, next) => emergencyJourneyController.allocateResource(req, res, next));
+router.get('/me/reservations/:reservationId/allocations', authenticate, authorize('organization'), (req, res, next) => emergencyJourneyController.getAllocations(req, res, next));
+
+// Module 12: Incoming En-Route Patients & Arrival Verification
+router.get('/me/incoming-patients', authenticate, authorize('organization'), (req, res, next) => emergencyJourneyController.getIncomingPatients(req, res, next));
+router.get('/me/incoming-patients/:requestId', authenticate, authorize('organization'), (req, res, next) => emergencyJourneyController.getIncomingPatientDetails(req, res, next));
+router.post('/me/emergency-requests/:requestId/verify-arrival', authenticate, authorize('organization'), (req, res, next) => emergencyJourneyController.verifyStaffArrival(req, res, next));
+router.post('/me/emergency-requests/:requestId/complete', authenticate, authorize('organization'), (req, res, next) => emergencyJourneyController.completeEmergency(req, res, next));
+
+// Module 13: Organization Notifications
+router.get('/me/notifications', authenticate, authorize('organization'), (req, res, next) => notificationController.getOrganizationNotifications(req, res, next));
+router.get('/me/notifications/unread', authenticate, authorize('organization'), (req, res, next) => notificationController.getOrganizationUnreadNotifications(req, res, next));
+router.post('/me/notifications/:id/read', authenticate, authorize('organization'), (req, res, next) => notificationController.markOrganizationNotificationAsRead(req, res, next));
 
 router.post('/presence-qr', authenticate, authorize('organization'), (req, res, next) => doctorPresenceController.generateOrgQRCode(req, res, next));
 router.get('/presence-qr', authenticate, authorize('organization'), (req, res, next) => doctorPresenceController.listOrgQRCodes(req, res, next));
