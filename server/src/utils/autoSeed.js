@@ -24,6 +24,7 @@ import {
 import { healthcareResourceTypeService } from '../services/HealthcareResourceTypeService.js';
 import { externalFacilityDirectoryService } from '../services/ExternalFacilityDirectoryService.js';
 import { platformConfigurationService } from '../services/PlatformConfigurationService.js';
+import { hyderabadHospitalsData } from './hyderabadHospitalsData.js';
 
 export default async function autoSeed() {
   const getOrCreateUser = async (data) => {
@@ -603,6 +604,34 @@ export default async function autoSeed() {
     totalReviews: 45,
   });
 
+  // 5b. Accredited Hyderabad Hospitals around User Location (University of Hyderabad / Gachibowli)
+  const hydOrgs = [];
+  for (const item of hyderabadHospitalsData) {
+    const orgUser = await getOrCreateUser(item.user);
+    const org = await getOrCreateOrg(orgUser._id, item.org);
+    if (org) {
+      org.location = item.org.location;
+      org.operatingAddress = item.org.operatingAddress;
+      org.registeredAddress = item.org.registeredAddress;
+      org.address = item.org.address;
+      org.facilities = item.org.facilities;
+      org.specializations = item.org.specializations;
+      org.healthcareCapabilities = item.org.healthcareCapabilities;
+      org.emergencyCapable = item.org.emergencyCapable;
+      org.emergencyContactPhone = item.org.emergencyContactPhone;
+      org.verificationStatus = 'verified';
+      await org.save();
+      hydOrgs.push(org);
+
+      for (const res of item.resources) {
+        await getOrCreateResource({
+          organizationId: org._id,
+          ...res,
+        });
+      }
+    }
+  }
+
   // 6. Test Suite Baseline Doctors
   // Doctor 1: Sneha Sen
   const doc1User = await getOrCreateUser({
@@ -951,6 +980,29 @@ export default async function autoSeed() {
     doctorAcceptance: { status: 'accepted', respondedAt: new Date() },
     organizationApproval: { status: 'approved', reviewedAt: new Date(), reviewedBy: cedarUser._id },
   });
+
+  // Doctor Affiliations with Hyderabad Hospitals
+  if (hydOrgs && hydOrgs.length > 0) {
+    const hydDocs = [doc1, doc2, doc3, docMira, docDaniel, docSofia, docEthan].filter(Boolean);
+    for (let i = 0; i < Math.min(hydDocs.length, hydOrgs.length); i++) {
+      const d = hydDocs[i];
+      const o = hydOrgs[i];
+      await getOrCreateAffiliation({
+        affiliationId: `AFF-HYD-${d.doctorUniqueId || i}-${o.registrationNumber}`,
+        doctorId: d._id,
+        organizationId: o._id,
+        status: 'ACTIVE',
+        department: d.specialization || 'General Medicine',
+        designation: 'Senior Consultant',
+        affiliationType: 'VISITING',
+        canAdmitPatients: true,
+        consultationFee: d.consultationFee || 600,
+        initiatedBy: 'doctor',
+        doctorAcceptance: { status: 'accepted', respondedAt: new Date() },
+        organizationApproval: { status: 'approved', reviewedAt: new Date() },
+      });
+    }
+  }
 
   // 9. Appointments
   const tomorrow = new Date();

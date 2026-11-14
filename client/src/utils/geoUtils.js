@@ -140,9 +140,9 @@ export const getUserCurrentLocation = async (forceRefresh = false) => {
   return new Promise((resolve) => {
     if (!('geolocation' in navigator)) {
       resolve({
-        lat: 28.6139,
-        lng: 77.2090,
-        address: 'Current Location (Default Coords)',
+        lat: 17.4568,
+        lng: 78.3264,
+        address: 'University of Hyderabad, Gachibowli, Hyderabad',
       });
       return;
     }
@@ -161,11 +161,11 @@ export const getUserCurrentLocation = async (forceRefresh = false) => {
         resolve({ lat, lng, address, accuracy, source: 'GPS' });
       },
       () => {
-        // Fallback if permission denied
+        // Fallback to University of Hyderabad & Gachibowli user location
         const fallback = {
-          lat: 28.6139,
-          lng: 77.2090,
-          address: 'Connaught Place, New Delhi',
+          lat: 17.4568,
+          lng: 78.3264,
+          address: 'University of Hyderabad, Gachibowli, Hyderabad',
           accuracy: null,
           source: 'MANUAL',
           permissionDenied: true,

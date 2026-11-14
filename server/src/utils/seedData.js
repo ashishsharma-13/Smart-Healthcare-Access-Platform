@@ -11,6 +11,7 @@ import {
   EmergencyRequest,
   EmergencyBroadcast,
 } from '../models/index.js';
+import { hyderabadHospitalsData } from './hyderabadHospitalsData.js';
 
 dotenv.config();
 
@@ -198,6 +199,24 @@ const seed = async () => {
     facilities: ['Emergency Bay', 'General Surgery'],
   });
 
+  console.log('[Seed] Creating 10 accredited Hyderabad hospitals near University of Hyderabad...');
+  const seededHydOrgs = [];
+  for (const item of hyderabadHospitalsData) {
+    const orgUser = await User.create(item.user);
+    const org = await Organization.create({
+      ...item.org,
+      userId: orgUser._id,
+    });
+    seededHydOrgs.push(org);
+
+    for (const res of item.resources) {
+      await HealthcareResource.create({
+        organizationId: org._id,
+        ...res,
+      });
+    }
+  }
+
   console.log('[Seed] Creating doctors...');
   // Doctor 1: Dr. Sneha Sen (Cardiology, Verified)
   const doc1User = await User.create({
@@ -365,6 +384,28 @@ const seed = async () => {
       organizationApproval: { status: 'approved', reviewedAt: new Date(), reviewedBy: org1User._id },
     },
   ]);
+
+  if (seededHydOrgs.length > 0) {
+    const hydDocs = [doc1, doc2, doc3];
+    for (let i = 0; i < Math.min(hydDocs.length, seededHydOrgs.length); i++) {
+      const d = hydDocs[i];
+      const o = seededHydOrgs[i];
+      await DoctorAffiliation.create({
+        affiliationId: `AFF-HYD-${d.doctorUniqueId || i}-${o.registrationNumber}`,
+        doctorId: d._id,
+        organizationId: o._id,
+        status: 'ACTIVE',
+        department: d.specialization || 'General Medicine',
+        designation: 'Senior Consultant',
+        affiliationType: 'VISITING',
+        canAdmitPatients: true,
+        consultationFee: d.consultationFee || 600,
+        initiatedBy: 'doctor',
+        doctorAcceptance: { status: 'accepted', respondedAt: new Date() },
+        organizationApproval: { status: 'approved', reviewedAt: new Date() },
+      });
+    }
+  }
 
   console.log('[Seed] Creating demo appointments...');
   const tomorrow = new Date();

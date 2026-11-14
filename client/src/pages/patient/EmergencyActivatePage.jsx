@@ -63,8 +63,8 @@ export const EmergencyActivatePage = () => {
   const [ambulanceRequirement, setAmbulanceRequirement] = useState('NO'); // YES, NO, ALREADY_ARRANGED
 
   // Location State
-  const [coordinates, setCoordinates] = useState([77.2090, 28.6139]); // [lng, lat]
-  const [locationAddress, setLocationAddress] = useState('Connaught Place, New Delhi');
+  const [coordinates, setCoordinates] = useState([78.3264, 17.4568]); // [lng, lat]
+  const [locationAddress, setLocationAddress] = useState('University of Hyderabad, Gachibowli, Hyderabad');
   const [locationAccuracy, setLocationAccuracy] = useState(10);
   const [locationSource, setLocationSource] = useState('GPS');
   const [locationConfirmed, setLocationConfirmed] = useState(false);

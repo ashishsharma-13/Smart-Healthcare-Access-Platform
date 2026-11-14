@@ -24,8 +24,8 @@ export const HospitalsListPage = () => {
   const [loading, setLoading] = useState(true);
 
   // Top Search Bar Inputs
-  const [facilityQuery, setFacilityQuery] = useState('Cardiology, emergency care');
-  const [locationQuery, setLocationQuery] = useState('Brookfield, NY');
+  const [facilityQuery, setFacilityQuery] = useState('Emergency care, multi-specialty');
+  const [locationQuery, setLocationQuery] = useState('Hyderabad, Telangana');
 
   // Left Filters Sidebar
   const [selectedSpecialty, setSelectedSpecialty] = useState('Cardiology');

@@ -26,7 +26,7 @@ export const DoctorSearchPage = () => {
     searchParams.get('specialization') || searchParams.get('search') || 'Cardiology'
   );
   const [locationQuery, setLocationQuery] = useState(
-    searchParams.get('location') || 'Brookfield, NY'
+    searchParams.get('location') || 'Hyderabad, Telangana'
   );
 
   // Left Filters Sidebar State

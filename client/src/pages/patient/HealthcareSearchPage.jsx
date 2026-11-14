@@ -33,13 +33,14 @@ import {
 } from 'lucide-react';
 
 const PRESET_LOCATIONS = [
+  { name: 'Hyderabad (UoH / Gachibowli)', coords: [17.4568, 78.3264] },
+  { name: 'Hyderabad (Hitec City)', coords: [17.4474, 78.3762] },
   { name: 'New Delhi (Central)', coords: [28.6139, 77.2090] },
   { name: 'Noida (Sector 62)', coords: [28.6280, 77.3649] },
   { name: 'Gurugram (Cyber Hub)', coords: [28.4950, 77.0895] },
   { name: 'Mumbai (South)', coords: [18.9256, 72.8242] },
   { name: 'Bengaluru (MG Road)', coords: [12.9716, 77.5946] },
   { name: 'Chennai (Central)', coords: [13.0827, 80.2707] },
-  { name: 'Hyderabad (Hitec City)', coords: [17.4474, 78.3762] },
 ];
 
 export const HealthcareSearchPage = () => {
@@ -55,9 +56,9 @@ export const HealthcareSearchPage = () => {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || searchParams.get('search') || '');
   const [searchHistory, setSearchHistory] = useState([]);
 
-  // Location & Radius
-  const [selectedLocationName, setSelectedLocationName] = useState('New Delhi (Central)');
-  const [currentCoords, setCurrentCoords] = useState([28.6139, 77.2090]); // [lat, lng]
+  // Location & Radius - Default to Current User Location (Hyderabad / UoH Campus)
+  const [selectedLocationName, setSelectedLocationName] = useState('Hyderabad (UoH / Gachibowli)');
+  const [currentCoords, setCurrentCoords] = useState([17.4568, 78.3264]); // [lat, lng]
   const [radiusKm, setRadiusKm] = useState(20);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState(null);
@@ -116,6 +117,31 @@ export const HealthcareSearchPage = () => {
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [doctorAvailability, setDoctorAvailability] = useState(null);
   const [availLoading, setAvailLoading] = useState(false);
+
+  // Attempt detecting live GPS coordinates on mount if available
+  useEffect(() => {
+    const cachedCoords = sessionStorage.getItem('shap_user_coords');
+    if (cachedCoords) {
+      try {
+        const parsed = JSON.parse(cachedCoords);
+        if (parsed.lat && parsed.lng) {
+          setCurrentCoords([parsed.lat, parsed.lng]);
+          setSelectedLocationName(sessionStorage.getItem('shap_user_address') || 'Current GPS Location');
+        }
+      } catch (e) {}
+    } else if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords = [pos.coords.latitude, pos.coords.longitude];
+          setCurrentCoords(coords);
+          setSelectedLocationName('Current GPS Location');
+          sessionStorage.setItem('shap_user_coords', JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude }));
+        },
+        () => {},
+        { timeout: 5000, enableHighAccuracy: true }
+      );
+    }
+  }, []);
 
   // Load Metadata & Search History once
   useEffect(() => {
