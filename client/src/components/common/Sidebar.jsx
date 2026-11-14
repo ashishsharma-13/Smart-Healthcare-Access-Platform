@@ -10,7 +10,6 @@ import {
   Calendar,
   Siren,
   ClipboardList,
-  MessageCircle,
   ChevronDown,
   LayoutDashboard,
   Clock,
@@ -20,15 +19,16 @@ import {
   FileCheck,
   Activity,
   X,
-  ChevronRight,
-  ShieldCheck,
   MapPin,
-  Ambulance,
+  UserCheck,
+  History,
+  ShieldCheck,
+  MessageCircle,
 } from 'lucide-react';
 import { HelpCenterModal } from './HelpCenterModal';
 
 export const Sidebar = () => {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const { mobileSidebarOpen, closeMobileSidebar } = useUI();
   const location = useLocation();
   const [helpOpen, setHelpOpen] = useState(false);
@@ -51,159 +51,107 @@ export const Sidebar = () => {
 
   if (!user) return null;
 
+  // Active & inactive link helper classes
+  const getNavLinkClass = ({ isActive }) =>
+    `flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs transition-colors ${
+      isActive
+        ? 'bg-[#2F2FE4] text-white font-semibold shadow-xs'
+        : 'text-[#CBD5E1] hover:text-white hover:bg-[#262569]/60 font-medium'
+    }`;
+
+  const getEmergencyLinkClass = ({ isActive }) =>
+    `flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs transition-colors ${
+      isActive
+        ? 'bg-[#DC2626] text-white font-bold shadow-xs'
+        : 'text-[#FCA5A5] hover:text-white hover:bg-[#DC2626]/20 font-semibold'
+    }`;
+
   // 1. Patient Portal Sidebar
   const patientNavContent = (
     <div className="flex flex-col h-full justify-between p-4 space-y-6 select-none">
       <div className="space-y-5">
         {/* Workspace Dropdown */}
         <div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5 px-1">
+          <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block mb-1.5 px-1">
             WORKSPACE
           </span>
-          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200/90 bg-white shadow-2xs text-slate-900 font-semibold text-xs">
-            <span>Patient portal</span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+          <div className="flex items-center justify-between p-2.5 rounded-lg border border-[#262569] bg-[#13123E] text-white font-semibold text-xs">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#16A34A]" />
+              Patient Portal
+            </span>
+            <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
           </div>
         </div>
 
         {/* Primary Patient Links */}
         <div className="space-y-0.5">
-          {/* 1. Overview */}
-          <NavLink
-            to="/patient/dashboard"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                isActive
-                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
+          <NavLink to="/patient/dashboard" className={getNavLinkClass}>
             <LayoutGrid className="w-4 h-4 shrink-0" />
             <span>Overview</span>
           </NavLink>
 
-          {/* Search & Discover */}
-          <NavLink
-            to="/search"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                isActive
-                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
+          <NavLink to="/search" className={getNavLinkClass}>
             <Search className="w-4 h-4 shrink-0" />
             <span>Search & Discover</span>
           </NavLink>
 
-          {/* 2. Find doctors */}
-          <NavLink
-            to="/doctors"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                isActive
-                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
+          <NavLink to="/doctors" className={getNavLinkClass}>
             <Stethoscope className="w-4 h-4 shrink-0" />
-            <span>Find doctors</span>
+            <span>Find Doctors</span>
           </NavLink>
 
-          {/* 3. Find hospitals */}
-          <NavLink
-            to="/hospitals"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                isActive
-                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
+          <NavLink to="/hospitals" className={getNavLinkClass}>
             <Building2 className="w-4 h-4 shrink-0" />
-            <span>Find hospitals</span>
+            <span>Find Hospitals</span>
           </NavLink>
 
-          {/* 4. Healthcare map */}
-          <NavLink
-            to="/map"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                isActive
-                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
+          <NavLink to="/map" className={getNavLinkClass}>
             <MapPin className="w-4 h-4 shrink-0" />
-            <span>Healthcare map</span>
+            <span>Healthcare Map</span>
           </NavLink>
 
-          {/* 5. Appointments */}
-          <NavLink
-            to="/patient/appointments"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                isActive
-                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
+          <NavLink to="/patient/appointments" className={getNavLinkClass}>
             <Calendar className="w-4 h-4 shrink-0" />
             <span>Appointments</span>
           </NavLink>
 
-          {/* 6. Emergency Beep */}
-          <NavLink
-            to="/emergency/activate"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                isActive
-                  ? 'bg-urgent-50 text-urgent-700 font-bold border-l-2 border-urgent-600 rounded-l-none'
-                  : 'text-slate-600 hover:text-urgent-700 hover:bg-urgent-50/50 font-medium'
-              }`
-            }
-          >
-            <Siren className="w-4 h-4 text-urgent-600 shrink-0" />
+          <NavLink to="/emergency/activate" className={getEmergencyLinkClass}>
+            <Siren className="w-4 h-4 text-white shrink-0 animate-pulse" />
             <span>Emergency Beep</span>
           </NavLink>
 
-          {/* 7. Care activity */}
-          <NavLink
-            to="/patient/activity"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                isActive
-                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
+          <NavLink to="/emergency/history" className={getNavLinkClass}>
+            <History className="w-4 h-4 shrink-0" />
+            <span>Emergency History</span>
+          </NavLink>
+
+          <NavLink to="/patient/care-activity" className={getNavLinkClass}>
             <ClipboardList className="w-4 h-4 shrink-0" />
-            <span>Care activity</span>
+            <span>Care Activity</span>
+          </NavLink>
+
+          <NavLink to="/patient/profile" className={getNavLinkClass}>
+            <UserCheck className="w-4 h-4 shrink-0" />
+            <span>My Profile & Records</span>
           </NavLink>
         </div>
       </div>
 
       {/* Support Callout Box */}
       <div className="space-y-3">
-        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1.5">
+        <div className="p-3.5 rounded-xl bg-[#13123E] border border-[#262569] space-y-1.5">
           <div className="flex items-center space-x-2">
-            <MessageCircle className="w-4 h-4 text-brand-600" />
-            <h4 className="text-xs font-bold text-slate-900">Here to help</h4>
+            <MessageCircle className="w-4 h-4 text-[#818CF8]" />
+            <h4 className="text-xs font-bold text-white">Here to Help</h4>
           </div>
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            Find answers, clinical protocols, and platform support.
+          <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+            Find answers, clinical protocols, and platform support 24/7.
           </p>
           <button
             type="button"
             onClick={() => setHelpOpen(true)}
-            className="text-[11px] font-bold text-brand-600 hover:underline flex items-center space-x-1 cursor-pointer pt-0.5"
+            className="text-[11px] font-bold text-[#818CF8] hover:text-white flex items-center space-x-1 cursor-pointer pt-0.5 transition-colors"
           >
             <span>Visit help center</span>
             <span>&rarr;</span>
@@ -213,114 +161,64 @@ export const Sidebar = () => {
     </div>
   );
 
-  // 2. Doctor Portal Sidebar (Strictly matches Doctor reference image)
+  // 2. Doctor Portal Sidebar
   const doctorNavContent = (
     <div className="flex flex-col h-full justify-between p-4 space-y-6 select-none">
       <div className="space-y-5">
         {/* Workspace Dropdown */}
         <div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5 px-1">
+          <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block mb-1.5 px-1">
             WORKSPACE
           </span>
-          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200/90 bg-white shadow-2xs text-slate-900 font-semibold text-xs">
-            <span>Doctor portal</span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+          <div className="flex items-center justify-between p-2.5 rounded-lg border border-[#262569] bg-[#13123E] text-white font-semibold text-xs">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#2F2FE4]" />
+              Doctor Portal
+            </span>
+            <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
           </div>
         </div>
 
         {/* Primary Doctor Links */}
         <div className="space-y-0.5">
-          {/* 1. Overview */}
-          <NavLink
-            to="/doctor/dashboard"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                isActive
-                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
+          <NavLink to="/doctor/dashboard" className={getNavLinkClass}>
             <LayoutGrid className="w-4 h-4 shrink-0" />
             <span>Overview</span>
           </NavLink>
 
-          {/* 2. Schedule */}
-          <NavLink
-            to="/doctor/schedule"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                isActive
-                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
+          <NavLink to="/doctor/schedule" className={getNavLinkClass}>
             <Calendar className="w-4 h-4 shrink-0" />
             <span>Schedule</span>
           </NavLink>
 
-          {/* 3. Appointments */}
-          <NavLink
-            to="/doctor/appointments"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                isActive
-                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
+          <NavLink to="/doctor/appointments" className={getNavLinkClass}>
             <ClipboardList className="w-4 h-4 shrink-0" />
             <span>Appointments</span>
           </NavLink>
 
-          {/* 4. Availability */}
-          <NavLink
-            to="/doctor/availability"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                isActive
-                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
+          <NavLink to="/doctor/availability" className={getNavLinkClass}>
             <Clock className="w-4 h-4 shrink-0" />
             <span>Availability</span>
           </NavLink>
+
+          <NavLink to="/doctor/profile" className={getNavLinkClass}>
+            <UserCheck className="w-4 h-4 shrink-0" />
+            <span>Doctor Profile</span>
+          </NavLink>
         </div>
 
-        {/* Facility & Affiliations strictly per media_1794416780094_69267bc6.png */}
-        <div className="pt-3 border-t border-slate-100 space-y-0.5">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 px-3">
+        {/* Facility & Affiliations */}
+        <div className="pt-3 border-t border-[#262569] space-y-0.5">
+          <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block mb-1 px-3">
             FACILITY & AFFILIATIONS
           </span>
-          <NavLink
-            to="/doctor/affiliations"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                isActive
-                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
-            <Building2 className="w-4 h-4 shrink-0 text-slate-500" />
+          <NavLink to="/doctor/affiliations" className={getNavLinkClass}>
+            <Building2 className="w-4 h-4 shrink-0" />
             <span>Manage Affiliations</span>
           </NavLink>
 
-          <NavLink
-            to="/doctor/presence"
-            className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                isActive
-                  ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`
-            }
-          >
-            <QrCode className="w-4 h-4 shrink-0 text-slate-500" />
+          <NavLink to="/doctor/presence" className={getNavLinkClass}>
+            <QrCode className="w-4 h-4 shrink-0" />
             <span>QR Presence & Badge</span>
           </NavLink>
         </div>
@@ -328,18 +226,18 @@ export const Sidebar = () => {
 
       {/* Support Callout Box */}
       <div className="space-y-3">
-        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1.5">
+        <div className="p-3.5 rounded-xl bg-[#13123E] border border-[#262569] space-y-1.5">
           <div className="flex items-center space-x-2">
-            <MessageCircle className="w-4 h-4 text-brand-600" />
-            <h4 className="text-xs font-bold text-slate-900">Here to help</h4>
+            <MessageCircle className="w-4 h-4 text-[#818CF8]" />
+            <h4 className="text-xs font-bold text-white">Practitioner Support</h4>
           </div>
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            Find answers, clinical protocols, and platform support.
+          <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+            Duty desk, on-call protocol & clinical desk support.
           </p>
           <button
             type="button"
             onClick={() => setHelpOpen(true)}
-            className="text-[11px] font-bold text-brand-600 hover:underline flex items-center space-x-1 cursor-pointer pt-0.5"
+            className="text-[11px] font-bold text-[#818CF8] hover:text-white flex items-center space-x-1 cursor-pointer pt-0.5 transition-colors"
           >
             <span>Visit help center</span>
             <span>&rarr;</span>
@@ -350,23 +248,6 @@ export const Sidebar = () => {
   );
 
   // 3. Organization / Admin Nav Content
-  const doctorSections = [
-    {
-      title: 'Practitioner Desk',
-      links: [
-        { to: '/doctor/dashboard', label: 'Doctor Portal', icon: LayoutDashboard },
-        { to: '/doctor/schedule', label: 'Schedule & Slots', icon: Clock },
-      ],
-    },
-    {
-      title: 'Facility & Affiliations',
-      links: [
-        { to: '/doctor/affiliations', label: 'Manage Affiliations', icon: Building2 },
-        { to: '/doctor/presence', label: 'QR Presence & Badge', icon: QrCode },
-      ],
-    },
-  ];
-
   const orgSections = [
     {
       title: 'Hospital Command',
@@ -396,28 +277,49 @@ export const Sidebar = () => {
     {
       title: 'Verification Queues',
       links: [
-        { to: '/admin/doctors', label: 'Doctor License Verification', icon: FileCheck },
+        { to: '/admin/doctors', label: 'Doctor Verification', icon: FileCheck },
         { to: '/admin/organizations', label: 'Hospital Verification', icon: Building2 },
       ],
     },
   ];
 
-  let otherSections = doctorSections;
-  if (user.role === 'organization') otherSections = orgSections;
-  else if (user.role === 'admin') otherSections = adminSections;
+  let otherSections = orgSections;
+  let workspaceTitle = 'Hospital Command';
+  let workspaceDot = 'bg-[#162E93]';
+
+  if (user.role === 'admin' || user.role === 'web_admin') {
+    otherSections = adminSections;
+    workspaceTitle = 'Admin Governance';
+    workspaceDot = 'bg-[#818CF8]';
+  }
 
   const defaultNavContent = (
-    <div className="flex flex-col h-full justify-between p-4 space-y-6">
-      <div className="space-y-6">
-        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-          <h4 className="text-xs font-semibold text-slate-900 truncate">{user.name}</h4>
-          <p className="text-[11px] text-slate-500 truncate">{user.email || user.phone}</p>
+    <div className="flex flex-col h-full justify-between p-4 space-y-6 select-none">
+      <div className="space-y-5">
+        {/* Workspace Dropdown */}
+        <div>
+          <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block mb-1.5 px-1">
+            WORKSPACE
+          </span>
+          <div className="flex items-center justify-between p-2.5 rounded-lg border border-[#262569] bg-[#13123E] text-white font-semibold text-xs">
+            <span className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${workspaceDot}`} />
+              {workspaceTitle}
+            </span>
+            <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
+          </div>
+        </div>
+
+        {/* User Card */}
+        <div className="p-3 bg-[#13123E] border border-[#262569] rounded-xl space-y-1">
+          <h4 className="text-xs font-semibold text-white truncate">{user.name}</h4>
+          <p className="text-[11px] text-[#94A3B8] truncate">{user.email || user.phone}</p>
         </div>
 
         <div className="space-y-5">
           {otherSections.map((section, idx) => (
             <div key={idx} className="space-y-1">
-              <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
                 {section.title}
               </p>
               <div className="space-y-0.5">
@@ -427,15 +329,9 @@ export const Sidebar = () => {
                     <NavLink
                       key={link.to}
                       to={link.to}
-                      className={({ isActive }) =>
-                        `flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                          isActive
-                            ? 'bg-brand-50 text-brand-700 font-bold border-l-2 border-brand-600 rounded-l-none'
-                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                        }`
-                      }
+                      className={getNavLinkClass}
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-4 h-4 shrink-0" />
                       <span>{link.label}</span>
                     </NavLink>
                   );
@@ -443,6 +339,27 @@ export const Sidebar = () => {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Support Callout Box */}
+      <div className="space-y-3">
+        <div className="p-3.5 rounded-xl bg-[#13123E] border border-[#262569] space-y-1.5">
+          <div className="flex items-center space-x-2">
+            <ShieldCheck className="w-4 h-4 text-[#818CF8]" />
+            <h4 className="text-xs font-bold text-white">Platform Operations</h4>
+          </div>
+          <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+            Audit logging, SLA tracking, and regulatory governance.
+          </p>
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            className="text-[11px] font-bold text-[#818CF8] hover:text-white flex items-center space-x-1 cursor-pointer pt-0.5 transition-colors"
+          >
+            <span>Documentation & Support</span>
+            <span>&rarr;</span>
+          </button>
         </div>
       </div>
     </div>
@@ -455,7 +372,7 @@ export const Sidebar = () => {
   return (
     <>
       {/* Desktop Persistent Sidebar */}
-      <aside className="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col flex-shrink-0 min-h-[calc(100vh-4rem)]">
+      <aside className="hidden lg:flex w-64 bg-[#1A1953] border-r border-[#262569] flex-col flex-shrink-0 min-h-[calc(100vh-4rem)]">
         {activeContent}
       </aside>
 
@@ -463,17 +380,17 @@ export const Sidebar = () => {
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fade-in"
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity animate-fade-in"
             onClick={closeMobileSidebar}
             aria-hidden="true"
           />
-          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white shadow-xl z-10 animate-slide-right">
-            <div className="p-3 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Navigation</span>
+          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-[#1A1953] border-r border-[#262569] shadow-2xl z-10 animate-slide-right">
+            <div className="p-3.5 border-b border-[#262569] flex items-center justify-between bg-[#13123E]">
+              <span className="text-xs font-bold text-white uppercase tracking-wider">Navigation</span>
               <button
                 type="button"
                 onClick={closeMobileSidebar}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-200/60"
+                className="p-1.5 rounded-lg text-[#94A3B8] hover:text-white hover:bg-[#262569] transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>

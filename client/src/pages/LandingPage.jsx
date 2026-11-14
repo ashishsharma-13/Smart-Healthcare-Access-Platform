@@ -130,7 +130,7 @@ export const LandingPage = () => {
       {/* 1. HERO SECTION: PERSUASIVE CLINICAL AUTHORITY           */}
       {/* ======================================================== */}
       <section className="relative bg-white border-b border-slate-200/90 pt-8 sm:pt-12 pb-16 sm:pb-24 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
             
             {/* Left Column: Mission & Core Value */}
@@ -306,7 +306,7 @@ export const LandingPage = () => {
       {/* ======================================================== */}
       {/* 3. CLINICAL SPECIALTIES & DEPARTMENTS                     */}
       {/* ======================================================== */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
@@ -358,7 +358,7 @@ export const LandingPage = () => {
       {/* ======================================================== */}
       {/* 4. VERIFIED MEDICAL PRACTITIONERS                         */}
       {/* ======================================================== */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <div className="flex items-center gap-2">
@@ -404,7 +404,7 @@ export const LandingPage = () => {
       {/* ======================================================== */}
       {/* 5. EMERGENCY READY TRAUMA CENTERS                         */}
       {/* ======================================================== */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <div className="flex items-center gap-2">
@@ -450,7 +450,7 @@ export const LandingPage = () => {
       {/* ======================================================== */}
       {/* 6. EMERGENCY PROTOCOL BANNER (DARK NAVY)                 */}
       {/* ======================================================== */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="rounded-2xl bg-brand-950 p-6 sm:p-10 lg:p-12 text-white border border-brand-900 shadow-elevated">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             

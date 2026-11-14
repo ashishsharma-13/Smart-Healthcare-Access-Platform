@@ -193,7 +193,7 @@ export const DoctorSearchPage = () => {
               value={specialtyQuery}
               onChange={(e) => setSpecialtyQuery(e.target.value)}
               placeholder="e.g. Cardiology, Dr. Mira"
-              className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2F2FE4]/20 focus:border-[#2F2FE4]"
             />
           </div>
 
@@ -205,7 +205,7 @@ export const DoctorSearchPage = () => {
               value={locationQuery}
               onChange={(e) => setLocationQuery(e.target.value)}
               placeholder="e.g. Brookfield, NY"
-              className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2F2FE4]/20 focus:border-[#2F2FE4]"
             />
           </div>
 
@@ -213,7 +213,7 @@ export const DoctorSearchPage = () => {
           <div className="md:col-span-2">
             <button
               type="submit"
-              className="w-full h-[38px] px-4 bg-[#0B4F9C] hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center space-x-1.5 cursor-pointer"
+              className="w-full h-[38px] px-4 bg-[#2F2FE4] hover:bg-[#162E93] text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center space-x-1.5 cursor-pointer"
             >
               <Search className="w-3.5 h-3.5" />
               <span>Search doctors</span>
@@ -231,7 +231,7 @@ export const DoctorSearchPage = () => {
             <button
               type="button"
               onClick={handleResetFilters}
-              className="text-xs font-bold text-blue-600 hover:underline flex items-center space-x-1 cursor-pointer"
+              className="text-xs font-bold text-[#2F2FE4] hover:text-[#162E93] hover:underline flex items-center space-x-1 cursor-pointer"
             >
               <span>Reset</span>
               <span>&rarr;</span>
@@ -245,7 +245,7 @@ export const DoctorSearchPage = () => {
               <select
                 value={selectedSpecialty}
                 onChange={(e) => setSelectedSpecialty(e.target.value)}
-                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-[#2F2FE4]/20"
               >
                 {specialtiesList.map((spec) => (
                   <option key={spec} value={spec}>
@@ -264,7 +264,7 @@ export const DoctorSearchPage = () => {
               <select
                 value={selectedDistance}
                 onChange={(e) => setSelectedDistance(e.target.value)}
-                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-[#2F2FE4]/20"
               >
                 <option value="5">Within 5 km</option>
                 <option value="10">Within 10 km</option>
@@ -286,7 +286,7 @@ export const DoctorSearchPage = () => {
                   onChange={(e) =>
                     setAvailabilityFilter({ ...availabilityFilter, next3days: e.target.checked })
                   }
-                  className="rounded text-blue-600 focus:ring-blue-500"
+                  className="rounded text-[#2F2FE4] focus:ring-[#2F2FE4]"
                 />
                 <span>Next 3 days</span>
               </label>
@@ -297,7 +297,7 @@ export const DoctorSearchPage = () => {
                   onChange={(e) =>
                     setAvailabilityFilter({ ...availabilityFilter, today: e.target.checked })
                   }
-                  className="rounded text-blue-600 focus:ring-blue-500"
+                  className="rounded text-[#2F2FE4] focus:ring-[#2F2FE4]"
                 />
                 <span>Today</span>
               </label>
@@ -308,7 +308,7 @@ export const DoctorSearchPage = () => {
                   onChange={(e) =>
                     setAvailabilityFilter({ ...availabilityFilter, thisWeek: e.target.checked })
                   }
-                  className="rounded text-blue-600 focus:ring-blue-500"
+                  className="rounded text-[#2F2FE4] focus:ring-[#2F2FE4]"
                 />
                 <span>This week</span>
               </label>
@@ -326,7 +326,7 @@ export const DoctorSearchPage = () => {
                   onChange={(e) =>
                     setConsultationType({ ...consultationType, inPerson: e.target.checked })
                   }
-                  className="rounded text-blue-600 focus:ring-blue-500"
+                  className="rounded text-[#2F2FE4] focus:ring-[#2F2FE4]"
                 />
                 <span>In person</span>
               </label>
@@ -337,7 +337,7 @@ export const DoctorSearchPage = () => {
                   onChange={(e) =>
                     setConsultationType({ ...consultationType, video: e.target.checked })
                   }
-                  className="rounded text-blue-600 focus:ring-blue-500"
+                  className="rounded text-[#2F2FE4] focus:ring-[#2F2FE4]"
                 />
                 <span>Video consultation</span>
               </label>
@@ -351,7 +351,7 @@ export const DoctorSearchPage = () => {
                 type="checkbox"
                 checked={verifiedOnly}
                 onChange={(e) => setVerifiedOnly(e.target.checked)}
-                className="rounded text-blue-600 focus:ring-blue-500"
+                className="rounded text-[#2F2FE4] focus:ring-[#2F2FE4]"
               />
               <span>Verified providers only</span>
             </label>
@@ -362,7 +362,7 @@ export const DoctorSearchPage = () => {
             <button
               type="button"
               onClick={fetchDoctors}
-              className="w-full py-2.5 bg-[#0B4F9C] hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+              className="w-full py-2.5 bg-[#2F2FE4] hover:bg-[#162E93] text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
             >
               Apply filters
             </button>
@@ -381,12 +381,12 @@ export const DoctorSearchPage = () => {
               {/* Removable Active Filter Pills strictly per Reference Image 1 */}
               <div className="flex flex-wrap items-center gap-1.5">
                 {selectedSpecialty && selectedSpecialty !== 'All Specialties' && (
-                  <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#EBF3FE] text-blue-700 border border-blue-200/60">
+                  <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#F0F2FD] text-[#2F2FE4] border border-[#D6DCFA]">
                     <span>{selectedSpecialty}</span>
                     <button
                       type="button"
                       onClick={() => setSelectedSpecialty('All Specialties')}
-                      className="hover:text-blue-950 cursor-pointer"
+                      className="hover:text-[#1A1953] cursor-pointer"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -394,12 +394,12 @@ export const DoctorSearchPage = () => {
                 )}
 
                 {selectedDistance !== 'all' && (
-                  <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#EBF3FE] text-blue-700 border border-blue-200/60">
+                  <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#F0F2FD] text-[#2F2FE4] border border-[#D6DCFA]">
                     <span>Within {selectedDistance} km</span>
                     <button
                       type="button"
                       onClick={() => setSelectedDistance('all')}
-                      className="hover:text-blue-950 cursor-pointer"
+                      className="hover:text-[#1A1953] cursor-pointer"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -407,14 +407,14 @@ export const DoctorSearchPage = () => {
                 )}
 
                 {availabilityFilter.next3days && (
-                  <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#EBF3FE] text-blue-700 border border-blue-200/60">
+                  <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#F0F2FD] text-[#2F2FE4] border border-[#D6DCFA]">
                     <span>Next 3 days</span>
                     <button
                       type="button"
                       onClick={() =>
                         setAvailabilityFilter({ ...availabilityFilter, next3days: false })
                       }
-                      className="hover:text-blue-950 cursor-pointer"
+                      className="hover:text-[#1A1953] cursor-pointer"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -451,7 +451,7 @@ export const DoctorSearchPage = () => {
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="text-blue-600 font-bold hover:underline cursor-pointer"
+                className="text-[#2F2FE4] hover:text-[#162E93] font-bold hover:underline cursor-pointer"
               >
                 Reset filters
               </button>
@@ -469,7 +469,7 @@ export const DoctorSearchPage = () => {
                 const distText = doc.distance || '3.2 km away';
                 const nextDate = doc.nextSlotDate || 'Tue, 10 Nov';
                 const nextTime = doc.nextSlotTime || '10:30 AM';
-                const fee = doc.consultationFee || 85;
+                const fee = doc.consultationFee || 500;
 
                 return (
                   <div
@@ -479,7 +479,7 @@ export const DoctorSearchPage = () => {
                     {/* Top Row: Avatar + Name + Verified Badge */}
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center space-x-3.5">
-                        <div className="w-12 h-12 rounded-full bg-[#EBF3FE] text-blue-700 font-bold flex items-center justify-center text-sm border border-blue-100 shrink-0">
+                        <div className="w-12 h-12 rounded-full bg-[#F0F2FD] text-[#2F2FE4] font-bold flex items-center justify-center text-sm border border-[#D6DCFA] shrink-0">
                           {getInitials(docName)}
                         </div>
                         <div>
@@ -515,13 +515,13 @@ export const DoctorSearchPage = () => {
                           {nextDate} &bull; {nextTime}
                         </div>
                         <div className="text-xs text-slate-500 mt-0.5">
-                          ${fee} consultation &bull; In person
+                          ₹{fee} consultation &bull; In person
                         </div>
                       </div>
 
                       <Link
                         to={`/doctors/${doc._id}`}
-                        className="px-4 py-2 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer shadow-xs"
+                        className="px-4 py-2 border border-slate-200 hover:border-[#2F2FE4] bg-white hover:bg-[#F0F2FD] text-slate-700 hover:text-[#2F2FE4] font-bold text-xs rounded-xl transition cursor-pointer shadow-xs"
                       >
                         View profile
                       </Link>

@@ -368,7 +368,7 @@ export const HealthcareSearchPage = () => {
         }));
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12 select-none">
+    <div className="space-y-6 w-full pb-12 select-none">
       {/* 1. Header & Navigation Hub */}
       <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">

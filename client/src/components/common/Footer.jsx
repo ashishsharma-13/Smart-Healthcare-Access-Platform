@@ -4,8 +4,8 @@ import { Activity, ShieldCheck, PhoneCall } from 'lucide-react';
 
 export const Footer = () => {
   return (
-    <footer className="bg-brand-950 text-slate-300 pt-10 pb-6 border-t border-brand-900 select-none">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <footer className="bg-[#080616] text-slate-300 pt-10 pb-6 border-t border-[#1A1953] select-none">
+      <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Main Columns Grid */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8 items-start">

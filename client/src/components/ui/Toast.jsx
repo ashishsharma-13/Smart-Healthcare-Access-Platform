@@ -11,28 +11,28 @@ export const Toast = ({
   const configs = {
     success: {
       icon: CheckCircle2,
-      container: 'bg-presence-50 border-presence-200 text-presence-900',
-      iconColor: 'text-presence-600',
+      container: 'bg-[#F0FDF4] border-[#BBF7D0] text-[#15803D]',
+      iconColor: 'text-[#16A34A]',
     },
     warning: {
       icon: AlertTriangle,
-      container: 'bg-hold-50 border-hold-200 text-hold-900',
-      iconColor: 'text-hold-600',
+      container: 'bg-[#FFFBEB] border-[#FDE68A] text-[#B45309]',
+      iconColor: 'text-[#D97706]',
     },
     error: {
       icon: AlertCircle,
-      container: 'bg-rose-50 border-rose-200 text-rose-900',
-      iconColor: 'text-rose-600',
+      container: 'bg-[#FEF2F2] border-[#FECACA] text-[#B91C1C]',
+      iconColor: 'text-[#DC2626]',
     },
     emergency: {
       icon: AlertCircle,
-      container: 'bg-urgent-50 border-urgent-300 text-urgent-900',
-      iconColor: 'text-urgent-600',
+      container: 'bg-[#FEF2F2] border-[#DC2626] text-[#B91C1C]',
+      iconColor: 'text-[#DC2626]',
     },
     info: {
       icon: Info,
-      container: 'bg-brand-50 border-brand-200 text-brand-900',
-      iconColor: 'text-brand-600',
+      container: 'bg-[#F0F2FD] border-[#C5CAF7] text-[#111827]',
+      iconColor: 'text-[#2F2FE4]',
     },
   };
 

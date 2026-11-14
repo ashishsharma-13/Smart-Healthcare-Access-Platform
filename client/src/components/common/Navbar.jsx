@@ -327,8 +327,8 @@ export const Navbar = () => {
   };
 
   return (
-    <header className="bg-white border-b border-slate-200/90 sticky top-0 z-40 select-none">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="bg-white border-b border-[#E2E8F0] sticky top-0 z-40 select-none shadow-2xs">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Left: Brand Identity & Breadcrumb */}
           <div className="flex items-center space-x-3">
@@ -336,7 +336,7 @@ export const Navbar = () => {
             {isDashboardRoute && (
               <button
                 onClick={toggleMobileSidebar}
-                className="lg:hidden p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition"
+                className="lg:hidden p-2 text-[#64748B] hover:text-[#111827] hover:bg-[#F1F5F9] rounded-xl transition"
                 aria-label="Toggle navigation drawer"
               >
                 <Menu className="w-5 h-5" />
@@ -347,23 +347,23 @@ export const Navbar = () => {
             {!isDashboardRoute && (
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition"
+                className="md:hidden p-2 text-[#64748B] hover:text-[#111827] hover:bg-[#F1F5F9] rounded-xl transition"
                 aria-label="Toggle navigation menu"
               >
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             )}
 
-            {/* Brand Logo strictly per Reference Image 2 */}
+            {/* Brand Logo strictly with official Core Brand Palette */}
             <Link to="/" className="flex items-center space-x-2.5 group">
-              <div className="w-8 h-8 rounded-xl bg-[#0B4F9C] flex items-center justify-center text-white shadow-xs group-hover:bg-blue-800 transition-colors">
+              <div className="w-8 h-8 rounded-xl bg-[#2F2FE4] flex items-center justify-center text-white shadow-xs group-hover:bg-[#162E93] transition-colors">
                 <Plus className="w-5 h-5 stroke-[3]" />
               </div>
               <div className="flex flex-col">
-                <span className="text-base font-black text-slate-900 tracking-tight leading-none">
+                <span className="text-base font-black text-[#111827] tracking-tight leading-none">
                   SHAP
                 </span>
-                <span className="text-[8.5px] font-bold text-slate-400 tracking-widest uppercase mt-0.5">
+                <span className="text-[8.5px] font-bold text-[#64748B] tracking-widest uppercase mt-0.5">
                   CONNECTED CARE, CLEARER ACCESS.
                 </span>
               </div>
@@ -371,10 +371,10 @@ export const Navbar = () => {
 
             {/* Portal Breadcrumb */}
             {isDashboardRoute && user && (
-              <div className="hidden md:flex items-center pl-4 ml-3 border-l border-slate-200 text-xs text-slate-500 font-medium space-x-1.5">
+              <div className="hidden md:flex items-center pl-4 ml-3 border-l border-[#E2E8F0] text-xs text-[#64748B] font-medium space-x-1.5">
                 <span className="capitalize">{user.role} portal</span>
                 <span>/</span>
-                <span className="text-slate-900 font-bold">{getBreadcrumb()}</span>
+                <span className="text-[#111827] font-bold">{getBreadcrumb()}</span>
               </div>
             )}
           </div>
@@ -384,7 +384,7 @@ export const Navbar = () => {
             {user ? (
               <>
                 {/* Date Display (Only visible after login) */}
-                <div className="hidden sm:block text-xs font-medium text-slate-500 tabular-nums">
+                <div className="hidden sm:block text-xs font-medium text-[#64748B] tabular-nums">
                   {formattedDate}
                 </div>
 
@@ -392,12 +392,12 @@ export const Navbar = () => {
                 <div className="relative" ref={notificationsRef}>
                   <button
                     onClick={() => setNotificationsOpen(!notificationsOpen)}
-                    className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100/80 rounded-lg transition relative cursor-pointer"
+                    className="p-2 text-[#64748B] hover:text-[#111827] hover:bg-[#F1F5F9] rounded-lg transition relative cursor-pointer"
                     aria-label="Notifications"
                   >
                     <Bell className="w-4 h-4" />
                     {hasUnread && (
-                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand-600 ring-2 ring-white" />
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#2F2FE4] ring-2 ring-white" />
                     )}
                   </button>
 
@@ -500,14 +500,14 @@ export const Navbar = () => {
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                     className="flex items-center space-x-2.5 p-1 pr-2 rounded-full hover:bg-slate-100/80 transition cursor-pointer"
                   >
-                    <div className="w-8 h-8 rounded-full bg-[#EBF3FE] text-brand-700 font-bold text-xs flex items-center justify-center border border-brand-200/80">
+                    <div className="w-8 h-8 rounded-full bg-[#F0F2FD] text-[#2F2FE4] font-bold text-xs flex items-center justify-center border border-[#C5CAF7]">
                       {getInitials(user.name)}
                     </div>
                     <div className="text-left hidden md:block">
-                      <div className="text-xs font-bold text-slate-900 leading-tight truncate max-w-[120px]">
+                      <div className="text-xs font-bold text-[#111827] leading-tight truncate max-w-[120px]">
                         {user.role === 'doctor' && !user.name.startsWith('Dr.') ? `Dr. ${user.name}` : user.name}
                       </div>
-                      <div className="text-[10px] text-slate-500 capitalize leading-tight">
+                      <div className="text-[10px] text-[#64748B] capitalize leading-tight">
                         {user.role === 'patient'
                           ? 'Personal account'
                           : user.role === 'doctor'
@@ -515,35 +515,35 @@ export const Navbar = () => {
                           : `${user.role} account`}
                       </div>
                     </div>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden md:block" />
+                    <ChevronDown className="w-3.5 h-3.5 text-[#64748B] hidden md:block" />
                   </button>
 
                   {/* Dropdown Menu */}
                   {profileDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-modal border border-slate-200/90 py-1.5 z-50 text-xs">
-                      <div className="px-4 py-2 border-b border-slate-100">
-                        <p className="font-bold text-slate-900 truncate">
+                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-modal border border-[#E2E8F0] py-1.5 z-50 text-xs">
+                      <div className="px-4 py-2 border-b border-[#F1F5F9]">
+                        <p className="font-bold text-[#111827] truncate">
                           {user.role === 'doctor' && !user.name.startsWith('Dr.') ? `Dr. ${user.name}` : user.name}
                         </p>
-                        <p className="text-[10px] text-slate-400 truncate">{user.email || user.phone}</p>
+                        <p className="text-[10px] text-[#64748B] truncate">{user.email || user.phone}</p>
                       </div>
 
                       <Link
                         to={getProfileRoute()}
                         onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:bg-slate-50 font-medium"
+                        className="flex items-center space-x-2 px-4 py-2 text-[#111827] hover:bg-[#F8FAFC] font-medium"
                       >
-                        <User className="w-4 h-4 text-slate-400" />
+                        <User className="w-4 h-4 text-[#64748B]" />
                         <span>Manage Profile</span>
                       </Link>
 
-                      <div className="border-t border-slate-100 my-1" />
+                      <div className="border-t border-[#F1F5F9] my-1" />
 
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center space-x-2 px-4 py-2 text-rose-600 hover:bg-rose-50 font-semibold text-left cursor-pointer"
+                        className="w-full flex items-center space-x-2 px-4 py-2 text-[#DC2626] hover:bg-[#FEF2F2] font-semibold text-left cursor-pointer"
                       >
-                        <LogOut className="w-4 h-4 text-rose-500" />
+                        <LogOut className="w-4 h-4 text-[#DC2626]" />
                         <span>Sign Out</span>
                       </button>
                     </div>
@@ -556,21 +556,21 @@ export const Navbar = () => {
                   to="/"
                   className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-colors ${
                     location.pathname === '/'
-                      ? 'text-[#0B4F9C] bg-blue-50 font-bold'
-                      : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
+                      ? 'text-[#2F2FE4] bg-[#F0F2FD] font-bold'
+                      : 'text-[#111827] hover:text-[#2F2FE4] hover:bg-[#F8FAFC]'
                   }`}
                 >
                   Home
                 </Link>
                 <Link
                   to="/login"
-                  className="px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:text-slate-900"
+                  className="px-3.5 py-1.5 text-xs font-bold text-[#111827] hover:text-[#2F2FE4]"
                 >
                   Sign In
                 </Link>
                 <Link
                   to="/register"
-                  className="px-3.5 py-1.5 text-xs font-bold bg-[#0B4F9C] text-white rounded-xl hover:bg-blue-800 shadow-xs"
+                  className="px-3.5 py-1.5 text-xs font-bold bg-[#2F2FE4] text-white rounded-xl hover:bg-[#162E93] shadow-xs"
                 >
                   Create Account
                 </Link>

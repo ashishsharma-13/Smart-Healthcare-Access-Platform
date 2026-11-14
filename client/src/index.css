@@ -2,6 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Official Core Brand Palette */
+  --color-primary: #2F2FE4;
+  --color-secondary: #162E93;
+  --color-navy: #1A1953;
+  --color-midnight: #080616;
+
+  /* Supporting System Colors */
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-text-primary: #111827;
+  --color-text-secondary: #64748B;
+  --color-text-muted: #6B7280;
+  --color-border: #E2E8F0;
+  --color-subtle: #F1F5F9;
+  --color-success: #16A34A;
+  --color-warning: #F59E0B;
+  --color-danger: #DC2626;
+  --color-emergency: #DC2626;
+}
+
 @layer base {
   html {
     color-scheme: light;
@@ -11,17 +32,17 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-900 antialiased font-sans selection:bg-brand-600 selection:text-white;
+    @apply bg-[#F8FAFC] text-[#111827] antialiased font-sans selection:bg-[#2F2FE4] selection:text-white;
   }
 
   /* Accessible clinical focus indicators */
   :focus-visible {
-    @apply outline-none ring-2 ring-brand-600 ring-offset-2 ring-offset-white;
+    @apply outline-none ring-2 ring-[#2F2FE4] ring-offset-2 ring-offset-white;
   }
 
   /* Authoritative headings */
   h1, h2, h3, h4, h5, h6 {
-    @apply tracking-tight text-slate-900 font-semibold;
+    @apply tracking-tight text-[#111827] font-semibold;
   }
 
   /* Tabular numbers for clinical telemetry, timestamps, passes, counts */
