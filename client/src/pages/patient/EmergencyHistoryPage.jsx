@@ -17,11 +17,14 @@ import {
   BedDouble,
   Navigation,
   X,
+  Star,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Toast } from '../../components/ui/Toast';
+import { FeedbackModal } from '../../components/common/FeedbackModal';
 
 export const EmergencyHistoryPage = () => {
   const [emergencies, setEmergencies] = useState([]);
@@ -34,6 +37,53 @@ export const EmergencyHistoryPage = () => {
   const [selectedHistory, setSelectedHistory] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [toast, setToast] = useState({ type: '', message: '' });
+
+  // Feedback state
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [feedbackTarget, setFeedbackTarget] = useState(null);
+  const [submittedEmergencyFeedbackMap, setSubmittedEmergencyFeedbackMap] = useState({});
+  const [viewFeedbackEmg, setViewFeedbackEmg] = useState(null);
+
+  const fetchEmergencyFeedbackMap = async () => {
+    try {
+      const res = await api.get('/feedback/my');
+      if (res.data?.success && Array.isArray(res.data?.data)) {
+        const map = {};
+        res.data.data.forEach((fb) => {
+          if (fb.emergencyRequestId) {
+            const emgId = typeof fb.emergencyRequestId === 'object' ? fb.emergencyRequestId._id : fb.emergencyRequestId;
+            map[String(emgId)] = fb;
+          }
+        });
+        setSubmittedEmergencyFeedbackMap(map);
+      }
+    } catch (err) {
+      console.warn('Could not load emergency feedback map:', err);
+    }
+  };
+
+  const handleOpenEmergencyFeedback = (emg) => {
+    setFeedbackTarget({
+      type: 'EMERGENCY',
+      id: emg._id,
+      organizationId: emg.selectedOrganizationId?._id || emg.selectedOrganizationId,
+      organizationName: emg.selectedOrganizationId?.name || 'Emergency Hospital',
+      date: new Date(emg.createdAt).toLocaleDateString(),
+    });
+    setFeedbackModalOpen(true);
+  };
+
+  const handleFeedbackSuccess = (newFeedback) => {
+    if (newFeedback?.emergencyRequestId) {
+      const emgId = String(
+        typeof newFeedback.emergencyRequestId === 'object'
+          ? newFeedback.emergencyRequestId._id
+          : newFeedback.emergencyRequestId
+      );
+      setSubmittedEmergencyFeedbackMap((prev) => ({ ...prev, [emgId]: newFeedback }));
+    }
+    setToast({ type: 'success', message: 'Thank you! Your emergency treatment feedback has been recorded.' });
+  };
 
   const openHistoryDetails = async (requestId) => {
     try {
@@ -53,6 +103,7 @@ export const EmergencyHistoryPage = () => {
 
   useEffect(() => {
     fetchHistory();
+    fetchEmergencyFeedbackMap();
   }, []);
 
   const fetchHistory = async () => {
@@ -235,6 +286,34 @@ export const EmergencyHistoryPage = () => {
                         Live Navigation
                       </Button>
                     </Link>
+                  )}
+
+                  {['COMPLETED', 'ARRIVED'].includes(emg.status) && (
+                    submittedEmergencyFeedbackMap[String(emg._id)] ? (
+                      <div className="flex items-center space-x-1.5">
+                        <span className="flex items-center space-x-1 px-2.5 py-1 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 font-bold text-xs">
+                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                          <span>{submittedEmergencyFeedbackMap[String(emg._id)].rating}.0 Rated</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setViewFeedbackEmg(submittedEmergencyFeedbackMap[String(emg._id)])}
+                          className="px-2.5 py-1 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 text-xs font-semibold cursor-pointer flex items-center space-x-1"
+                        >
+                          <MessageSquare className="w-3 h-3 text-slate-400" />
+                          <span>Review</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEmergencyFeedback(emg)}
+                        className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-1 cursor-pointer"
+                      >
+                        <Star className="w-3.5 h-3.5 fill-white text-white" />
+                        <span>Rate ER Care</span>
+                      </button>
+                    )
                   )}
 
                   <Button
@@ -508,6 +587,88 @@ export const EmergencyHistoryPage = () => {
 
       {toast.message && (
         <Toast type={toast.type || 'info'} message={toast.message} onClose={() => setToast({ type: '', message: '' })} />
+      )}
+
+      {/* Emergency Treatment Feedback Modal */}
+      <FeedbackModal
+        isOpen={feedbackModalOpen}
+        onClose={() => setFeedbackModalOpen(false)}
+        target={feedbackTarget}
+        onSuccess={handleFeedbackSuccess}
+      />
+
+      {/* View Submitted Emergency Review Modal */}
+      {viewFeedbackEmg && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in"
+        >
+          <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl p-6 max-w-md w-full space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-1.5">
+                <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                <span>Your Emergency Care Review</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setViewFeedbackEmg(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-amber-50/60 border border-amber-100 rounded-xl space-y-1">
+              <div className="flex items-center space-x-1">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    className={`w-4 h-4 ${
+                      s <= (viewFeedbackEmg.rating || 5)
+                        ? 'text-amber-400 fill-amber-400'
+                        : 'text-slate-200'
+                    }`}
+                  />
+                ))}
+                <span className="text-xs font-bold text-amber-900 ml-2">
+                  {viewFeedbackEmg.rating}.0 / 5.0
+                </span>
+              </div>
+              <div className="text-[11px] text-amber-800">
+                Submitted on {new Date(viewFeedbackEmg.createdAt).toLocaleDateString()}
+              </div>
+            </div>
+
+            {viewFeedbackEmg.tags && viewFeedbackEmg.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {viewFeedbackEmg.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-semibold rounded-md"
+                  >
+                    ✓ {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {viewFeedbackEmg.comments && (
+              <div className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100 italic">
+                "{viewFeedbackEmg.comments}"
+              </div>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full cursor-pointer"
+              onClick={() => setViewFeedbackEmg(null)}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

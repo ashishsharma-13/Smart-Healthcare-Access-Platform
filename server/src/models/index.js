@@ -70,4 +70,5 @@ export { PatientMedication } from './PatientMedication.js';
 export { PatientMedicalHistory } from './PatientMedicalHistory.js';
 export { PatientConsent } from './PatientConsent.js';
 export { EmergencyMedicalSnapshot } from './EmergencyMedicalSnapshot.js';
+export { Feedback } from './Feedback.js';
 

@@ -26,10 +26,13 @@ import {
   Share2,
   EyeOff,
   History,
+  Star,
+  ThumbsUp,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Toast } from '../../components/ui/Toast';
+import { FeedbackModal } from '../../components/common/FeedbackModal';
 
 export const EmergencyEnRoutePage = () => {
   const { id } = useParams();
@@ -53,6 +56,22 @@ export const EmergencyEnRoutePage = () => {
   const [gpsError, setGpsError] = useState('');
   const locationWatchIdRef = useRef(null);
   const lastUpdateSentTimeRef = useRef(0);
+
+  // Feedback state
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [emergencyFeedback, setEmergencyFeedback] = useState(null);
+
+  const checkEmergencyFeedback = async (emgId) => {
+    if (!emgId) return;
+    try {
+      const res = await api.get(`/feedback/check/emergency/${emgId}`);
+      if (res.data?.success && res.data?.hasSubmitted) {
+        setEmergencyFeedback(res.data.feedback);
+      }
+    } catch (err) {
+      console.warn('Could not check feedback status', err);
+    }
+  };
 
   useEffect(() => {
     fetchEmergencyAndJourney();
@@ -105,6 +124,9 @@ export const EmergencyEnRoutePage = () => {
       } catch (err) {
         // Journey may not have started yet
       }
+
+      // Check feedback
+      checkEmergencyFeedback(id);
     } catch (err) {
       console.error('Error fetching emergency details', err);
     } finally {
@@ -516,12 +538,30 @@ export const EmergencyEnRoutePage = () => {
           )}
 
           {currentStatus === 'COMPLETED' && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center space-y-1">
-              <ShieldCheck className="w-5 h-5 text-blue-600 mx-auto" />
-              <p className="text-xs font-bold text-blue-900">Coordination Completed</p>
-              <p className="text-[11px] text-blue-700">
-                Emergency platform coordination is complete. All timeline and allocation records are archived.
+            <div className="bg-gradient-to-br from-blue-50 to-amber-50/50 border border-blue-200 rounded-xl p-4 text-center space-y-3">
+              <div className="flex items-center justify-center space-x-1.5 text-blue-900 font-bold text-sm">
+                <ShieldCheck className="w-5 h-5 text-blue-600" />
+                <span>Emergency Coordination & Treatment Complete</span>
+              </div>
+              <p className="text-xs text-slate-600 max-w-md mx-auto">
+                Care was coordinated with <strong>{facility?.name || 'Emergency Facility'}</strong>. How was your emergency triage, bed readiness, and clinical care?
               </p>
+
+              {emergencyFeedback ? (
+                <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-100/70 border border-amber-300 text-amber-900 rounded-xl text-xs font-bold">
+                  <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                  <span>You Rated This ER Care {emergencyFeedback.rating}.0 / 5.0</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setFeedbackModalOpen(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center space-x-1.5 mx-auto cursor-pointer"
+                >
+                  <Star className="w-3.5 h-3.5 fill-white text-white" />
+                  <span>Rate Emergency Treatment</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -760,6 +800,23 @@ export const EmergencyEnRoutePage = () => {
       {toast.message && (
         <Toast type={toast.type || 'info'} message={toast.message} onClose={() => setToast({ type: '', message: '' })} />
       )}
+
+      {/* Emergency Treatment Feedback Modal */}
+      <FeedbackModal
+        isOpen={feedbackModalOpen}
+        onClose={() => setFeedbackModalOpen(false)}
+        target={{
+          type: 'EMERGENCY',
+          id: emergency?._id,
+          organizationId: facility?._id || emergency?.selectedOrganizationId?._id || emergency?.selectedOrganizationId,
+          organizationName: facility?.name || emergency?.selectedOrganizationId?.name || 'Emergency Facility',
+          date: emergency?.createdAt ? new Date(emergency.createdAt).toLocaleDateString() : 'Today',
+        }}
+        onSuccess={(fb) => {
+          setEmergencyFeedback(fb);
+          setToast({ type: 'success', message: 'Thank you! Your emergency treatment feedback has been submitted.' });
+        }}
+      />
     </div>
   );
 };
