@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
 import {
   Calendar,
@@ -998,14 +998,25 @@ export const AppointmentsPage = () => {
               </div>
             )}
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full cursor-pointer"
-              onClick={() => setViewFeedbackApt(null)}
-            >
-              Close
-            </Button>
+            <div className="flex items-center space-x-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 cursor-pointer"
+                onClick={() => setViewFeedbackApt(null)}
+              >
+                Close
+              </Button>
+              {viewFeedbackApt.doctorId && (
+                <Link
+                  to={`/doctors/${viewFeedbackApt.doctorId?._id || viewFeedbackApt.doctorId}`}
+                  className="flex-1 py-2 px-3 bg-[#0B4F9C] hover:bg-blue-800 text-white font-bold text-xs rounded-xl transition text-center flex items-center justify-center space-x-1"
+                >
+                  <span>View Doctor Profile</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       )}

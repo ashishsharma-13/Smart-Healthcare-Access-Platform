@@ -16,6 +16,7 @@ import {
   Check,
   ArrowRight,
 } from 'lucide-react';
+import { ReviewsSection } from '../../components/common/ReviewsSection';
 
 export const HospitalsListPage = () => {
   const navigate = useNavigate();
@@ -454,7 +455,7 @@ export const HospitalsListPage = () => {
       {/* Facility Details Modal */}
       {selectedFacility && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
                 <div className="w-10 h-10 rounded-2xl bg-[#F0F2FD] text-[#2F2FE4] flex items-center justify-center border border-[#D6DCFA]">
@@ -508,6 +509,18 @@ export const HospitalsListPage = () => {
                     )
                   )}
                 </div>
+              </div>
+
+              {/* Reviews & Ratings */}
+              <div className="pt-3 border-t border-slate-100">
+                <ReviewsSection
+                  targetType="organization"
+                  targetId={selectedFacility._id}
+                  targetName={selectedFacility.name}
+                  initialRating={selectedFacility.rating || 4.8}
+                  initialTotalReviews={selectedFacility.totalReviews || 0}
+                  compact={true}
+                />
               </div>
             </div>
 

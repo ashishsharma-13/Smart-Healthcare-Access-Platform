@@ -12,6 +12,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Stethoscope,
+  Star,
 } from 'lucide-react';
 
 export const DoctorSearchPage = () => {
@@ -484,7 +485,16 @@ export const DoctorSearchPage = () => {
                         </div>
                         <div>
                           <h3 className="text-base font-bold text-slate-900">{docName}</h3>
-                          <p className="text-xs text-slate-500">
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold">
+                              <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+                              <span>{Number(doc.rating || 5.0).toFixed(1)}</span>
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-medium">
+                              ({doc.totalReviews || 1} {doc.totalReviews === 1 ? 'review' : 'reviews'})
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">
                             {docSpecialty} &bull; {expYears} years experience
                           </p>
                         </div>
@@ -523,7 +533,7 @@ export const DoctorSearchPage = () => {
                         to={`/doctors/${doc._id}`}
                         className="px-4 py-2 border border-slate-200 hover:border-[#2F2FE4] bg-white hover:bg-[#F0F2FD] text-slate-700 hover:text-[#2F2FE4] font-bold text-xs rounded-xl transition cursor-pointer shadow-xs"
                       >
-                        View profile
+                        View profile & reviews
                       </Link>
                     </div>
                   </div>

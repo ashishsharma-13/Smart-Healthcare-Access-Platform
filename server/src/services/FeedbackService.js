@@ -65,8 +65,8 @@ export class FeedbackService {
         throw err;
       }
 
-      doctorId = appointment.doctorId;
-      organizationId = appointment.organizationId;
+      doctorId = appointment.doctorId?._id || appointment.doctorId;
+      organizationId = appointment.organizationId?._id || appointment.organizationId;
     } else if (emergencyRequestId) {
       feedbackType = 'EMERGENCY';
       emergency = await EmergencyRequest.findOne({
@@ -232,11 +232,89 @@ export class FeedbackService {
    * Public/Authenticated feedback reviews for an organization
    */
   async getOrganizationFeedbacks(organizationId, page = 1, limit = 10) {
+    let resolvedOrg = null;
+    if (mongoose.Types.ObjectId.isValid(organizationId)) {
+      resolvedOrg = await Organization.findById(organizationId);
+    }
+    if (!resolvedOrg && organizationId) {
+      resolvedOrg = await Organization.findOne({
+        $or: [
+          { registrationNumber: organizationId },
+          { name: new RegExp(String(organizationId).replace(/-/g, ' '), 'i') },
+        ],
+      });
+    }
+
+    const targetOrgIds = [];
+    if (resolvedOrg) {
+      targetOrgIds.push(resolvedOrg._id);
+    } else if (mongoose.Types.ObjectId.isValid(organizationId)) {
+      targetOrgIds.push(new mongoose.Types.ObjectId(organizationId));
+    }
+
+    if (targetOrgIds.length === 0) {
+      return {
+        total: 0,
+        page: 1,
+        totalPages: 1,
+        data: [],
+        stats: {
+          averageRating: 0,
+          totalReviews: 0,
+          careQualityAvg: 0,
+          waitTimeAvg: 0,
+          staffBehaviorAvg: 0,
+          cleanlinessAvg: 0,
+          distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+        },
+      };
+    }
+
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
 
-    const total = await Feedback.countDocuments({ organizationId, status: { $in: ['SUBMITTED', 'VERIFIED'] } });
-    const list = await Feedback.find({ organizationId, status: { $in: ['SUBMITTED', 'VERIFIED'] } })
+    const filter = {
+      organizationId: { $in: targetOrgIds },
+      status: { $in: ['SUBMITTED', 'VERIFIED'] },
+    };
+    const allFeedbacks = await Feedback.find(filter).lean();
+    const total = allFeedbacks.length;
+
+    let stats = {
+      averageRating: 0,
+      totalReviews: total,
+      careQualityAvg: 0,
+      waitTimeAvg: 0,
+      staffBehaviorAvg: 0,
+      cleanlinessAvg: 0,
+      distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    };
+
+    if (total > 0) {
+      let sumRating = 0;
+      let sumCare = 0;
+      let sumWait = 0;
+      let sumStaff = 0;
+      let sumClean = 0;
+
+      for (const f of allFeedbacks) {
+        sumRating += f.rating || 0;
+        sumCare += f.careQualityRating || f.rating || 0;
+        sumWait += f.waitTimeRating || f.rating || 0;
+        sumStaff += f.staffBehaviorRating || f.rating || 0;
+        sumClean += f.cleanlinessRating || f.rating || 0;
+        const rounded = Math.min(5, Math.max(1, Math.round(f.rating || 5)));
+        stats.distribution[rounded] = (stats.distribution[rounded] || 0) + 1;
+      }
+
+      stats.averageRating = Math.round((sumRating / total) * 10) / 10;
+      stats.careQualityAvg = Math.round((sumCare / total) * 10) / 10;
+      stats.waitTimeAvg = Math.round((sumWait / total) * 10) / 10;
+      stats.staffBehaviorAvg = Math.round((sumStaff / total) * 10) / 10;
+      stats.cleanlinessAvg = Math.round((sumClean / total) * 10) / 10;
+    }
+
+    const list = await Feedback.find(filter)
       .populate('patientId', 'name avatar')
       .sort({ createdAt: -1 })
       .skip((pageNum - 1) * limitNum)
@@ -256,6 +334,7 @@ export class FeedbackService {
       page: pageNum,
       totalPages: Math.ceil(total / limitNum) || 1,
       data: sanitized,
+      stats,
     };
   }
 
@@ -263,11 +342,101 @@ export class FeedbackService {
    * Public/Authenticated feedback reviews for a doctor
    */
   async getDoctorFeedbacks(doctorId, page = 1, limit = 10) {
+    let resolvedDoctor = null;
+    if (mongoose.Types.ObjectId.isValid(doctorId)) {
+      resolvedDoctor = await Doctor.findById(doctorId);
+      if (!resolvedDoctor) {
+        resolvedDoctor = await Doctor.findOne({ userId: doctorId });
+      }
+    }
+    if (!resolvedDoctor && doctorId) {
+      resolvedDoctor = await Doctor.findOne({ doctorUniqueId: doctorId });
+    }
+    if (!resolvedDoctor && typeof doctorId === 'string' && doctorId.length > 2) {
+      const allDocs = await Doctor.find().populate('userId', 'name').lean();
+      const normQuery = doctorId.toLowerCase().replace(/^(dr\.|doc-)/i, '').replace(/-/g, ' ').trim();
+      resolvedDoctor = allDocs.find((d) => {
+        const name = (d.userId?.name || '').toLowerCase().replace(/^dr\.\s*/i, '').trim();
+        return (
+          d.doctorUniqueId?.toLowerCase() === doctorId.toLowerCase() ||
+          (name && (name.includes(normQuery) || normQuery.includes(name)))
+        );
+      });
+    }
+
+    const targetDoctorIds = [];
+    if (resolvedDoctor) {
+      targetDoctorIds.push(resolvedDoctor._id);
+      if (resolvedDoctor.userId) {
+        targetDoctorIds.push(resolvedDoctor.userId?._id || resolvedDoctor.userId);
+      }
+    } else if (mongoose.Types.ObjectId.isValid(doctorId)) {
+      targetDoctorIds.push(new mongoose.Types.ObjectId(doctorId));
+    }
+
+    if (targetDoctorIds.length === 0) {
+      return {
+        total: 0,
+        page: 1,
+        totalPages: 1,
+        data: [],
+        stats: {
+          averageRating: 0,
+          totalReviews: 0,
+          careQualityAvg: 0,
+          waitTimeAvg: 0,
+          staffBehaviorAvg: 0,
+          cleanlinessAvg: 0,
+          distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+        },
+      };
+    }
+
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
 
-    const total = await Feedback.countDocuments({ doctorId, status: { $in: ['SUBMITTED', 'VERIFIED'] } });
-    const list = await Feedback.find({ doctorId, status: { $in: ['SUBMITTED', 'VERIFIED'] } })
+    const filter = {
+      doctorId: { $in: targetDoctorIds },
+      status: { $in: ['SUBMITTED', 'VERIFIED'] },
+    };
+    const allFeedbacks = await Feedback.find(filter).lean();
+    const total = allFeedbacks.length;
+
+    let stats = {
+      averageRating: 0,
+      totalReviews: total,
+      careQualityAvg: 0,
+      waitTimeAvg: 0,
+      staffBehaviorAvg: 0,
+      cleanlinessAvg: 0,
+      distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    };
+
+    if (total > 0) {
+      let sumRating = 0;
+      let sumCare = 0;
+      let sumWait = 0;
+      let sumStaff = 0;
+      let sumClean = 0;
+
+      for (const f of allFeedbacks) {
+        sumRating += f.rating || 0;
+        sumCare += f.careQualityRating || f.rating || 0;
+        sumWait += f.waitTimeRating || f.rating || 0;
+        sumStaff += f.staffBehaviorRating || f.rating || 0;
+        sumClean += f.cleanlinessRating || f.rating || 0;
+        const rounded = Math.min(5, Math.max(1, Math.round(f.rating || 5)));
+        stats.distribution[rounded] = (stats.distribution[rounded] || 0) + 1;
+      }
+
+      stats.averageRating = Math.round((sumRating / total) * 10) / 10;
+      stats.careQualityAvg = Math.round((sumCare / total) * 10) / 10;
+      stats.waitTimeAvg = Math.round((sumWait / total) * 10) / 10;
+      stats.staffBehaviorAvg = Math.round((sumStaff / total) * 10) / 10;
+      stats.cleanlinessAvg = Math.round((sumClean / total) * 10) / 10;
+    }
+
+    const list = await Feedback.find(filter)
       .populate('patientId', 'name avatar')
       .populate('organizationId', 'name')
       .sort({ createdAt: -1 })
@@ -287,6 +456,7 @@ export class FeedbackService {
       page: pageNum,
       totalPages: Math.ceil(total / limitNum) || 1,
       data: sanitized,
+      stats,
     };
   }
 }

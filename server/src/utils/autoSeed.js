@@ -20,6 +20,7 @@ import {
   PatientMedication,
   PatientMedicalHistory,
   PatientConsent,
+  Feedback,
 } from '../models/index.js';
 import { healthcareResourceTypeService } from '../services/HealthcareResourceTypeService.js';
 import { externalFacilityDirectoryService } from '../services/ExternalFacilityDirectoryService.js';
@@ -1134,6 +1135,146 @@ export default async function autoSeed() {
     patientNotes: 'Siddharth Verma · Follow-up',
     qrToken: 'APT-TOKEN-SIDDHARTH-04',
   });
+
+  // Seed verified patient reviews for completed consultations
+  const getOrCreateFeedback = async (filter, data) => {
+    let fb = await Feedback.findOne(filter);
+    if (!fb) {
+      fb = await Feedback.create(data);
+    }
+    return fb;
+  };
+
+  const aptKavita = await Appointment.findOne({ appointmentNumber: '#AP-1980' });
+  if (aptKavita) {
+    await getOrCreateFeedback(
+      { appointmentId: aptKavita._id },
+      {
+        patientId: patient._id,
+        feedbackType: 'APPOINTMENT',
+        appointmentId: aptKavita._id,
+        doctorId: docSofia._id,
+        organizationId: lakesideOrg._id,
+        rating: 5,
+        careQualityRating: 5,
+        waitTimeRating: 5,
+        staffBehaviorRating: 5,
+        cleanlinessRating: 5,
+        comments: 'Dr. Kavita Reddy took time to perform an in-depth ECG analysis and gave very clear dietary guidance. Excellent cardiologist.',
+        tags: ['Clear communication', 'Thorough diagnosis', 'Polite staff'],
+        isAnonymous: false,
+        status: 'SUBMITTED',
+      }
+    );
+  }
+
+  const aptSiddharth = await Appointment.findOne({ appointmentNumber: '#AP-1844' });
+  if (aptSiddharth) {
+    await getOrCreateFeedback(
+      { appointmentId: aptSiddharth._id },
+      {
+        patientId: patient._id,
+        feedbackType: 'APPOINTMENT',
+        appointmentId: aptSiddharth._id,
+        doctorId: docEthan._id,
+        organizationId: cedarOrg._id,
+        rating: 5,
+        careQualityRating: 5,
+        waitTimeRating: 4,
+        staffBehaviorRating: 5,
+        cleanlinessRating: 5,
+        comments: 'Dr. Siddharth Rao is very patient, attentive, and detailed with preventative checkups. Highly recommend him for family care.',
+        tags: ['Attentive care', 'Helpful advice', 'Short wait time'],
+        isAnonymous: false,
+        status: 'SUBMITTED',
+      }
+    );
+  }
+
+  const aptMira1 = await Appointment.findOne({ appointmentNumber: '#AP-1720' });
+  if (aptMira1) {
+    await getOrCreateFeedback(
+      { appointmentId: aptMira1._id },
+      {
+        patientId: patient._id,
+        feedbackType: 'APPOINTMENT',
+        appointmentId: aptMira1._id,
+        doctorId: docMira._id,
+        organizationId: riversideOrg._id,
+        rating: 5,
+        careQualityRating: 5,
+        waitTimeRating: 5,
+        staffBehaviorRating: 5,
+        cleanlinessRating: 5,
+        comments: 'Dr. Mira Patel was phenomenal. Thorough heart-health assessment and clear instructions on daily cardiac wellness.',
+        tags: ['Thorough diagnosis', 'Clear communication', 'Caring doctor'],
+        isAnonymous: false,
+        status: 'SUBMITTED',
+      }
+    );
+  }
+
+  const aptMira2 = await Appointment.findOne({ appointmentNumber: '#AP-ROHAN-01' });
+  if (aptMira2) {
+    await getOrCreateFeedback(
+      { appointmentId: aptMira2._id },
+      {
+        patientId: patient._id,
+        feedbackType: 'APPOINTMENT',
+        appointmentId: aptMira2._id,
+        doctorId: docMira._id,
+        organizationId: riversideOrg._id,
+        rating: 5,
+        careQualityRating: 5,
+        waitTimeRating: 4,
+        staffBehaviorRating: 5,
+        cleanlinessRating: 5,
+        comments: 'Follow-up consultation went smoothly. Doctor answered all questions regarding my blood pressure and medication.',
+        tags: ['Short wait time', 'Attentive care'],
+        isAnonymous: false,
+        status: 'SUBMITTED',
+      }
+    );
+  }
+
+  // Also seed initial feedbacks for Dr. Sneha Sen and Dr. Devendra Sharma
+  const snehaFb = await Feedback.findOne({ doctorId: doc1._id });
+  if (!snehaFb) {
+    await Feedback.create({
+      patientId: patient._id,
+      feedbackType: 'APPOINTMENT',
+      doctorId: doc1._id,
+      organizationId: org1._id,
+      rating: 5,
+      careQualityRating: 5,
+      waitTimeRating: 5,
+      staffBehaviorRating: 5,
+      cleanlinessRating: 5,
+      comments: 'Dr. Sneha Sen provides outstanding cardiology care and rapid diagnosis at Citizens Specialty Hospital.',
+      tags: ['Thorough diagnosis', 'Highly recommended'],
+      isAnonymous: false,
+      status: 'SUBMITTED',
+    });
+  }
+
+  const devendraFb = await Feedback.findOne({ doctorId: docDaniel._id });
+  if (!devendraFb) {
+    await Feedback.create({
+      patientId: patient._id,
+      feedbackType: 'APPOINTMENT',
+      doctorId: docDaniel._id,
+      organizationId: northsideOrg._id,
+      rating: 5,
+      careQualityRating: 5,
+      waitTimeRating: 4,
+      staffBehaviorRating: 5,
+      cleanlinessRating: 5,
+      comments: 'Excellent consultation with Dr. Devendra Sharma. Deep expertise in cardiovascular medicine and preventative guidance.',
+      tags: ['Expert knowledge', 'Polite staff'],
+      isAnonymous: false,
+      status: 'SUBMITTED',
+    });
+  }
 
   // Module 8: Emergency Categories & Guidance
   const seedCategories = [

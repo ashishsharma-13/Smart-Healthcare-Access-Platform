@@ -31,6 +31,7 @@ import {
   Check,
   HeartHandshake,
 } from 'lucide-react';
+import { ReviewsSection } from '../../components/common/ReviewsSection';
 
 const PRESET_LOCATIONS = [
   { name: 'Hyderabad (UoH / Gachibowli)', coords: [17.4568, 78.3264] },
@@ -115,6 +116,8 @@ export const HealthcareSearchPage = () => {
   // Modals
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [selectedOrg, setSelectedOrg] = useState(null);
+  const [doctorModalTab, setDoctorModalTab] = useState('overview'); // 'overview' | 'reviews'
+  const [orgModalTab, setOrgModalTab] = useState('overview'); // 'overview' | 'reviews'
   const [doctorAvailability, setDoctorAvailability] = useState(null);
   const [availLoading, setAvailLoading] = useState(false);
 
@@ -349,6 +352,7 @@ export const HealthcareSearchPage = () => {
   // Open Doctor Modal and load availability
   const handleOpenDoctorModal = async (doctor) => {
     setSelectedDoctor(doctor);
+    setDoctorModalTab('overview');
     setAvailLoading(true);
     setDoctorAvailability(null);
     try {
@@ -366,6 +370,7 @@ export const HealthcareSearchPage = () => {
   // Open Organization Modal
   const handleOpenOrgModal = async (org) => {
     setSelectedOrg(org);
+    setOrgModalTab('overview');
   };
 
   // Prepare Hospital Markers for Map View
@@ -902,7 +907,16 @@ export const HealthcareSearchPage = () => {
                               <h3 className="text-xs font-bold text-slate-900 truncate group-hover:text-brand-600 transition-colors">
                                 {doctor.name}
                               </h3>
-                              <p className="text-[11px] font-semibold text-brand-600 truncate">
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-bold">
+                                  <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-500" />
+                                  <span>{Number(doctor.rating || 5.0).toFixed(1)}</span>
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  ({doctor.totalReviews || 1} {doctor.totalReviews === 1 ? 'review' : 'reviews'})
+                                </span>
+                              </div>
+                              <p className="text-[11px] font-semibold text-brand-600 truncate mt-0.5">
                                 {doctor.specialization}
                               </p>
                               <p className="text-[10px] text-slate-500 truncate">
@@ -1176,7 +1190,20 @@ export const HealthcareSearchPage = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs font-semibold text-brand-600">{selectedDoctor.specialization}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+                      <span>{Number(selectedDoctor.rating || 5.0).toFixed(1)} / 5.0</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setDoctorModalTab('reviews')}
+                      className="text-[11px] text-brand-600 font-semibold hover:underline cursor-pointer"
+                    >
+                      ({selectedDoctor.totalReviews || 1} Verified Patient {selectedDoctor.totalReviews === 1 ? 'Review' : 'Reviews'})
+                    </button>
+                  </div>
+                  <p className="text-xs font-semibold text-brand-600 mt-0.5">{selectedDoctor.specialization}</p>
                   <p className="text-[11px] text-slate-500">
                     {(selectedDoctor.qualifications || []).join(', ')} · {selectedDoctor.experienceYears} Years Clinical Experience
                   </p>
@@ -1191,6 +1218,48 @@ export const HealthcareSearchPage = () => {
               </button>
             </div>
 
+            {/* Modal Tabs: Overview vs Reviews */}
+            <div className="flex border-b border-slate-200 gap-6 text-xs font-bold -mt-2">
+              <button
+                type="button"
+                onClick={() => setDoctorModalTab('overview')}
+                className={`pb-2.5 transition border-b-2 cursor-pointer ${
+                  doctorModalTab === 'overview'
+                    ? 'border-brand-600 text-brand-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Profile & Slots
+              </button>
+              <button
+                type="button"
+                onClick={() => setDoctorModalTab('reviews')}
+                className={`pb-2.5 transition border-b-2 cursor-pointer flex items-center gap-1.5 ${
+                  doctorModalTab === 'reviews'
+                    ? 'border-brand-600 text-brand-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <span>Patient Reviews</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-800">
+                  {selectedDoctor.totalReviews || 1}
+                </span>
+              </button>
+            </div>
+
+            {doctorModalTab === 'reviews' ? (
+              <div className="pt-2">
+                <ReviewsSection
+                  targetType="doctor"
+                  targetId={selectedDoctor._id}
+                  targetName={selectedDoctor.name}
+                  initialRating={selectedDoctor.rating || 5.0}
+                  initialTotalReviews={selectedDoctor.totalReviews || 1}
+                  compact={false}
+                />
+              </div>
+            ) : (
+              <>
             {/* Doctor Bio & Languages */}
             <div className="space-y-2">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">About Practitioner</h4>
@@ -1281,8 +1350,22 @@ export const HealthcareSearchPage = () => {
               </div>
             </div>
 
+            {/* Patient Reviews & Ratings */}
+            <div className="pt-3 border-t border-slate-100">
+              <ReviewsSection
+                targetType="doctor"
+                targetId={selectedDoctor._id}
+                targetName={selectedDoctor.name}
+                initialRating={selectedDoctor.rating || 4.8}
+                initialTotalReviews={selectedDoctor.totalReviews || 0}
+                compact={true}
+              />
+            </div>
+            </>
+            )}
+
             {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setSelectedDoctor(null)}
@@ -1290,6 +1373,12 @@ export const HealthcareSearchPage = () => {
               >
                 Close
               </button>
+              <Link
+                to={`/doctors/${selectedDoctor._id}`}
+                className="px-4 py-2 border border-slate-200 hover:border-slate-300 text-slate-700 text-xs font-bold rounded-xl transition hover:bg-slate-50"
+              >
+                View Full Profile
+              </Link>
               <button
                 type="button"
                 onClick={() => {
@@ -1320,7 +1409,20 @@ export const HealthcareSearchPage = () => {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+                    <span>{Number(selectedOrg.rating || 4.8).toFixed(1)} / 5.0</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setOrgModalTab('reviews')}
+                    className="text-[11px] text-brand-600 font-semibold hover:underline cursor-pointer"
+                  >
+                    ({selectedOrg.totalReviews || 12} Verified Patient Reviews)
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
                   {selectedOrg.orgType === 'hospital' ? 'Multi-Specialty Hospital' : 'Outpatient Healthcare Facility'} · Reg #{selectedOrg.registrationNumber}
                 </p>
               </div>
@@ -1333,6 +1435,48 @@ export const HealthcareSearchPage = () => {
               </button>
             </div>
 
+            {/* Modal Tabs: Overview vs Reviews */}
+            <div className="flex border-b border-slate-200 gap-6 text-xs font-bold -mt-2">
+              <button
+                type="button"
+                onClick={() => setOrgModalTab('overview')}
+                className={`pb-2.5 transition border-b-2 cursor-pointer ${
+                  orgModalTab === 'overview'
+                    ? 'border-brand-600 text-brand-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Facility Details & Capabilities
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrgModalTab('reviews')}
+                className={`pb-2.5 transition border-b-2 cursor-pointer flex items-center gap-1.5 ${
+                  orgModalTab === 'reviews'
+                    ? 'border-brand-600 text-brand-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <span>Patient Reviews</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-800">
+                  {selectedOrg.totalReviews || 12}
+                </span>
+              </button>
+            </div>
+
+            {orgModalTab === 'reviews' ? (
+              <div className="pt-2">
+                <ReviewsSection
+                  targetType="organization"
+                  targetId={selectedOrg._id}
+                  targetName={selectedOrg.name}
+                  initialRating={selectedOrg.rating || 4.8}
+                  initialTotalReviews={selectedOrg.totalReviews || 12}
+                  compact={false}
+                />
+              </div>
+            ) : (
+              <>
             {/* Address & Contact */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/90 space-y-1">
@@ -1398,6 +1542,20 @@ export const HealthcareSearchPage = () => {
                 ))}
               </div>
             </div>
+
+            {/* Patient Reviews & Ratings */}
+            <div className="pt-3 border-t border-slate-100">
+              <ReviewsSection
+                targetType="organization"
+                targetId={selectedOrg._id}
+                targetName={selectedOrg.name}
+                initialRating={selectedOrg.rating || 4.8}
+                initialTotalReviews={selectedOrg.totalReviews || 0}
+                compact={true}
+              />
+            </div>
+            </>
+            )}
 
             {/* Modal Actions */}
             <div className="flex items-center justify-end gap-3 pt-2">

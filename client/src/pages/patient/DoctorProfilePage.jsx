@@ -16,7 +16,9 @@ import {
   AlertTriangle,
   ArrowRight,
   Loader2,
+  Star,
 } from 'lucide-react';
+import { ReviewsSection } from '../../components/common/ReviewsSection';
 
 export const DoctorProfilePage = () => {
   const { id } = useParams();
@@ -298,7 +300,19 @@ export const DoctorProfilePage = () => {
                   <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                     {docName}
                   </h2>
-                  <p className="text-xs font-bold text-blue-700 mt-0.5">
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold">
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                      <span>{Number(doctor?.rating || 5.0).toFixed(1)} / 5.0</span>
+                    </span>
+                    <a
+                      href="#patient-reviews"
+                      className="text-xs text-blue-600 font-semibold hover:underline cursor-pointer"
+                    >
+                      ({doctor?.totalReviews || 1} verified {doctor?.totalReviews === 1 ? 'review' : 'reviews'})
+                    </a>
+                  </div>
+                  <p className="text-xs font-bold text-blue-700 mt-1">
                     {doctor?.specialization || 'Clinical Specialist'}
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5">
@@ -462,6 +476,17 @@ export const DoctorProfilePage = () => {
             <p className="text-[11px] text-slate-400">
               Selecting a slot does not reserve it. Final slot confirmation occurs upon booking submission.
             </p>
+          </div>
+
+          {/* Doctor Patient Reviews & Ratings */}
+          <div id="patient-reviews" className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-8 shadow-xs">
+            <ReviewsSection
+              targetType="doctor"
+              targetId={doctor?._id || id}
+              targetName={docName}
+              initialRating={doctor?.rating || 4.8}
+              initialTotalReviews={doctor?.totalReviews || 0}
+            />
           </div>
         </div>
 
