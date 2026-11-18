@@ -24,12 +24,22 @@ import {
   History,
   ShieldCheck,
   MessageCircle,
+  ChevronsLeft,
+  ChevronsRight,
+  Plus,
+  Bell,
+  Layers,
+  Database,
+  Compass,
+  FileText,
+  Radio,
+  Scan,
 } from 'lucide-react';
 import { HelpCenterModal } from './HelpCenterModal';
 
 export const Sidebar = () => {
   const { user } = useAuth();
-  const { mobileSidebarOpen, closeMobileSidebar } = useUI();
+  const { mobileSidebarOpen, closeMobileSidebar, sidebarCollapsed, toggleSidebar } = useUI();
   const location = useLocation();
   const [helpOpen, setHelpOpen] = useState(false);
 
@@ -53,14 +63,14 @@ export const Sidebar = () => {
 
   // Active & inactive link helper classes
   const getNavLinkClass = ({ isActive }) =>
-    `flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs transition-colors ${
+    `sidebar-nav-link flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs transition-colors ${
       isActive
         ? 'bg-[#2F2FE4] text-white font-semibold shadow-xs'
         : 'text-[#CBD5E1] hover:text-white hover:bg-[#262569]/60 font-medium'
     }`;
 
   const getEmergencyLinkClass = ({ isActive }) =>
-    `flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs transition-colors ${
+    `sidebar-nav-link flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs transition-colors ${
       isActive
         ? 'bg-[#DC2626] text-white font-bold shadow-xs'
         : 'text-[#FCA5A5] hover:text-white hover:bg-[#DC2626]/20 font-semibold'
@@ -68,14 +78,14 @@ export const Sidebar = () => {
 
   // 1. Patient Portal Sidebar
   const patientNavContent = (
-    <div className="flex flex-col h-full justify-between p-4 space-y-6 select-none">
-      <div className="space-y-5">
+    <div className="flex flex-col h-full min-h-0 overflow-y-auto p-4 space-y-6 select-none sidebar-scroll">
+      <div className="space-y-5 pr-1">
         {/* Workspace Dropdown */}
         <div>
           <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block mb-1.5 px-1">
             WORKSPACE
           </span>
-          <div className="flex items-center justify-between p-2.5 rounded-lg border border-[#262569] bg-[#13123E] text-white font-semibold text-xs">
+          <div className="sidebar-workspace-card flex items-center justify-between p-2.5 rounded-lg border border-[#262569] bg-[#13123E] text-white font-semibold text-xs">
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#16A34A]" />
               Patient Portal
@@ -94,21 +104,6 @@ export const Sidebar = () => {
           <NavLink to="/search" className={getNavLinkClass}>
             <Search className="w-4 h-4 shrink-0" />
             <span>Search & Discover</span>
-          </NavLink>
-
-          <NavLink to="/doctors" className={getNavLinkClass}>
-            <Stethoscope className="w-4 h-4 shrink-0" />
-            <span>Find Doctors</span>
-          </NavLink>
-
-          <NavLink to="/hospitals" className={getNavLinkClass}>
-            <Building2 className="w-4 h-4 shrink-0" />
-            <span>Find Hospitals</span>
-          </NavLink>
-
-          <NavLink to="/map" className={getNavLinkClass}>
-            <MapPin className="w-4 h-4 shrink-0" />
-            <span>Healthcare Map</span>
           </NavLink>
 
           <NavLink to="/patient/appointments" className={getNavLinkClass}>
@@ -140,7 +135,7 @@ export const Sidebar = () => {
 
       {/* Support Callout Box */}
       <div className="space-y-3">
-        <div className="p-3.5 rounded-xl bg-[#13123E] border border-[#262569] space-y-1.5">
+        <div className="sidebar-support-card p-3.5 rounded-xl bg-[#13123E] border border-[#262569] space-y-1.5">
           <div className="flex items-center space-x-2">
             <MessageCircle className="w-4 h-4 text-[#818CF8]" />
             <h4 className="text-xs font-bold text-white">Here to Help</h4>
@@ -170,7 +165,7 @@ export const Sidebar = () => {
           <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block mb-1.5 px-1">
             WORKSPACE
           </span>
-          <div className="flex items-center justify-between p-2.5 rounded-lg border border-[#262569] bg-[#13123E] text-white font-semibold text-xs">
+          <div className="sidebar-workspace-card flex items-center justify-between p-2.5 rounded-lg border border-[#262569] bg-[#13123E] text-white font-semibold text-xs">
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#2F2FE4]" />
               Doctor Portal
@@ -186,19 +181,14 @@ export const Sidebar = () => {
             <span>Overview</span>
           </NavLink>
 
-          <NavLink to="/doctor/schedule" className={getNavLinkClass}>
-            <Calendar className="w-4 h-4 shrink-0" />
-            <span>Schedule</span>
-          </NavLink>
-
           <NavLink to="/doctor/appointments" className={getNavLinkClass}>
             <ClipboardList className="w-4 h-4 shrink-0" />
             <span>Appointments</span>
           </NavLink>
 
-          <NavLink to="/doctor/availability" className={getNavLinkClass}>
-            <Clock className="w-4 h-4 shrink-0" />
-            <span>Availability</span>
+          <NavLink to="/doctor/schedule" className={getNavLinkClass}>
+            <Calendar className="w-4 h-4 shrink-0" />
+            <span>Schedule</span>
           </NavLink>
 
           <NavLink to="/doctor/profile" className={getNavLinkClass}>
@@ -226,7 +216,7 @@ export const Sidebar = () => {
 
       {/* Support Callout Box */}
       <div className="space-y-3">
-        <div className="p-3.5 rounded-xl bg-[#13123E] border border-[#262569] space-y-1.5">
+        <div className="sidebar-support-card p-3.5 rounded-xl bg-[#13123E] border border-[#262569] space-y-1.5">
           <div className="flex items-center space-x-2">
             <MessageCircle className="w-4 h-4 text-[#818CF8]" />
             <h4 className="text-xs font-bold text-white">Practitioner Support</h4>
@@ -268,17 +258,41 @@ export const Sidebar = () => {
 
   const adminSections = [
     {
-      title: 'Governance Oversight',
+      title: 'Executive Oversight',
       links: [
         { to: '/admin/dashboard', label: 'Executive Dashboard', icon: LayoutDashboard },
-        { to: '/admin/emergencies', label: 'Emergency Audit Stream', icon: Activity },
       ],
     },
     {
-      title: 'Verification Queues',
+      title: 'Emergency Operations',
+      links: [
+        { to: '/admin/emergencies', label: 'Emergency Audit Stream', icon: Activity },
+        { to: '/admin/emergency-operations', label: 'Operations Control', icon: Radio },
+        { to: '/admin/fallback', label: 'Fallback & Recovery', icon: Compass },
+      ],
+    },
+    {
+      title: 'Clinical Verification',
       links: [
         { to: '/admin/doctors', label: 'Doctor Verification', icon: FileCheck },
         { to: '/admin/organizations', label: 'Hospital Verification', icon: Building2 },
+      ],
+    },
+    {
+      title: 'Platform Operations',
+      links: [
+        { to: '/admin/presence', label: 'Presence Monitoring', icon: Scan },
+        { to: '/admin/notifications', label: 'Notifications & Telemetry', icon: Bell },
+        { to: '/admin/resources', label: 'Resource Inventory', icon: Layers },
+      ],
+    },
+    {
+      title: 'Governance & Reporting',
+      links: [
+        { to: '/admin/users', label: 'User Governance', icon: Users },
+        { to: '/admin/configurations', label: 'Platform Configuration', icon: Database },
+        { to: '/admin/reports', label: 'Reports & Analytics', icon: FileText },
+        { to: '/admin/audit-logs', label: 'Audit Logs', icon: History },
       ],
     },
   ];
@@ -301,7 +315,7 @@ export const Sidebar = () => {
           <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block mb-1.5 px-1">
             WORKSPACE
           </span>
-          <div className="flex items-center justify-between p-2.5 rounded-lg border border-[#262569] bg-[#13123E] text-white font-semibold text-xs">
+          <div className="sidebar-workspace-card flex items-center justify-between p-2.5 rounded-lg border border-[#262569] bg-[#13123E] text-white font-semibold text-xs">
             <span className="flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full ${workspaceDot}`} />
               {workspaceTitle}
@@ -311,7 +325,7 @@ export const Sidebar = () => {
         </div>
 
         {/* User Card */}
-        <div className="p-3 bg-[#13123E] border border-[#262569] rounded-xl space-y-1">
+        <div className="sidebar-user-card p-3 bg-[#13123E] border border-[#262569] rounded-xl space-y-1">
           <h4 className="text-xs font-semibold text-white truncate">{user.name}</h4>
           <p className="text-[11px] text-[#94A3B8] truncate">{user.email || user.phone}</p>
         </div>
@@ -344,7 +358,7 @@ export const Sidebar = () => {
 
       {/* Support Callout Box */}
       <div className="space-y-3">
-        <div className="p-3.5 rounded-xl bg-[#13123E] border border-[#262569] space-y-1.5">
+        <div className="sidebar-support-card p-3.5 rounded-xl bg-[#13123E] border border-[#262569] space-y-1.5">
           <div className="flex items-center space-x-2">
             <ShieldCheck className="w-4 h-4 text-[#818CF8]" />
             <h4 className="text-xs font-bold text-white">Platform Operations</h4>
@@ -372,7 +386,24 @@ export const Sidebar = () => {
   return (
     <>
       {/* Desktop Persistent Sidebar */}
-      <aside className="hidden lg:flex w-64 bg-[#1A1953] border-r border-[#262569] flex-col flex-shrink-0 min-h-[calc(100vh-4rem)]">
+      <aside className={`hidden lg:flex sticky top-0 ${sidebarCollapsed ? 'w-[76px] sidebar-collapsed overflow-hidden' : 'w-64'} h-full max-h-full bg-[#1A1953] border-r border-[#262569] flex-col flex-shrink-0 min-h-0 transition-[width] duration-200 ease-out`}>
+        <div className="flex items-center justify-between px-3 py-3 border-b border-[#262569] bg-[#13123E]">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 shrink-0 rounded-xl bg-[#2F2FE4] flex items-center justify-center text-white" aria-hidden="true">
+              <Plus className="w-5 h-5 stroke-[3]" />
+            </div>
+            <span className="sidebar-brand text-sm font-black tracking-tight text-white">SHAP</span>
+          </div>
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="p-2 rounded-lg text-[#94A3B8] hover:text-white hover:bg-[#262569] transition-colors"
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {sidebarCollapsed ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
+          </button>
+        </div>
         {activeContent}
       </aside>
 
@@ -387,9 +418,11 @@ export const Sidebar = () => {
           <div className="relative flex-1 flex flex-col max-w-xs w-full bg-[#1A1953] border-r border-[#262569] shadow-2xl z-10 animate-slide-right">
             <div className="p-3.5 border-b border-[#262569] flex items-center justify-between bg-[#13123E]">
               <span className="text-xs font-bold text-white uppercase tracking-wider">Navigation</span>
-              <button
+               <button
                 type="button"
-                onClick={closeMobileSidebar}
+                 onClick={closeMobileSidebar}
+                 aria-label="Close navigation drawer"
+                 title="Close navigation drawer"
                 className="p-1.5 rounded-lg text-[#94A3B8] hover:text-white hover:bg-[#262569] transition-colors"
               >
                 <X className="w-5 h-5" />

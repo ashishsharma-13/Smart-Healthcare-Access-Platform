@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import {
@@ -15,18 +15,47 @@ import {
   X,
   Check,
   ArrowRight,
+  Navigation,
+  RotateCcw,
+  Compass,
 } from 'lucide-react';
 import { ReviewsSection } from '../../components/common/ReviewsSection';
+import { useLocationService } from '../../context/LocationContext';
+import { forwardGeocode } from '../../utils/geoUtils';
 
 export const HospitalsListPage = () => {
   const navigate = useNavigate();
+  const {
+    deviceLocation,
+    selectedSearchLocation,
+    location,
+    permissionStatus,
+    loading: detectingGps,
+    detectCurrentLocation,
+    setManualSearchLocation,
+    resetSearchLocationToDevice,
+  } = useLocationService();
 
   const [hospitals, setHospitals] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Top Search Bar Inputs
   const [facilityQuery, setFacilityQuery] = useState('Emergency care, multi-specialty');
-  const [locationQuery, setLocationQuery] = useState('Hyderabad, Telangana');
+  const [locationQuery, setLocationQuery] = useState(
+    selectedSearchLocation.address || 'Delhi, India'
+  );
+
+  // Autocomplete suggestions state
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const debounceTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (selectedSearchLocation.address && locationQuery === 'Detecting location...') {
+      setLocationQuery(selectedSearchLocation.address);
+    }
+  }, [selectedSearchLocation.address]);
 
   // Left Filters Sidebar
   const [selectedSpecialty, setSelectedSpecialty] = useState('Cardiology');
@@ -57,12 +86,31 @@ export const HospitalsListPage = () => {
 
   useEffect(() => {
     fetchHospitals();
-  }, [selectedSpecialty, selectedDistance, participation, sortBy]);
+  }, [
+    selectedSpecialty,
+    selectedDistance,
+    participation,
+    sortBy,
+    selectedSearchLocation.latitude,
+    selectedSearchLocation.longitude,
+  ]);
 
   const fetchHospitals = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/organizations');
+      const queryParams = new URLSearchParams();
+      if (selectedSearchLocation.latitude != null && selectedSearchLocation.longitude != null) {
+        queryParams.append('lat', selectedSearchLocation.latitude);
+        queryParams.append('lng', selectedSearchLocation.longitude);
+      }
+      if (selectedDistance && selectedDistance !== 'all') {
+        queryParams.append('radiusKm', selectedDistance);
+      }
+      if (sortBy) {
+        queryParams.append('sortBy', sortBy);
+      }
+
+      const res = await api.get(`/organizations?${queryParams.toString()}`);
       if (res.data.success) {
         let results = res.data.data || [];
 
@@ -132,9 +180,60 @@ export const HospitalsListPage = () => {
     }
   };
 
-  const handleTopSearch = (e) => {
-    e.preventDefault();
+  const handleLocationInputChange = (val) => {
+    setLocationQuery(val);
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    if (!val || val.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    debounceTimerRef.current = setTimeout(async () => {
+      setGeocoding(true);
+      const results = await forwardGeocode(val.trim());
+      setSuggestions(results || []);
+      setShowSuggestions(true);
+      setGeocoding(false);
+    }, 300);
+  };
+
+  const handleSelectSuggestion = async (sugg) => {
+    setShowSuggestions(false);
+    const resolved = sugg.resolvedAddress || sugg.displayName;
+    setLocationQuery(resolved);
+    await setManualSearchLocation({
+      latitude: sugg.latitude,
+      longitude: sugg.longitude,
+      address: resolved,
+      city: sugg.city,
+      state: sugg.state,
+      country: sugg.country,
+      postalCode: sugg.postalCode,
+      source: 'MANUAL',
+    });
+  };
+
+  const handleTopSearch = async (e) => {
+    e?.preventDefault();
+    setShowSuggestions(false);
+    if (locationQuery && locationQuery.trim() && locationQuery.trim() !== selectedSearchLocation.address) {
+      setGeocoding(true);
+      const matches = await forwardGeocode(locationQuery.trim());
+      setGeocoding(false);
+      if (matches && matches.length > 0) {
+        await handleSelectSuggestion(matches[0]);
+        return;
+      }
+    }
     fetchHospitals();
+  };
+
+  const handleSwitchToGPS = async () => {
+    setShowSuggestions(false);
+    const res = await resetSearchLocationToDevice();
+    if (res.success && res.location) {
+      setLocationQuery(res.location.address || 'Device GPS Location');
+    }
   };
 
   const handleResetFilters = () => {
@@ -173,16 +272,92 @@ export const HospitalsListPage = () => {
             />
           </div>
 
-          {/* Location */}
-          <div className="md:col-span-5 space-y-1">
-            <label className="block text-xs font-bold text-slate-700">Location</label>
-            <input
-              type="text"
-              value={locationQuery}
-              onChange={(e) => setLocationQuery(e.target.value)}
-              placeholder="e.g. Brookfield, NY"
-              className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2F2FE4]/20 focus:border-[#2F2FE4]"
-            />
+          {/* Location with Manual Address Search & Geocoding */}
+          <div className="md:col-span-5 space-y-1 relative">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-slate-700">Location</label>
+              <div className="flex items-center gap-2">
+                {selectedSearchLocation.source !== 'DEVICE_GEOLOCATION' && deviceLocation.hasLocation && (
+                  <button
+                    type="button"
+                    onClick={handleSwitchToGPS}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer"
+                    title="Switch back to actual device GPS"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Back to GPS</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => detectCurrentLocation({ forceRefresh: true, applyToSearch: true })}
+                  disabled={detectingGps}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2F2FE4] hover:underline cursor-pointer disabled:opacity-50"
+                >
+                  <Navigation className={`w-3 h-3 ${detectingGps ? 'animate-spin' : ''}`} />
+                  <span>
+                    {detectingGps
+                      ? 'Locating...'
+                      : selectedSearchLocation.source === 'DEVICE_GEOLOCATION'
+                      ? 'GPS Active'
+                      : 'Use GPS'}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <div className="relative">
+              <input
+                type="text"
+                value={locationQuery}
+                onChange={(e) => handleLocationInputChange(e.target.value)}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                placeholder="Enter city, locality or landmark (e.g. Delhi, Gachibowli)"
+                className="w-full text-xs pl-8 pr-8 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2F2FE4]/20 focus:border-[#2F2FE4]"
+              />
+              <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              {geocoding && (
+                <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              )}
+            </div>
+
+            {/* Geocoding Suggestions Dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 max-h-56 overflow-y-auto">
+                <div className="p-2 bg-slate-50 text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                  Select Location Suggestion
+                </div>
+                {suggestions.map((sugg, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleSelectSuggestion(sugg)}
+                    className="w-full text-left p-2.5 text-xs hover:bg-blue-50 transition-colors flex items-start space-x-2 cursor-pointer"
+                  >
+                    <Compass className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-slate-800 leading-snug">
+                        {sugg.city ? `${sugg.city}, ${sugg.state || sugg.country}` : sugg.displayName.split(',')[0]}
+                      </div>
+                      <div className="text-[10px] text-slate-400 line-clamp-1">
+                        {sugg.resolvedAddress || sugg.displayName}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Active Location Source Tag */}
+            {selectedSearchLocation.hasLocation && (
+              <div className="text-[10.5px] text-slate-500 pt-0.5 flex items-center gap-1.5 truncate">
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${selectedSearchLocation.source === 'DEVICE_GEOLOCATION' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <span className="font-bold text-slate-700">
+                  {selectedSearchLocation.source === 'DEVICE_GEOLOCATION' ? 'Device GPS' : 'Manual Location'}:
+                </span>
+                <span className="truncate">{selectedSearchLocation.address}</span>
+              </div>
+            )}
           </div>
 
           {/* Search Button */}
@@ -376,9 +551,12 @@ export const HospitalsListPage = () => {
             <div className="space-y-4">
               {hospitals.map((hosp) => {
                 const hospName = hosp.name || 'Healthcare Facility';
-                const addressStr =
-                  hosp.addressText ||
-                  `${hosp.address?.street || '120 River Avenue'}, ${hosp.address?.city || 'Brookfield'} · 3.2 km`;
+                const distPart = hosp.distanceKm != null ? ` · ${hosp.distanceKm.toFixed(1)} km away` : '';
+                const baseStreet = hosp.operatingAddress?.streetName || hosp.address?.street || 'Verified Healthcare Facility';
+                const baseCity = hosp.operatingAddress?.city || hosp.address?.city || '';
+                const addressStr = hosp.distanceKm != null
+                  ? `${baseStreet}${baseCity ? ', ' + baseCity : ''}${distPart}`
+                  : (hosp.addressText || `${baseStreet}, ${baseCity || 'Local District'}`);
                 const servicesStr =
                   hosp.services ||
                   (hosp.facilities && hosp.facilities.length > 0

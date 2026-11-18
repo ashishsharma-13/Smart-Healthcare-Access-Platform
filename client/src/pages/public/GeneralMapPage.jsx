@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { LeafletMap, openGoogleMapsNavigation } from '../../components/common/LeafletMap';
@@ -18,52 +18,128 @@ import {
   ExternalLink,
   ChevronRight,
   Activity,
+  Compass,
+  RotateCcw,
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
+import { useLocationService } from '../../context/LocationContext';
+import { forwardGeocode } from '../../utils/geoUtils';
 
 export const GeneralMapPage = () => {
   const navigate = useNavigate();
+  const {
+    deviceLocation,
+    selectedSearchLocation,
+    location,
+    detectCurrentLocation,
+    setManualSearchLocation,
+    resetSearchLocationToDevice,
+    loading: locatingGps,
+  } = useLocationService();
+
   const [facilities, setFacilities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [locationInput, setLocationInput] = useState(selectedSearchLocation.address || 'Delhi, India');
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const debounceTimerRef = useRef(null);
+
   const [activeFilter, setActiveFilter] = useState('all'); // 'all' | 'verified' | 'emergency' | 'clinic'
-  const [userLocation, setUserLocation] = useState([28.6139, 77.2090]); // [lat, lng]
-  const [mapCenter, setMapCenter] = useState([28.6139, 77.2090]);
+  const [userLocation, setUserLocation] = useState(
+    selectedSearchLocation.latitude != null
+      ? [selectedSearchLocation.latitude, selectedSearchLocation.longitude]
+      : [28.6139, 77.2090]
+  );
+  const [mapCenter, setMapCenter] = useState(
+    selectedSearchLocation.latitude != null
+      ? [selectedSearchLocation.latitude, selectedSearchLocation.longitude]
+      : [28.6139, 77.2090]
+  );
   const [mapZoom, setMapZoom] = useState(13);
   const [selectedFacility, setSelectedFacility] = useState(null);
   const [locating, setLocating] = useState(false);
 
   useEffect(() => {
-    fetchFacilities();
-    detectUserGPS();
-  }, []);
+    if (selectedSearchLocation.latitude != null && selectedSearchLocation.longitude != null) {
+      const coords = [selectedSearchLocation.latitude, selectedSearchLocation.longitude];
+      setUserLocation(coords);
+      setMapCenter(coords);
+      if (selectedSearchLocation.address) {
+        setLocationInput(selectedSearchLocation.address);
+      }
+    }
+  }, [selectedSearchLocation.latitude, selectedSearchLocation.longitude, selectedSearchLocation.address]);
 
-  const detectUserGPS = () => {
-    if ('geolocation' in navigator) {
-      setLocating(true);
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const coords = [pos.coords.latitude, pos.coords.longitude];
-          setUserLocation(coords);
-          setMapCenter(coords);
-          setMapZoom(13);
-          setLocating(false);
-        },
-        () => {
-          setLocating(false);
-        }
-      );
+  useEffect(() => {
+    fetchFacilities();
+  }, [userLocation]);
+
+  const handleLocationInputChange = (val) => {
+    setLocationInput(val);
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    if (!val || val.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    debounceTimerRef.current = setTimeout(async () => {
+      setGeocoding(true);
+      const results = await forwardGeocode(val.trim());
+      setSuggestions(results || []);
+      setShowSuggestions(true);
+      setGeocoding(false);
+    }, 300);
+  };
+
+  const handleSelectSuggestion = async (sugg) => {
+    setShowSuggestions(false);
+    const resolved = sugg.resolvedAddress || sugg.displayName;
+    setLocationInput(resolved);
+    const coords = [sugg.latitude, sugg.longitude];
+    setUserLocation(coords);
+    setMapCenter(coords);
+    setMapZoom(14);
+    await setManualSearchLocation({
+      latitude: sugg.latitude,
+      longitude: sugg.longitude,
+      address: resolved,
+      city: sugg.city,
+      state: sugg.state,
+      country: sugg.country,
+      postalCode: sugg.postalCode,
+      source: 'MANUAL',
+    });
+  };
+
+  const detectUserGPS = async () => {
+    setLocating(true);
+    setShowSuggestions(false);
+    const res = await resetSearchLocationToDevice();
+    setLocating(false);
+    if (res.success && res.location) {
+      const coords = [res.location.latitude, res.location.longitude];
+      setUserLocation(coords);
+      setMapCenter(coords);
+      setMapZoom(14);
+      setLocationInput(res.location.address || 'Device GPS Location');
     }
   };
 
   const fetchFacilities = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/organizations');
+      const res = await api.get('/organizations', {
+        params: {
+          lat: userLocation[0],
+          lng: userLocation[1],
+          sortBy: 'distance',
+        },
+      });
       if (res.data.success) {
         const rawOrgs = res.data.data || [];
-        // Map with fallbacks and distance computation from user location
         const mapped = rawOrgs.map((org) => {
           const coords = org.location?.coordinates || [77.2090, 28.6139];
           const lat = coords[1];
@@ -169,16 +245,56 @@ export const GeneralMapPage = () => {
 
         {/* Filter Chips & Search Bar */}
         <div className="max-w-7xl mx-auto mt-3 flex flex-col md:flex-row items-stretch md:items-center gap-3">
-          {/* Search Input */}
+          {/* Facility Name / Service Search Input */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search by facility name, locality, or city..."
+              placeholder="Search facilities by name, capability..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
             />
+          </div>
+
+          {/* Location / City Jump Input with Autocomplete */}
+          <div className="relative flex-1">
+            <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Jump to city or locality (e.g. Delhi, Gachibowli)..."
+              value={locationInput}
+              onChange={(e) => handleLocationInputChange(e.target.value)}
+              onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+              className="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+            />
+            {geocoding && (
+              <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
+            )}
+
+            {/* Suggestions Dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 max-h-56 overflow-y-auto">
+                {suggestions.map((sugg, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleSelectSuggestion(sugg)}
+                    className="w-full text-left p-2.5 text-xs hover:bg-blue-50 transition-colors flex items-start space-x-2 cursor-pointer"
+                  >
+                    <Compass className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-slate-800 leading-snug">
+                        {sugg.city ? `${sugg.city}, ${sugg.state || sugg.country}` : sugg.displayName.split(',')[0]}
+                      </div>
+                      <div className="text-[10px] text-slate-400 line-clamp-1">
+                        {sugg.resolvedAddress || sugg.displayName}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Filter Chips */}

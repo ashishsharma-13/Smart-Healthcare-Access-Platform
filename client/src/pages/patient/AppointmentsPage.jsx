@@ -69,7 +69,7 @@ export const AppointmentsPage = () => {
     slotDate: '2026-11-16',
     slotTime: '10:30 AM',
     reason: 'Heart-health follow-up',
-    fee: '$85 · Pay at clinic',
+    fee: '₹85 · Pay at clinic',
     doctorId: {
       userId: { name: 'Dr. Mira Patel' },
       specialization: 'Cardiology',

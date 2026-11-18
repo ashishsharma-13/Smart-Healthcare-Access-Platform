@@ -9,6 +9,7 @@ import {
   SearchHistory,
   SavedHealthcareProvider,
   User,
+  ExternalHealthcareFacility,
 } from '../models/index.js';
 
 /**
@@ -122,9 +123,13 @@ export class HealthcareSearchService {
 
     // 3. Attach active affiliations & compute geographic distances
     const targetOrgId = organizationId || affiliation;
-    const originLat = lat != null && lat !== '' ? Number(lat) : null;
-    const originLng = lng != null && lng !== '' ? Number(lng) : null;
-    const hasCoordinates = originLat != null && originLng != null && !isNaN(originLat) && !isNaN(originLng);
+    const originLat = queryParams.lat != null && queryParams.lat !== ''
+      ? Number(queryParams.lat)
+      : (queryParams.latitude != null && queryParams.latitude !== '' ? Number(queryParams.latitude) : null);
+    const originLng = queryParams.lng != null && queryParams.lng !== ''
+      ? Number(queryParams.lng)
+      : (queryParams.longitude != null && queryParams.longitude !== '' ? Number(queryParams.longitude) : null);
+    const hasCoordinates = originLat != null && originLng != null && !isNaN(originLat) && !isNaN(originLng) && originLat >= -90 && originLat <= 90 && originLng >= -180 && originLng <= 180;
     const maxRadius = radiusKm != null && radiusKm !== '' ? Number(radiusKm) : null;
 
     const enrichedDoctors = await Promise.all(
@@ -293,6 +298,7 @@ export class HealthcareSearchService {
       orgType,
       specialization,
       capability,
+      ownershipType,
       emergencyOnly,
       verifiedOnly = 'true',
       lat,
@@ -301,6 +307,7 @@ export class HealthcareSearchService {
       sortBy = 'distance',
       page = 1,
       limit = 10,
+      includeExternal = 'true',
     } = queryParams;
 
     const queryTerm = (search || q || name || '').trim();
@@ -346,9 +353,63 @@ export class HealthcareSearchService {
       .lean()
       .exec();
 
-    const originLat = lat != null && lat !== '' ? Number(lat) : null;
-    const originLng = lng != null && lng !== '' ? Number(lng) : null;
-    const hasCoordinates = originLat != null && originLng != null && !isNaN(originLat) && !isNaN(originLng);
+    // Directory facilities are discovery-only records: never partners, never
+    // reservation targets, and never a source of live resource availability.
+    if (includeExternal !== 'false' && includeExternal !== false) {
+      const externalFilter = { active: true };
+      if (ownershipType && ['GOVERNMENT', 'PRIVATE'].includes(String(ownershipType).toUpperCase())) {
+        externalFilter.ownershipType = String(ownershipType).toUpperCase();
+      }
+      if (facilityType && facilityType !== 'all' && facilityType !== 'hospital') {
+        externalFilter.facilityType = { $regex: new RegExp(facilityType, 'i') };
+      }
+      if (specialization && specialization !== 'All' && specialization !== 'All Specialties') {
+        externalFilter.specialties = { $regex: new RegExp(specialization.trim(), 'i') };
+      }
+      if (capability && capability.trim()) {
+        externalFilter.specialties = { $regex: new RegExp(capability.trim(), 'i') };
+      }
+      if (emergencyOnly === 'true' || emergencyOnly === true) {
+        externalFilter.specialties = { $regex: /emergency|trauma|resuscitation/i };
+      }
+      if (queryTerm) {
+        externalFilter.$or = [
+          { facilityName: { $regex: queryTerm, $options: 'i' } },
+          { city: { $regex: queryTerm, $options: 'i' } },
+          { locality: { $regex: queryTerm, $options: 'i' } },
+        ];
+      }
+      const externalFacilities = await ExternalHealthcareFacility.find(externalFilter).lean().exec();
+      organizations = organizations.concat(externalFacilities.map((facility) => ({
+        _id: facility._id,
+        name: facility.facilityName,
+        orgType: 'hospital',
+        facilityType: facility.facilityType,
+        ownershipType: facility.ownershipType,
+        verificationStatus: facility.verificationStatus,
+        facilityVerificationStatus: facility.verificationStatus,
+        demoData: facility.demoData,
+        isExternal: true,
+        isPartner: false,
+        emergencyCapable: true,
+        liveAvailabilityConfirmed: false,
+        healthcareCapabilities: facility.specialties || [],
+        specializations: facility.specialties || [],
+        operatingAddress: facility.operatingAddress,
+        address: { city: facility.city, state: facility.state, postalCode: facility.pinCode, street: facility.address },
+        location: facility.location,
+        contactNumber: facility.contactNumber,
+        disclaimer: 'Directory/demo facility only. SHAP partnership, resource reservation, beds, specialists, and live emergency availability are not confirmed.',
+      })));
+    }
+
+    const originLat = queryParams.lat != null && queryParams.lat !== ''
+      ? Number(queryParams.lat)
+      : (queryParams.latitude != null && queryParams.latitude !== '' ? Number(queryParams.latitude) : null);
+    const originLng = queryParams.lng != null && queryParams.lng !== ''
+      ? Number(queryParams.lng)
+      : (queryParams.longitude != null && queryParams.longitude !== '' ? Number(queryParams.longitude) : null);
+    const hasCoordinates = originLat != null && originLng != null && !isNaN(originLat) && !isNaN(originLng) && originLat >= -90 && originLat <= 90 && originLng >= -180 && originLng <= 180;
     const maxRadius = radiusKm != null && radiusKm !== '' ? Number(radiusKm) : null;
 
     // Enriched organizations with distance and sanitized data

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { LeafletMap } from '../../components/common/LeafletMap';
+import { useLocationService } from '../../context/LocationContext';
 import {
   getUserCurrentLocation,
   formatFacilityAddress,
@@ -56,12 +57,25 @@ export const EmergencyMatchPage = () => {
     { id: 'child', name: 'Pediatric Emergency', icon: Baby, desc: 'Pediatric seizures, severe fever, pediatric shock', mandatory: 'Pediatrician, PICU, Child ER' },
   ];
 
+  const { location, detectCurrentLocation } = useLocationService();
   const [selectedCategory, setSelectedCategory] = useState('cardiac');
   const [severity, setSeverity] = useState('critical');
   const [ambulanceRequirement, setAmbulanceRequirement] = useState('no'); // 'yes' | 'no' | 'already_arranged'
-  const [userCoords, setUserCoords] = useState([28.6139, 77.2090]); // [lat, lng]
-  const [locationAddress, setLocationAddress] = useState('Detecting current GPS coordinates...');
+  const [userCoords, setUserCoords] = useState(
+    location.latitude != null ? [location.latitude, location.longitude] : [17.4568, 78.3264]
+  );
+  const [locationAddress, setLocationAddress] = useState(location.address || 'Detecting current GPS coordinates...');
   const [detectingGps, setDetectingGps] = useState(false);
+
+  // Sync when location service updates
+  useEffect(() => {
+    if (location.latitude != null && location.longitude != null) {
+      setUserCoords([location.latitude, location.longitude]);
+      if (location.address) {
+        setLocationAddress(location.address);
+      }
+    }
+  }, [location.latitude, location.longitude, location.address]);
 
   // Suitability Matrix Filter Options
   const [requireSpecialist, setRequireSpecialist] = useState(false);
@@ -75,7 +89,9 @@ export const EmergencyMatchPage = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    detectLocation();
+    if (location.source === 'UNKNOWN') {
+      detectLocation();
+    }
   }, []);
 
   useEffect(() => {
@@ -85,9 +101,11 @@ export const EmergencyMatchPage = () => {
   const detectLocation = async (forceRefresh = false) => {
     try {
       setDetectingGps(true);
-      const loc = await getUserCurrentLocation(forceRefresh);
-      setUserCoords([loc.lat, loc.lng]);
-      setUserAddressSafe(loc.address || `GPS: ${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`);
+      const res = await detectCurrentLocation({ forceRefresh });
+      if (res.success) {
+        setUserCoords([res.location.latitude, res.location.longitude]);
+        setUserAddressSafe(res.location.address || `GPS: ${res.location.latitude.toFixed(4)}, ${res.location.longitude.toFixed(4)}`);
+      }
     } catch (e) {
       console.warn('Location detection note:', e);
     } finally {

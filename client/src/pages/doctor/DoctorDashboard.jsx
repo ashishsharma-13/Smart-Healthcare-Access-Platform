@@ -199,6 +199,12 @@ export const DoctorDashboard = () => {
     : 'RIVERSIDE MEDICAL CENTER / CARDIOLOGY';
 
   const workingHoursDisplay = doctorProfile?.workingHours || 'Mon–Fri · 9:00 AM–4:00 PM';
+  const currentDateLabel = new Intl.DateTimeFormat('en-GB', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date());
 
   return (
     <div className="space-y-6 pb-12 select-none">
@@ -215,7 +221,7 @@ export const DoctorDashboard = () => {
             A clear view of your day, Dr. {doctorLastName}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Monday, 09 November &bull; Your schedule and routine requests in one place.
+            {currentDateLabel} &bull; Your schedule and routine requests in one place.
           </p>
         </div>
 

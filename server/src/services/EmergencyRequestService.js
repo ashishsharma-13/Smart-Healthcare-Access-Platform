@@ -110,7 +110,8 @@ export class EmergencyRequestService {
     }
 
     const resolvedAddress = (address && address.trim()) || `GPS Location (${parsedLat.toFixed(5)}, ${parsedLng.toFixed(5)})`;
-    const normalizedSource = locationSource && String(locationSource).toUpperCase() === 'MANUAL' ? 'MANUAL' : 'GPS';
+    const rawSource = String(locationSource || '').toUpperCase();
+    const normalizedSource = rawSource === 'MANUAL' ? 'MANUAL' : (rawSource === 'MAP_SELECTED' ? 'MAP_SELECTED' : (rawSource === 'GPS' ? 'GPS' : 'DEVICE_GEOLOCATION'));
 
     // 4. Idempotency / Duplicate Submission Check
     // If user made a request in the last 15 seconds with the same category and status CREATED

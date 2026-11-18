@@ -8,7 +8,6 @@ import {
   Activity,
   Pill,
   Phone,
-  MapPin,
   Calendar,
   Save,
   CheckCircle2,
@@ -24,7 +23,6 @@ import {
   Lock,
   Globe,
   RefreshCw,
-  Compass,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -50,11 +48,11 @@ export const PatientProfilePage = () => {
     weightKg: '',
     address: {
       street: '',
+      locality: '',
       city: '',
       state: '',
       postalCode: '',
     },
-    locationCoordinates: [0, 0],
     profileCompleteness: 0,
   });
 
@@ -171,11 +169,11 @@ export const PatientProfilePage = () => {
           weightKg: p.weightKg || '',
           address: {
             street: p.address?.street || '',
+            locality: p.address?.locality || '',
             city: p.address?.city || '',
             state: p.address?.state || '',
             postalCode: p.address?.postalCode || '',
           },
-          locationCoordinates: p.locationCoordinates || [0, 0],
           profileCompleteness: p.profileCompleteness || 0,
         });
       }
@@ -230,7 +228,6 @@ export const PatientProfilePage = () => {
         heightCm: demographics.heightCm ? Number(demographics.heightCm) : null,
         weightKg: demographics.weightKg ? Number(demographics.weightKg) : null,
         address: demographics.address,
-        locationCoordinates: demographics.locationCoordinates,
       };
 
       const res = await api.put('/patients/me/profile', payload);
@@ -253,28 +250,6 @@ export const PatientProfilePage = () => {
     } finally {
       setSaving(false);
     }
-  };
-
-  // Get current geolocation
-  const handleDetectLocation = () => {
-    if (!navigator.geolocation) {
-      setErrorMessage('Geolocation is not supported by your browser.');
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setDemographics((prev) => ({
-          ...prev,
-          locationCoordinates: [longitude, latitude],
-        }));
-        setSuccessNotice(`GPS Coordinates detected: [${longitude.toFixed(4)}, ${latitude.toFixed(4)}]`);
-        setTimeout(() => setSuccessNotice(''), 4000);
-      },
-      (err) => {
-        setErrorMessage(`Failed to get location: ${err.message}`);
-      }
-    );
   };
 
   // Emergency Contact Handlers
@@ -544,24 +519,6 @@ export const PatientProfilePage = () => {
           </p>
         </div>
 
-        {/* Profile Completeness Gauge */}
-        <div className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs flex items-center space-x-4 min-w-[240px]">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-sm">
-            {demographics.profileCompleteness}%
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-900 mb-1">
-              <span>Profile Completeness</span>
-              <span className="text-blue-600 font-mono">{demographics.profileCompleteness}%</span>
-            </div>
-            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-              <div
-                className="bg-blue-600 h-full rounded-full transition-all duration-500"
-                style={{ width: `${demographics.profileCompleteness}%` }}
-              />
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Notifications */}
@@ -580,7 +537,7 @@ export const PatientProfilePage = () => {
       )}
 
       {/* Navigation Tabs */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
+       <div className="flex items-center gap-2 overflow-x-auto border-b border-slate-200 pb-2 scrollbar-thin">
         {[
           { id: 'demographics', label: 'Demographics', icon: User },
           { id: 'contacts', label: `Emergency Contacts (${emergencyContacts.length})`, icon: Phone },
@@ -597,7 +554,7 @@ export const PatientProfilePage = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+               className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap shrink-0 ${
                 isActive
                   ? 'bg-blue-600 text-white shadow-xs'
                   : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/80'
@@ -744,35 +701,17 @@ export const PatientProfilePage = () => {
             </div>
           </div>
 
-          {/* Residential Address & Location Coordinates */}
+          {/* Official Registered Address */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-slate-900">Residential Address & GPS Coordinates</h2>
-                  <p className="text-xs text-slate-500">
-                    Used for nearest facility matching and emergency dispatch
-                  </p>
-                </div>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleDetectLocation}
-                className="text-xs flex items-center space-x-1.5"
-              >
-                <Compass className="w-3.5 h-3.5 text-blue-600" />
-                <span>Auto-Detect GPS</span>
-              </Button>
-            </div>
+            <h2 className="text-sm font-bold tracking-wide text-[#0B2A4A] uppercase">
+              Residential Address
+            </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 mb-1">Street Address</label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-5">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Street / Building Address <span className="text-[#0B4F9C]">*</span>
+                </label>
                 <input
                   type="text"
                   value={demographics.address.street}
@@ -782,13 +721,31 @@ export const PatientProfilePage = () => {
                       address: { ...demographics.address, street: e.target.value },
                     })
                   }
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  placeholder="Flat 402, Lotus Towers, Ring Road"
+                  className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  placeholder="Medical Enclave Road"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">City</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Locality / Area</label>
+                <input
+                  type="text"
+                  value={demographics.address.locality}
+                  onChange={(e) =>
+                    setDemographics({
+                      ...demographics,
+                      address: { ...demographics.address, locality: e.target.value },
+                    })
+                  }
+                  className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  placeholder="Connaught Place"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  City <span className="text-[#0B4F9C]">*</span>
+                </label>
                 <input
                   type="text"
                   value={demographics.address.city}
@@ -798,13 +755,15 @@ export const PatientProfilePage = () => {
                       address: { ...demographics.address, city: e.target.value },
                     })
                   }
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  placeholder="New Delhi"
+                  className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  placeholder="Central City"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">State / Province</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  State <span className="text-[#0B4F9C]">*</span>
+                </label>
                 <input
                   type="text"
                   value={demographics.address.state}
@@ -814,13 +773,15 @@ export const PatientProfilePage = () => {
                       address: { ...demographics.address, state: e.target.value },
                     })
                   }
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  placeholder="Delhi"
+                  className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  placeholder="State Capital"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Postal Code</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  PIN Code <span className="text-[#0B4F9C]">*</span>
+                </label>
                 <input
                   type="text"
                   value={demographics.address.postalCode}
@@ -830,58 +791,19 @@ export const PatientProfilePage = () => {
                       address: { ...demographics.address, postalCode: e.target.value },
                     })
                   }
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   placeholder="110001"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">GPS Longitude</label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  value={demographics.locationCoordinates[0] || ''}
-                  onChange={(e) =>
-                    setDemographics({
-                      ...demographics,
-                      locationCoordinates: [
-                        parseFloat(e.target.value) || 0,
-                        demographics.locationCoordinates[1] || 0,
-                      ],
-                    })
-                  }
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  placeholder="77.2090"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">GPS Latitude</label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  value={demographics.locationCoordinates[1] || ''}
-                  onChange={(e) =>
-                    setDemographics({
-                      ...demographics,
-                      locationCoordinates: [
-                        demographics.locationCoordinates[0] || 0,
-                        parseFloat(e.target.value) || 0,
-                      ],
-                    })
-                  }
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  placeholder="28.6139"
-                />
-              </div>
             </div>
           </div>
 
           <div className="flex justify-end">
-            <Button type="submit" disabled={saving} className="px-6 py-2.5 flex items-center space-x-2">
-              <Save className="w-4 h-4" />
-              <span>{saving ? 'Saving...' : 'Save Demographics'}</span>
-            </Button>
+              <Button type="submit" disabled={saving} className="!flex !flex-row !flex-nowrap w-max min-w-max px-6 py-2.5 gap-2 whitespace-nowrap">
+               <Save className="w-4 h-4 shrink-0" />
+               <span className="whitespace-nowrap">{saving ? 'Saving...' : 'Save Demographics'}</span>
+             </Button>
           </div>
         </form>
       )}
@@ -2056,8 +1978,8 @@ export const PatientProfilePage = () => {
                   <Heart className="w-6 h-6 animate-pulse" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold">Emergency Pre-Flight Medical Snapshot</h2>
-                  <p className="text-xs text-slate-400">
+                  <h2 className="!text-white text-lg font-bold">Emergency Pre-Flight Medical Snapshot</h2>
+                  <p className="!text-slate-300 text-xs">
                     Live preview of minimum-necessary data provided to destination trauma centers
                   </p>
                 </div>
@@ -2066,7 +1988,7 @@ export const PatientProfilePage = () => {
                 variant="outline"
                 size="sm"
                 onClick={fetchAllData}
-                className="text-xs text-white border-white/20 hover:bg-white/10"
+                className="!text-white !border-white/20 !bg-transparent hover:!bg-white/10"
               >
                 <RefreshCw className="w-3.5 h-3.5 mr-1" />
                 <span>Refresh Live</span>

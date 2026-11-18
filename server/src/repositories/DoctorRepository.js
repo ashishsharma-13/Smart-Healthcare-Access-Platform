@@ -41,7 +41,7 @@ export class DoctorRepository {
 
     return await Doctor.find(filter)
       .populate('userId', 'name email phone avatar')
-      .populate('currentPresence.organizationId', 'name address')
+      .populate('currentPresence.organizationId', 'name address location operatingAddress')
       .sort({ rating: -1, experienceYears: -1 })
       .exec();
   }

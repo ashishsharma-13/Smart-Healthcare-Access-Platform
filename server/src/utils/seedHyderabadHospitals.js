@@ -10,6 +10,7 @@ import {
   DoctorAffiliation,
 } from '../models/index.js';
 import { hyderabadHospitalsData } from './hyderabadHospitalsData.js';
+import { externalFacilityDirectoryService } from '../services/ExternalFacilityDirectoryService.js';
 
 dotenv.config();
 
@@ -126,6 +127,10 @@ export const seedHyderabadHospitals = async () => {
       }
     }
   }
+
+  console.log('[Hyderabad Seeder] Seeding external facilities directory for Hyderabad and Delhi...');
+  const seedRes = await externalFacilityDirectoryService.seedDefaultExternalFacilities();
+  console.log(`[Hyderabad Seeder] External facilities seeded: ${seedRes.seeded}, total in directory: ${seedRes.existing}`);
 
   console.log(`[Hyderabad Seeder] Successfully seeded ${seededOrgs.length} hospitals around Hyderabad!`);
   return seededOrgs;

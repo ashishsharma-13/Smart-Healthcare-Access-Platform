@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import api from '../../services/api';
 import { LeafletMap } from '../../components/common/LeafletMap';
+import { useLocationService } from '../../context/LocationContext';
 import {
   getUserCurrentLocation,
   formatFacilityAddress,
@@ -32,100 +33,31 @@ import {
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 
-// Baseline Public Trauma Centers for offline/initial state
-const BASELINE_FACILITIES = [
-  {
-    _id: 'ext_aiims_trauma',
-    externalFacilityId: 'EXT-FAC-AIIMS-TRAUMA',
-    facilityName: 'AIIMS Apex Trauma Center (JPNATC)',
-    name: 'AIIMS Apex Trauma Center (JPNATC)',
-    facilityType: 'Apex Level-1 Public Trauma Center',
-    specialties: ['Level-1 Polytrauma', 'Neurosurgery', 'Orthopedic Surgery', 'Emergency Resuscitation'],
-    coordinates: [77.1950, 28.5672],
-    latitude: 28.5672,
-    longitude: 77.1950,
-    address: 'Ring Road, Raj Nagar, Safdarjung Enclave, New Delhi 110029',
-    operatingAddress: {
-      buildingNumber: 'JPNATC Complex',
-      streetName: 'Ring Road, Raj Nagar, Safdarjung Enclave',
-      area: 'South Delhi',
-      city: 'New Delhi',
-      pinCode: '110029',
-      location: { type: 'Point', coordinates: [77.1950, 28.5672] },
-    },
-    emergencyContactPhone: '01126731000',
-    displayPhone: '011-26731000',
-    distanceKm: 2.4,
-    estimatedTravelMinutes: 7,
-    isPartner: false,
-    liveAvailabilityConfirmed: false,
-    availabilityConfirmation: 'UNCONFIRMED_EXTERNAL',
-  },
-  {
-    _id: 'ext_safdarjung',
-    externalFacilityId: 'EXT-FAC-SAFDARJUNG',
-    facilityName: 'Safdarjung Hospital Emergency & Burn Block',
-    name: 'Safdarjung Hospital Emergency & Burn Block',
-    facilityType: 'Central Government Multi-Speciality Trauma Block',
-    specialties: ['24/7 Burn ICU', 'Emergency Surgery', 'Cardiac Resuscitation', 'Toxicology'],
-    coordinates: [77.2075, 28.5705],
-    latitude: 28.5705,
-    longitude: 77.2075,
-    address: 'Ansari Nagar West, Ring Road, New Delhi 110029',
-    operatingAddress: {
-      buildingNumber: 'Emergency Block',
-      streetName: 'Ansari Nagar West, Ring Road',
-      area: 'South Delhi',
-      city: 'New Delhi',
-      pinCode: '110029',
-      location: { type: 'Point', coordinates: [77.2075, 28.5705] },
-    },
-    emergencyContactPhone: '01126707444',
-    displayPhone: '011-26707444',
-    distanceKm: 3.1,
-    estimatedTravelMinutes: 9,
-    isPartner: false,
-    liveAvailabilityConfirmed: false,
-    availabilityConfirmation: 'UNCONFIRMED_EXTERNAL',
-  },
-  {
-    _id: 'ext_rml',
-    externalFacilityId: 'EXT-FAC-RML',
-    facilityName: 'Dr. Ram Manohar Lohia (RML) Hospital Emergency',
-    name: 'Dr. Ram Manohar Lohia (RML) Hospital Emergency',
-    facilityType: 'Central Govt Tertiary Trauma & Cardiac Center',
-    specialties: ['Acute Cardiac Care', 'Trauma Bay', 'Stroke Unit', 'Toxicology'],
-    coordinates: [77.2014, 28.6253],
-    latitude: 28.6253,
-    longitude: 77.2014,
-    address: 'Baba Kharak Singh Marg, Connaught Place, New Delhi 110001',
-    operatingAddress: {
-      buildingNumber: 'Casualty & Trauma Dept',
-      streetName: 'Baba Kharak Singh Marg',
-      area: 'Connaught Place',
-      city: 'New Delhi',
-      pinCode: '110001',
-      location: { type: 'Point', coordinates: [77.2014, 28.6253] },
-    },
-    emergencyContactPhone: '01123365525',
-    displayPhone: '011-23365525',
-    distanceKm: 4.8,
-    estimatedTravelMinutes: 12,
-    isPartner: false,
-    liveAvailabilityConfirmed: false,
-    availabilityConfirmation: 'UNCONFIRMED_EXTERNAL',
-  },
-];
-
 export const EmergencyFallbackPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestId = searchParams.get('requestId') || searchParams.get('id');
+  const { location, selectedSearchLocation, detectCurrentLocation } = useLocationService();
 
   // Location state
-  const [userLocation, setUserLocation] = useState({ lat: 28.6139, lng: 77.2090 });
-  const [userAddress, setUserAddress] = useState('Detecting current location...');
+  const [userLocation, setUserLocation] = useState(
+    location.latitude != null
+      ? { lat: location.latitude, lng: location.longitude }
+      : selectedSearchLocation?.latitude != null
+      ? { lat: selectedSearchLocation.latitude, lng: selectedSearchLocation.longitude }
+      : { lat: 17.4568, lng: 78.3264 }
+  );
+  const [userAddress, setUserAddress] = useState(
+    location.address || selectedSearchLocation?.address || 'Detecting current location...'
+  );
   const [locating, setLocating] = useState(false);
+
+  useEffect(() => {
+    if (location.latitude != null && location.longitude != null) {
+      setUserLocation({ lat: location.latitude, lng: location.longitude });
+      if (location.address) setUserAddress(location.address);
+    }
+  }, [location.latitude, location.longitude, location.address]);
 
   // Backend Fallback & Recovery State
   const [loading, setLoading] = useState(false);
@@ -133,9 +65,9 @@ export const EmergencyFallbackPage = () => {
   const [retrying, setRetrying] = useState(false);
   const [fallbackData, setFallbackData] = useState(null);
   const [recoveryData, setRecoveryData] = useState(null);
-  const [externalFacilities, setExternalFacilities] = useState(BASELINE_FACILITIES);
+  const [externalFacilities, setExternalFacilities] = useState([]);
   const [acceptedParticipating, setAcceptedParticipating] = useState([]);
-  const [selectedFacility, setSelectedFacility] = useState(BASELINE_FACILITIES[0]);
+  const [selectedFacility, setSelectedFacility] = useState(null);
 
   // Confirmation Disclaimer Modal State
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -144,7 +76,9 @@ export const EmergencyFallbackPage = () => {
   const [feedback, setFeedback] = useState(null);
 
   useEffect(() => {
-    initUserLocation();
+    if (location.source === 'UNKNOWN') {
+      initUserLocation();
+    }
     if (requestId) {
       loadFallbackData();
     }
@@ -153,9 +87,11 @@ export const EmergencyFallbackPage = () => {
   const initUserLocation = async (refresh = false) => {
     try {
       setLocating(true);
-      const loc = await getUserCurrentLocation(refresh);
-      setUserLocation({ lat: loc.lat, lng: loc.lng });
-      setUserAddress(loc.address);
+      const res = await detectCurrentLocation({ forceRefresh: refresh });
+      if (res.success) {
+        setUserLocation({ lat: res.location.latitude, lng: res.location.longitude });
+        setUserAddress(res.location.address || `GPS: ${res.location.latitude.toFixed(4)}, ${res.location.longitude.toFixed(4)}`);
+      }
     } catch (err) {
       console.warn('Location detection note:', err);
     } finally {
@@ -167,7 +103,30 @@ export const EmergencyFallbackPage = () => {
     if (!requestId) return;
     try {
       setLoading(true);
-      // Fetch fallback options
+
+      // 1. Fetch confirmed emergency request location details
+      try {
+        const reqRes = await api.get(`/emergency/requests/${requestId}`);
+        if (reqRes.data?.success && reqRes.data?.data) {
+          const reqData = reqRes.data.data;
+          const snapshotCoords = reqData.locationSnapshot?.coordinates;
+          const liveCoords = reqData.location?.coordinates;
+          const coords = (snapshotCoords && (snapshotCoords[0] !== 0 || snapshotCoords[1] !== 0))
+            ? snapshotCoords
+            : (liveCoords && (liveCoords[0] !== 0 || liveCoords[1] !== 0))
+            ? liveCoords
+            : null;
+          if (coords) {
+            setUserLocation({ lat: coords[1], lng: coords[0] });
+            const resolvedAddress = reqData.locationSnapshot?.address || reqData.address;
+            if (resolvedAddress) setUserAddress(resolvedAddress);
+          }
+        }
+      } catch (e) {
+        console.warn('Emergency request details retrieval notice:', e.message);
+      }
+
+      // 2. Fetch fallback options for this emergency request
       const optRes = await api.get(`/emergency/requests/${requestId}/fallback-options`);
       if (optRes.data.success) {
         setFallbackData(optRes.data);
@@ -176,13 +135,17 @@ export const EmergencyFallbackPage = () => {
         const ext = options.filter((o) => o.optionType === 'EXTERNAL_FACILITY');
 
         setAcceptedParticipating(accepted);
+        setExternalFacilities(ext);
         if (ext.length > 0) {
-          setExternalFacilities(ext);
           setSelectedFacility(ext[0]);
+        } else if (accepted.length > 0) {
+          setSelectedFacility(accepted[0]);
+        } else {
+          setSelectedFacility(null);
         }
       }
 
-      // Fetch recovery status
+      // 3. Fetch recovery status
       const recRes = await api.get(`/emergency/requests/${requestId}/recovery-status`);
       if (recRes.data.success) {
         setRecoveryData(recRes.data);
@@ -382,30 +345,30 @@ export const EmergencyFallbackPage = () => {
         </div>
       )}
 
-      {/* 1. Redesigned Emergency Alert Banner: Frosted Glass Container */}
-      <div className="bg-red-500/10 border border-red-500/20 backdrop-blur-md rounded-2xl p-6 text-slate-800 dark:text-red-100 shadow-sm relative overflow-hidden">
+      {/* 1. Redesigned Emergency Alert Banner: WCAG 2.2 AA High Contrast */}
+      <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-2xl p-6 text-[#7F1D1D] shadow-sm relative overflow-hidden">
         <div className="relative z-10 space-y-2.5 max-w-3xl">
           <div className="flex items-center gap-2">
-            <span className="bg-red-600 text-white rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 shadow-xs">
-              <AlertOctagon className="w-3.5 h-3.5 text-white animate-pulse" />
+            <span className="bg-[#DC2626] text-[#FFFFFF] rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5 shadow-xs">
+              <AlertOctagon className="w-3.5 h-3.5 text-[#FFFFFF] animate-pulse" />
               <span>Emergency Fallback & Search Expansion</span>
             </span>
           </div>
 
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#991B1B] leading-snug">
             {acceptedParticipating.length > 0
               ? 'Alternative Emergency Facilities Available'
               : 'No Verified SHAP Partners In Immediate Range. Showing External Public / Government Centers.'}
           </h1>
 
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-red-200 leading-relaxed font-medium">
+          <p className="text-xs sm:text-sm text-[#7F1D1D] leading-relaxed font-medium">
             Immediate patient safety takes priority over private platform reservation. Direct turn-by-turn navigation and direct phone helplines for major tertiary government trauma institutions are provided below.
           </p>
         </div>
 
         {/* Decorative graphic backdrop */}
         <div className="absolute -right-6 -bottom-8 opacity-10 pointer-events-none">
-          <ShieldAlert className="w-56 h-56 text-red-600" />
+          <ShieldAlert className="w-56 h-56 text-[#DC2626]" />
         </div>
       </div>
 
@@ -521,17 +484,17 @@ export const EmergencyFallbackPage = () => {
         </div>
       )}
 
-      {/* 2. Redesigned Clinical Safety Notice: Soft Amber Glass Callout */}
-      <div className="bg-amber-500/10 border border-amber-500/20 backdrop-blur-md rounded-xl p-4 text-amber-900 dark:text-amber-200 flex items-start gap-3.5 shadow-xs">
-        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+      {/* 2. Redesigned Clinical Safety Notice: WCAG 2.2 AA High Contrast Amber Banner */}
+      <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-xl p-4 text-[#78350F] flex items-start gap-3.5 shadow-xs">
+        <AlertTriangle className="w-5 h-5 text-[#D97706] flex-shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-amber-950 dark:text-amber-100">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-[#92400E]">
             Mandatory Emergency Care Disclaimer
           </h2>
-          <p className="text-xs sm:text-sm font-bold text-amber-950 dark:text-amber-100 leading-relaxed">
+          <p className="text-xs sm:text-sm font-bold text-[#78350F] leading-relaxed">
             Live bed/specialist availability cannot be verified for external facilities. Dispatching call to Emergency Services (112/108).
           </p>
-          <p className="text-xs text-amber-800 dark:text-amber-300/90 leading-relaxed">
+          <p className="text-xs text-[#78350F] leading-relaxed">
             Public trauma centers accept emergency cases under statutory mandates. However, pre-arrival bed holds and specialist reservation locks are not supported for non-partner hospitals.
           </p>
         </div>
@@ -619,87 +582,115 @@ export const EmergencyFallbackPage = () => {
           </div>
 
           <div className="space-y-3">
-            {externalFacilities.map((facility) => {
-              const facId = facility.externalFacilityId || facility._id;
-              const isSelected = (selectedFacility?.externalFacilityId || selectedFacility?._id) === facId;
-              const formattedAddress = facility.address || formatFacilityAddress(facility);
+            {externalFacilities.length === 0 ? (
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center space-y-3 shadow-md">
+                <ShieldAlert className="w-10 h-10 text-amber-400 mx-auto" />
+                <h3 className="text-base font-bold text-white">No Public Trauma Centers Within {radiusKm} km</h3>
+                <p className="text-xs text-slate-300 max-w-sm mx-auto">
+                  Expand the search radius using the tier buttons above or contact national emergency dispatch directly for emergency routing.
+                </p>
+                <div className="pt-2 flex justify-center gap-3">
+                  <a
+                    href="tel:108"
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors"
+                  >
+                    <Phone className="w-3.5 h-3.5" /> Call 108 Ambulance
+                  </a>
+                  <a
+                    href="tel:112"
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 border border-slate-700 transition-colors"
+                  >
+                    <Phone className="w-3.5 h-3.5" /> Call 112 Unified
+                  </a>
+                </div>
+              </div>
+            ) : (
+              externalFacilities.map((facility) => {
+                const facId = facility.externalFacilityId || facility._id;
+                const isSelected = (selectedFacility?.externalFacilityId || selectedFacility?._id) === facId;
+                const formattedAddress = facility.address || formatFacilityAddress(facility);
 
-              return (
-                <div
-                  key={facId}
-                  onClick={() => setSelectedFacility(facility)}
-                  className={`bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl p-5 border transition-all cursor-pointer space-y-3.5 shadow-sm hover:shadow-md ${
-                    isSelected
-                      ? 'border-blue-600 ring-2 ring-blue-500/20 shadow-md'
-                      : 'border-slate-200/80 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                          External Public Facility
+                return (
+                  <div
+                    key={facId}
+                    onClick={() => setSelectedFacility(facility)}
+                    className={`bg-slate-900 border transition-all cursor-pointer space-y-3.5 rounded-2xl p-5 shadow-sm hover:shadow-md ${
+                      isSelected
+                        ? 'border-blue-500 ring-2 ring-blue-500/30 shadow-lg'
+                        : 'border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-200 border border-slate-700">
+                            External Public Facility
+                          </span>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/70 text-amber-300 border border-amber-800/60">
+                            Unconfirmed Live Bed Hold
+                          </span>
+                        </div>
+                        <h3 className="text-base font-bold tracking-tight text-white leading-snug">
+                          {facility.name || facility.facilityName}
+                        </h3>
+                        <p className="text-xs text-slate-300 flex items-start">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400 mr-1 flex-shrink-0 mt-0.5" />
+                          <span className="truncate">{formattedAddress}</span>
+                        </p>
+                      </div>
+
+                      <div className="text-right flex-shrink-0 pl-2">
+                        <span className="text-xs font-bold text-sky-400 bg-slate-800 border border-slate-700 px-2.5 py-0.5 rounded-full inline-block">
+                          {facility.distanceKm} km
                         </span>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                          Unconfirmed Live Bed Hold
+                        <span className="block text-[10px] text-slate-300 font-medium mt-1">
+                          ~{facility.estimatedTravelMinutes || facility.etaMins || 10} mins
                         </span>
                       </div>
-                      <h3 className="text-base font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
-                        {facility.name || facility.facilityName}
-                      </h3>
-                      <p className="text-xs text-slate-500 flex items-start">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 mr-1 flex-shrink-0 mt-0.5" />
-                        <span className="truncate">{formattedAddress}</span>
-                      </p>
                     </div>
 
-                    <div className="text-right flex-shrink-0 pl-2">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">{facility.distanceKm} km</span>
-                      <span className="block text-[10px] text-slate-500 font-medium">~{facility.estimatedTravelMinutes || facility.etaMins || 10} mins</span>
-                    </div>
-                  </div>
+                    {/* Specialties Pills */}
+                    {facility.specialties && facility.specialties.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {facility.specialties.map((spec, idx) => (
+                          <span
+                            key={idx}
+                            className="text-[10px] bg-slate-800 text-slate-200 px-2.5 py-0.5 rounded-full border border-slate-700 font-medium"
+                          >
+                            {spec}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
-                  {/* Specialties Pills */}
-                  {facility.specialties && facility.specialties.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {facility.specialties.map((spec, idx) => (
-                        <span
-                          key={idx}
-                          className="text-[10px] bg-slate-50 text-slate-600 px-2.5 py-0.5 rounded-full border border-slate-200/70 font-medium"
-                        >
-                          {spec}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                    {/* Action Buttons: Call & Select as Destination / Navigate */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
+                      <a
+                        href={`tel:${facility.emergencyContactPhone || facility.contactNumber || '108'}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full"
+                      >
+                        <button className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors cursor-pointer border border-slate-700">
+                          <Phone className="w-3.5 h-3.5 text-slate-300" />
+                          <span>Call {facility.emergencyContactPhone || '108'}</span>
+                        </button>
+                      </a>
 
-                  {/* Action Buttons: Call & Select as Destination / Navigate */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-                    <a
-                      href={`tel:${facility.emergencyContactPhone || facility.contactNumber || '108'}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-full"
-                    >
-                      <button className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors cursor-pointer">
-                        <Phone className="w-3.5 h-3.5 text-slate-600" />
-                        <span>Call {facility.emergencyContactPhone || '108'}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectExternalFacility(facility);
+                        }}
+                        className="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                      >
+                        <Navigation className="w-3.5 h-3.5 fill-current" />
+                        <span>Select & Navigate</span>
                       </button>
-                    </a>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSelectExternalFacility(facility);
-                      }}
-                      className="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
-                    >
-                      <Navigation className="w-3.5 h-3.5 fill-current" />
-                      <span>Select & Navigate</span>
-                    </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -719,10 +710,10 @@ export const EmergencyFallbackPage = () => {
             </div>
 
             <LeafletMap
-              center={[selectedFacility?.latitude || 28.5672, selectedFacility?.longitude || 77.1950]}
+              center={[selectedFacility?.latitude || userLocation.lat, selectedFacility?.longitude || userLocation.lng]}
               zoom={12}
               userLocation={[userLocation.lat, userLocation.lng]}
-              destinationLocation={[selectedFacility?.latitude || 28.5672, selectedFacility?.longitude || 77.1950]}
+              destinationLocation={selectedFacility ? [selectedFacility.latitude, selectedFacility.longitude] : null}
               hospitals={externalFacilities.map((f) => ({
                 _id: f._id || f.externalFacilityId,
                 name: f.name || f.facilityName,

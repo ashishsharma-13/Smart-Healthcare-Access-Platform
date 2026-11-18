@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import {
   Users,
@@ -54,6 +55,77 @@ import { AuditLogsTab } from './components/AuditLogsTab';
 import { SystemHealthWidget } from './components/SystemHealthWidget';
 
 export const AdminDashboard = () => {
+  const location = useLocation();
+
+  const getRouteTab = (pathname) => {
+    if (pathname === '/admin/doctors') return 'pending';
+    if (pathname === '/admin/organizations') return 'organizations';
+    if (pathname === '/admin/presence') return 'presence';
+    if (pathname === '/admin/notifications') return 'notifications';
+    if (pathname === '/admin/resources') return 'resources';
+    if (pathname === '/admin/fallback') return 'fallback';
+    if (pathname === '/admin/users') return 'users';
+    if (pathname === '/admin/configurations') return 'configurations';
+    if (pathname === '/admin/reports') return 'reports';
+    if (pathname === '/admin/audit-logs') return 'audit-logs';
+    if (pathname === '/admin/emergency-operations') return 'emergency-ops';
+    return 'overview';
+  };
+
+  const workspaceMeta = {
+    '/admin/dashboard': {
+      title: 'Executive Governance Overview',
+      description: 'Platform-wide health, adoption, emergency activity, and compliance signals.',
+    },
+    '/admin/doctors': {
+      title: 'Doctor Verification',
+      description: 'Review practitioner identity, licenses, credentials, and approval decisions.',
+    },
+    '/admin/organizations': {
+      title: 'Hospital Verification',
+      description: 'Review facility registration, establishment licenses, and accreditation records.',
+    },
+    '/admin/presence': {
+      title: 'Presence Monitoring',
+      description: 'Monitor verified practitioner presence scans and on-site status.',
+    },
+    '/admin/notifications': {
+      title: 'Notifications & Telemetry',
+      description: 'Track delivery health, failures, and notification service activity.',
+    },
+    '/admin/resources': {
+      title: 'Resource Inventory',
+      description: 'Manage resource types and monitor reported healthcare capacity.',
+    },
+    '/admin/fallback': {
+      title: 'Fallback & Recovery',
+      description: 'Review emergency fallback sessions and recovery workflows.',
+    },
+    '/admin/users': {
+      title: 'User Governance',
+      description: 'Manage account status, access, and platform user records.',
+    },
+    '/admin/configurations': {
+      title: 'Platform Configuration',
+      description: 'Maintain controlled settings, specializations, and governance rules.',
+    },
+    '/admin/reports': {
+      title: 'Reports & Analytics',
+      description: 'Generate operational, compliance, and platform performance reports.',
+    },
+    '/admin/audit-logs': {
+      title: 'Audit Logs',
+      description: 'Inspect immutable administrative and clinical governance activity.',
+    },
+    '/admin/emergency-operations': {
+      title: 'Emergency Operations',
+      description: 'Monitor active emergency workflows and operational response controls.',
+    },
+  }[location.pathname] || {
+    title: 'Executive Governance Overview',
+    description: 'Platform governance and operational oversight.',
+  };
+
   // Data States
   const [stats, setStats] = useState(null);
   const [pendingDoctors, setPendingDoctors] = useState([]);
@@ -75,7 +147,7 @@ export const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'verified' | 'rejected' | 'organizations' | 'presence'
+  const [activeTab, setActiveTab] = useState(() => getRouteTab(location.pathname));
   const [orgSubTab, setOrgSubTab] = useState('pending'); // 'pending' | 'verified' | 'rejected'
   const [searchQuery, setSearchQuery] = useState('');
   const [specializationFilter, setSpecializationFilter] = useState('ALL');
@@ -161,6 +233,13 @@ export const AdminDashboard = () => {
   useEffect(() => {
     fetchAdminData();
   }, []);
+
+  useEffect(() => {
+    setActiveTab(getRouteTab(location.pathname));
+    setSearchQuery('');
+    setSpecializationFilter('ALL');
+    setOrgSubTab('pending');
+  }, [location.pathname]);
 
   const fetchAdminData = async () => {
     try {
@@ -751,10 +830,10 @@ export const AdminDashboard = () => {
             </Badge>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Executive Governance Administration
+             {workspaceMeta.title}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            National Medical Commission verification, practitioner credentials, and hospital facility accreditation.
+             {workspaceMeta.description}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -814,9 +893,13 @@ export const AdminDashboard = () => {
       {/* Module 16: System Health & Live Governance Activity Telemetry */}
       <SystemHealthWidget />
 
-      {/* Tab Navigation and Search Controls */}
+      {/* Verification and governance workspaces. Executive Dashboard intentionally
+          shows only oversight metrics and health telemetry. */}
+      {activeTab !== 'overview' && (
       <div className="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden">
-        {/* Navigation Tabs */}
+        {/* Navigation Tabs are intentionally omitted from routed workspaces.
+            Each admin service has a dedicated sidebar destination. */}
+        {location.pathname === '/admin/dashboard' && (
         <div className="flex flex-wrap border-b border-slate-200 bg-slate-50/50 px-4 pt-2 gap-2">
           <button
             onClick={() => setActiveTab('pending')}
@@ -1026,6 +1109,7 @@ export const AdminDashboard = () => {
             <span>Audit Logs</span>
           </button>
         </div>
+        )}
 
         {/* Filter and Search Bar */}
         <div className="p-4 bg-white border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -2928,6 +3012,7 @@ export const AdminDashboard = () => {
           </div>
         )}
       </div>
+      )}
 
       {/* MODAL 1: Doctor Application Details Dossier Modal */}
       {selectedApp && (

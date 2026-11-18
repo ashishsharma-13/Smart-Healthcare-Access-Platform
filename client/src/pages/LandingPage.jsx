@@ -7,6 +7,7 @@ import { HeroClinicalCommand } from '../components/graphics/HeroClinicalCommand'
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { DoctorCardSkeleton, HospitalCardSkeleton } from '../components/ui/Skeleton';
+import { useLocationService } from '../context/LocationContext';
 import {
   Search,
   MapPin,
@@ -32,13 +33,20 @@ import {
 
 export const LandingPage = () => {
   const navigate = useNavigate();
+  const { location, detectCurrentLocation, loading: detectingGps } = useLocationService();
   const [doctors, setDoctors] = useState([]);
   const [hospitals, setHospitals] = useState([]);
   const [activeSearchTab, setActiveSearchTab] = useState('doctors');
   const [searchTerm, setSearchTerm] = useState('');
-  const [locationTerm, setLocationTerm] = useState('Central City, New Delhi');
+  const [locationTerm, setLocationTerm] = useState(location.address || 'Central City, New Delhi');
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (location.address && (locationTerm === 'Central City, New Delhi' || !locationTerm)) {
+      setLocationTerm(location.address);
+    }
+  }, [location.address]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -60,23 +68,18 @@ export const LandingPage = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
+    const locParam = location.latitude != null ? `&lat=${location.latitude}&lng=${location.longitude}` : '';
     if (activeSearchTab === 'hospitals') {
-      navigate(`/hospitals?search=${encodeURIComponent(searchTerm)}`);
+      navigate(`/hospitals?search=${encodeURIComponent(searchTerm)}${locParam}`);
     } else {
-      navigate(`/doctors?search=${encodeURIComponent(searchTerm)}&specialization=${encodeURIComponent(selectedSpecialty)}`);
+      navigate(`/doctors?search=${encodeURIComponent(searchTerm)}&specialization=${encodeURIComponent(selectedSpecialty)}${locParam}`);
     }
   };
 
-  const handleUseGPS = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLocationTerm(`Lat: ${pos.coords.latitude.toFixed(2)}, Lng: ${pos.coords.longitude.toFixed(2)}`);
-        },
-        () => {
-          setLocationTerm('Central City, New Delhi');
-        }
-      );
+  const handleUseGPS = async () => {
+    const res = await detectCurrentLocation({ forceRefresh: true });
+    if (res.success) {
+      setLocationTerm(res.location.address || `${res.location.latitude.toFixed(4)}, ${res.location.longitude.toFixed(4)}`);
     }
   };
 

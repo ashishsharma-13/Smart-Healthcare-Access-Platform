@@ -52,6 +52,7 @@ export const RegisterPage = () => {
   const [regDocName, setRegDocName] = useState('Medical_Registration_Certificate.pdf');
   const [degreeDocName, setDegreeDocName] = useState('Degree_Certificate.pdf');
   const [idDocName, setIdDocName] = useState('Government_ID.pdf');
+  const [patientGovtDocName, setPatientGovtDocName] = useState('');
   const [submissionSuccessModal, setSubmissionSuccessModal] = useState(false);
   const [submittedAppRef, setSubmittedAppRef] = useState('');
   const [copiedRef, setCopiedRef] = useState(false);
@@ -140,6 +141,11 @@ export const RegisterPage = () => {
 
     if (role === 'doctor' && !licenseNumber.trim()) {
       setError('Please enter your NMC doctor license / registration number.');
+      return;
+    }
+
+    if (role === 'patient' && !patientGovtDocName) {
+      setError('Please upload a government-issued identity document to authenticate your patient account.');
       return;
     }
 
@@ -232,6 +238,16 @@ export const RegisterPage = () => {
       };
       if (email.trim()) payload.email = email.trim();
       if (phone.trim()) payload.phone = phone.trim();
+      if (role === 'patient') {
+        payload.patientDetails = {
+          governmentIdDocument: {
+            documentType: 'government_identity',
+            documentName: patientGovtDocName,
+            storageReference: 'https://storage.shap.health/docs/' + patientGovtDocName,
+            verificationStatus: 'PENDING_REVIEW',
+          },
+        };
+      }
 
       if (role === 'doctor') {
         const docList = [];
@@ -498,6 +514,29 @@ export const RegisterPage = () => {
               />
             </div>
           </div>
+
+          {role === 'patient' && (
+            <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
+                <FileCheck className="w-4 h-4 text-blue-600" />
+                <span>Government identity document *</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-slate-600">
+                Upload a government-issued ID for account authentication. It will be stored for verification review and is not used as live medical availability data.
+              </p>
+              <label className="inline-flex items-center gap-2 rounded-lg bg-white border border-blue-200 px-3 py-2 text-[11px] font-bold text-blue-700 cursor-pointer hover:bg-blue-50">
+                <UploadCloud className="w-3.5 h-3.5" />
+                {patientGovtDocName || 'Choose PDF or image'}
+                <input
+                  type="file"
+                  required
+                  accept=".pdf,.png,.jpg,.jpeg"
+                  className="hidden"
+                  onChange={(e) => setPatientGovtDocName(e.target.files?.[0]?.name || '')}
+                />
+              </label>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>

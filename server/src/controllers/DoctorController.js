@@ -4,20 +4,85 @@ import { doctorService } from '../services/DoctorService.js';
 import { doctorAffiliationRepository } from '../repositories/DoctorAffiliationRepository.js';
 import { User } from '../models/User.js';
 
+export const calculateHaversineDistanceKm = (lat1, lon1, lat2, lon2) => {
+  if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
+  const numLat1 = Number(lat1);
+  const numLon1 = Number(lon1);
+  const numLat2 = Number(lat2);
+  const numLon2 = Number(lon2);
+  if (isNaN(numLat1) || isNaN(numLon1) || isNaN(numLat2) || isNaN(numLon2)) return null;
+
+  const R = 6371; // Earth's mean radius in km
+  const dLat = ((numLat2 - numLat1) * Math.PI) / 180;
+  const dLon = ((numLon2 - numLon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((numLat1 * Math.PI) / 180) *
+      Math.cos((numLat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
+};
+
 export class DoctorController {
   async searchDoctors(req, res, next) {
     try {
       const doctors = await doctorRepository.searchDoctors(req.query);
       const querySearch = (req.query.search || req.query.name || req.query.q || '').toLowerCase();
 
-      // Attach active hospital affiliations to each doctor
+      const originLat = req.query.lat != null && req.query.lat !== '' ? Number(req.query.lat) : (req.query.latitude != null ? Number(req.query.latitude) : null);
+      const originLng = req.query.lng != null && req.query.lng !== '' ? Number(req.query.lng) : (req.query.longitude != null ? Number(req.query.longitude) : null);
+      const hasCoordinates = originLat != null && originLng != null && !isNaN(originLat) && !isNaN(originLng) && originLat >= -90 && originLat <= 90 && originLng >= -180 && originLng <= 180;
+      const maxRadius = req.query.radiusKm != null && req.query.radiusKm !== '' ? Number(req.query.radiusKm) : null;
+      const sortBy = req.query.sortBy || 'rating';
+
+      // Attach active hospital affiliations and calculate physical/affiliated distance to each doctor
       const resultsWithAffiliations = await Promise.all(
         doctors.map(async (doc) => {
           const docObj = doc.toObject();
           const affiliations = await doctorAffiliationRepository.listByDoctor(doc._id, {
-            status: { $in: ['ACTIVE', 'approved'] },
+            status: { $in: ['ACTIVE', 'approved', 'ACCEPTED'] },
           });
           docObj.activeAffiliations = affiliations;
+
+          let minDistanceKm = null;
+          let nearestOrgName = null;
+          let presenceDistanceKm = null;
+
+          // Check physical presence hospital
+          if (doc.currentPresence?.isPresent && doc.currentPresence?.organizationId?.location?.coordinates?.length === 2) {
+            const pLng = doc.currentPresence.organizationId.location.coordinates[0];
+            const pLat = doc.currentPresence.organizationId.location.coordinates[1];
+            if (hasCoordinates) {
+              presenceDistanceKm = calculateHaversineDistanceKm(originLat, originLng, pLat, pLng);
+              minDistanceKm = presenceDistanceKm;
+              nearestOrgName = doc.currentPresence.organizationId.name;
+            }
+          }
+
+          // Check affiliated organizations
+          if (Array.isArray(affiliations)) {
+            affiliations.forEach((aff) => {
+              const org = aff.organizationId;
+              const coords = org?.location?.coordinates;
+              if (hasCoordinates && Array.isArray(coords) && coords.length === 2) {
+                const oLng = coords[0];
+                const oLat = coords[1];
+                const d = calculateHaversineDistanceKm(originLat, originLng, oLat, oLng);
+                if (d != null) {
+                  if (minDistanceKm == null || d < minDistanceKm) {
+                    minDistanceKm = d;
+                    nearestOrgName = org.name;
+                  }
+                }
+              }
+            });
+          }
+
+          docObj.distanceKm = minDistanceKm;
+          docObj.nearestOrganizationName = nearestOrgName;
+          docObj.presenceDistanceKm = presenceDistanceKm;
           return docObj;
         })
       );
@@ -32,9 +97,28 @@ export class DoctorController {
         );
       }
 
+      // Radius filtering
+      if (hasCoordinates && maxRadius != null && !isNaN(maxRadius)) {
+        filtered = filtered.filter((d) => d.distanceKm != null && d.distanceKm <= maxRadius);
+      }
+
+      // Sorting
+      if (sortBy === 'distance' && hasCoordinates) {
+        filtered.sort((a, b) => {
+          if (a.distanceKm == null) return 1;
+          if (b.distanceKm == null) return -1;
+          return a.distanceKm - b.distanceKm;
+        });
+      } else if (sortBy === 'experience') {
+        filtered.sort((a, b) => (b.experienceYears || 0) - (a.experienceYears || 0));
+      } else if (sortBy === 'fee') {
+        filtered.sort((a, b) => (a.consultationFee || 0) - (b.consultationFee || 0));
+      }
+
       res.json({
         success: true,
         count: filtered.length,
+        hasCoordinates,
         data: filtered,
       });
     } catch (err) {

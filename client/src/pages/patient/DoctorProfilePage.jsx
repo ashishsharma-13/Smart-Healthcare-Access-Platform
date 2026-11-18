@@ -552,7 +552,7 @@ export const DoctorProfilePage = () => {
               <div className="flex items-baseline justify-between">
                 <span className="text-xs font-bold text-slate-700">Consultation fee</span>
                 <span className="text-2xl font-black text-slate-900">
-                  ${doctor?.consultationFee || 85}
+                  ₹{doctor?.consultationFee || 85}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 leading-relaxed">

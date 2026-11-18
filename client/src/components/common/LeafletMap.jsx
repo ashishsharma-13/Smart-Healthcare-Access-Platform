@@ -1,8 +1,19 @@
 import React, { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { handleOpenGoogleMaps } from '../../utils/geoUtils';
+
+function MapClickHandler({ onMapClick }) {
+  useMapEvents({
+    click(e) {
+      if (onMapClick) {
+        onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+      }
+    },
+  });
+  return null;
+}
 
 /**
  * Architectural Mandate helper:
@@ -74,10 +85,14 @@ export const LeafletMap = ({
   center = [28.6139, 77.2090], // [lat, lng]
   zoom = 13,
   userLocation = null, // [lat, lng]
+  userLocationTitle = 'Your Location',
+  userLocationSource = 'DEVICE_GEOLOCATION',
   hospitals = [], // array of { _id, name, coordinates: [lng, lat], address, operatingAddress, distanceKm, isVerified, isPartner, isEmergency, isDestination, ... }
   destinationLocation = null, // [lat, lng]
   selectedHospitalId = null,
   onMarkerClick = null,
+  onMapClick = null,
+  onUserMarkerDragEnd = null,
   polylineColor = '#2563EB',
   showPolyline = true,
   className = 'h-80 w-full rounded-xl shadow-inner border border-slate-200',
@@ -96,17 +111,33 @@ export const LeafletMap = ({
         />
 
         <MapPanUpdater center={center} zoom={zoom} />
+        {onMapClick && <MapClickHandler onMapClick={onMapClick} />}
 
         {/* 1. Patient Location Marker */}
         {userLocation && (
-          <Marker position={userLocation} icon={patientBeaconIcon}>
+          <Marker
+            position={userLocation}
+            icon={patientBeaconIcon}
+            draggable={Boolean(onUserMarkerDragEnd)}
+            eventHandlers={{
+              dragend: (e) => {
+                if (onUserMarkerDragEnd) {
+                  const latlng = e.target.getLatLng();
+                  onUserMarkerDragEnd({ lat: latlng.lat, lng: latlng.lng });
+                }
+              },
+            }}
+          >
             <Popup>
               <div className="p-1 text-xs">
                 <p className="font-black text-blue-900 flex items-center gap-1">
-                  <span>📍 Your GPS Location</span>
+                  <span>📍 {userLocationTitle}</span>
                 </p>
                 <p className="text-[10px] text-slate-500 font-mono mt-0.5">
                   {userLocation[0].toFixed(4)}, {userLocation[1].toFixed(4)}
+                </p>
+                <p className="text-[9px] uppercase font-bold text-slate-400 mt-0.5">
+                  Source: {userLocationSource === 'DEVICE_GEOLOCATION' ? 'Device GPS' : userLocationSource}
                 </p>
               </div>
             </Popup>

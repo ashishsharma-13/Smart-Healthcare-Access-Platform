@@ -21,7 +21,7 @@ export class FallbackRecommendationService {
       ? request.locationSnapshot.coordinates
       : (request.longitude != null && request.latitude != null)
       ? [request.longitude, request.latitude]
-      : [77.2090, 28.6139];
+      : null;
 
     // 1. Fetch any remaining accepted participating organizations
     let acceptedOrgs = [];
@@ -56,7 +56,7 @@ export class FallbackRecommendationService {
         name: org.name,
         address: org.address,
         location: org.location,
-        coordinates: org.location?.coordinates || [77.2090, 28.6139],
+        coordinates: org.location?.coordinates || null,
         contactPhone: org.emergencyContactPhone,
         distanceKm: org.distanceKm || 5,
         estimatedTravelMinutes: org.estimatedTravelMinutes || 10,

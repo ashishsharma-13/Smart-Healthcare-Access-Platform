@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import {
@@ -13,11 +13,27 @@ import {
   ShieldCheck,
   Stethoscope,
   Star,
+  MapPin,
+  Navigation,
+  RotateCcw,
+  Compass,
 } from 'lucide-react';
+import { useLocationService } from '../../context/LocationContext';
+import { forwardGeocode } from '../../utils/geoUtils';
 
 export const DoctorSearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const {
+    deviceLocation,
+    selectedSearchLocation,
+    location,
+    permissionStatus,
+    loading: detectingGps,
+    detectCurrentLocation,
+    setManualSearchLocation,
+    resetSearchLocationToDevice,
+  } = useLocationService();
 
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,8 +43,21 @@ export const DoctorSearchPage = () => {
     searchParams.get('specialization') || searchParams.get('search') || 'Cardiology'
   );
   const [locationQuery, setLocationQuery] = useState(
-    searchParams.get('location') || 'Hyderabad, Telangana'
+    selectedSearchLocation.address || searchParams.get('location') || 'Delhi, India'
   );
+
+  // Suggestions state for manual address search
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const debounceTimerRef = useRef(null);
+
+  // Sync location input when selectedSearchLocation updates
+  useEffect(() => {
+    if (selectedSearchLocation.address && (!searchParams.get('location') || locationQuery === 'Detecting location...')) {
+      setLocationQuery(selectedSearchLocation.address);
+    }
+  }, [selectedSearchLocation.address]);
 
   // Left Filters Sidebar State
   const [selectedSpecialty, setSelectedSpecialty] = useState(
@@ -45,7 +74,7 @@ export const DoctorSearchPage = () => {
     video: false,
   });
   const [verifiedOnly, setVerifiedOnly] = useState(true);
-  const [sortBy, setSortBy] = useState('next_available');
+  const [sortBy, setSortBy] = useState('distance');
 
   const specialtiesList = [
     'All Specialties',
@@ -60,7 +89,14 @@ export const DoctorSearchPage = () => {
 
   useEffect(() => {
     fetchDoctors();
-  }, [selectedSpecialty, selectedDistance, verifiedOnly, sortBy]);
+  }, [
+    selectedSpecialty,
+    selectedDistance,
+    verifiedOnly,
+    sortBy,
+    selectedSearchLocation.latitude,
+    selectedSearchLocation.longitude,
+  ]);
 
   const fetchDoctors = async () => {
     try {
@@ -68,6 +104,16 @@ export const DoctorSearchPage = () => {
       const queryParams = new URLSearchParams();
       if (selectedSpecialty && selectedSpecialty !== 'All Specialties') {
         queryParams.append('specialization', selectedSpecialty);
+      }
+      if (selectedSearchLocation.latitude != null && selectedSearchLocation.longitude != null) {
+        queryParams.append('lat', selectedSearchLocation.latitude);
+        queryParams.append('lng', selectedSearchLocation.longitude);
+      }
+      if (selectedDistance && selectedDistance !== 'all') {
+        queryParams.append('radiusKm', selectedDistance);
+      }
+      if (sortBy) {
+        queryParams.append('sortBy', sortBy);
       }
 
       const res = await api.get(`/doctors?${queryParams.toString()}`);
@@ -146,12 +192,64 @@ export const DoctorSearchPage = () => {
     }
   };
 
-  const handleTopSearch = (e) => {
-    e.preventDefault();
+  const handleLocationInputChange = (val) => {
+    setLocationQuery(val);
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    if (!val || val.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    debounceTimerRef.current = setTimeout(async () => {
+      setGeocoding(true);
+      const results = await forwardGeocode(val.trim());
+      setSuggestions(results || []);
+      setShowSuggestions(true);
+      setGeocoding(false);
+    }, 300);
+  };
+
+  const handleSelectSuggestion = async (sugg) => {
+    setShowSuggestions(false);
+    const resolved = sugg.resolvedAddress || sugg.displayName;
+    setLocationQuery(resolved);
+    await setManualSearchLocation({
+      latitude: sugg.latitude,
+      longitude: sugg.longitude,
+      address: resolved,
+      city: sugg.city,
+      state: sugg.state,
+      country: sugg.country,
+      postalCode: sugg.postalCode,
+      source: 'MANUAL',
+    });
+  };
+
+  const handleTopSearch = async (e) => {
+    e?.preventDefault();
+    setShowSuggestions(false);
     if (specialtyQuery) {
       setSelectedSpecialty(specialtyQuery);
     }
+    // If user typed a custom location string, resolve it immediately
+    if (locationQuery && locationQuery.trim() && locationQuery.trim() !== selectedSearchLocation.address) {
+      setGeocoding(true);
+      const matches = await forwardGeocode(locationQuery.trim());
+      setGeocoding(false);
+      if (matches && matches.length > 0) {
+        await handleSelectSuggestion(matches[0]);
+        return;
+      }
+    }
     fetchDoctors();
+  };
+
+  const handleSwitchToGPS = async () => {
+    setShowSuggestions(false);
+    const res = await resetSearchLocationToDevice();
+    if (res.success && res.location) {
+      setLocationQuery(res.location.address || 'Device GPS Location');
+    }
   };
 
   const handleResetFilters = () => {
@@ -198,16 +296,92 @@ export const DoctorSearchPage = () => {
             />
           </div>
 
-          {/* Location */}
-          <div className="md:col-span-5 space-y-1">
-            <label className="block text-xs font-bold text-slate-700">Location</label>
-            <input
-              type="text"
-              value={locationQuery}
-              onChange={(e) => setLocationQuery(e.target.value)}
-              placeholder="e.g. Brookfield, NY"
-              className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2F2FE4]/20 focus:border-[#2F2FE4]"
-            />
+          {/* Location with Manual Address Search & Geocoding */}
+          <div className="md:col-span-5 space-y-1 relative">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-slate-700">Location</label>
+              <div className="flex items-center gap-2">
+                {selectedSearchLocation.source !== 'DEVICE_GEOLOCATION' && deviceLocation.hasLocation && (
+                  <button
+                    type="button"
+                    onClick={handleSwitchToGPS}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer"
+                    title="Switch back to actual device GPS"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Back to GPS</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => detectCurrentLocation({ forceRefresh: true, applyToSearch: true })}
+                  disabled={detectingGps}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2F2FE4] hover:underline cursor-pointer disabled:opacity-50"
+                >
+                  <Navigation className={`w-3 h-3 ${detectingGps ? 'animate-spin' : ''}`} />
+                  <span>
+                    {detectingGps
+                      ? 'Locating...'
+                      : selectedSearchLocation.source === 'DEVICE_GEOLOCATION'
+                      ? 'GPS Active'
+                      : 'Use GPS'}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <div className="relative">
+              <input
+                type="text"
+                value={locationQuery}
+                onChange={(e) => handleLocationInputChange(e.target.value)}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                placeholder="Enter city, locality or landmark (e.g. Delhi, Gachibowli)"
+                className="w-full text-xs pl-8 pr-8 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2F2FE4]/20 focus:border-[#2F2FE4]"
+              />
+              <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              {geocoding && (
+                <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              )}
+            </div>
+
+            {/* Geocoding Suggestions Dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 max-h-56 overflow-y-auto">
+                <div className="p-2 bg-slate-50 text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                  Select Location Suggestion
+                </div>
+                {suggestions.map((sugg, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleSelectSuggestion(sugg)}
+                    className="w-full text-left p-2.5 text-xs hover:bg-blue-50 transition-colors flex items-start space-x-2 cursor-pointer"
+                  >
+                    <Compass className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-slate-800 leading-snug">
+                        {sugg.city ? `${sugg.city}, ${sugg.state || sugg.country}` : sugg.displayName.split(',')[0]}
+                      </div>
+                      <div className="text-[10px] text-slate-400 line-clamp-1">
+                        {sugg.resolvedAddress || sugg.displayName}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Active Location Source Tag */}
+            {selectedSearchLocation.hasLocation && (
+              <div className="text-[10.5px] text-slate-500 pt-0.5 flex items-center gap-1.5 truncate">
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${selectedSearchLocation.source === 'DEVICE_GEOLOCATION' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <span className="font-bold text-slate-700">
+                  {selectedSearchLocation.source === 'DEVICE_GEOLOCATION' ? 'Device GPS' : 'Manual Location'}:
+                </span>
+                <span className="truncate">{selectedSearchLocation.address}</span>
+              </div>
+            )}
           </div>
 
           {/* Search Button */}
@@ -432,6 +606,7 @@ export const DoctorSearchPage = () => {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="font-bold text-slate-800 bg-transparent border-none focus:outline-none cursor-pointer"
               >
+                <option value="distance">Distance (Nearest First)</option>
                 <option value="next_available">Next available</option>
                 <option value="rating">Rating (High to Low)</option>
                 <option value="experience">Experience (High to Low)</option>
@@ -467,7 +642,9 @@ export const DoctorSearchPage = () => {
                   doc.currentPresence?.organizationId?.name ||
                   doc.hospitalName ||
                   'Affiliated Medical Center';
-                const distText = doc.distance || '3.2 km away';
+                const distText = doc.distanceKm != null
+                  ? `${doc.distanceKm.toFixed(1)} km away`
+                  : (doc.distance || (location.hasLocation ? 'Nearby' : null));
                 const nextDate = doc.nextSlotDate || 'Tue, 10 Nov';
                 const nextTime = doc.nextSlotTime || '10:30 AM';
                 const fee = doc.consultationFee || 500;
@@ -505,14 +682,22 @@ export const DoctorSearchPage = () => {
                       </span>
                     </div>
 
-                    {/* Hospital & Affiliations */}
-                    <div className="text-xs text-slate-600 flex items-center space-x-1.5">
-                      <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">
-                        {doc.activeAffiliations && doc.activeAffiliations.length > 0
-                          ? doc.activeAffiliations.map((a) => a.organizationId?.name).filter(Boolean).join(' · ')
-                          : hospital}
-                      </span>
+                    {/* Hospital, Affiliations & Distance */}
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                      <div className="flex items-center space-x-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="truncate">
+                          {doc.activeAffiliations && doc.activeAffiliations.length > 0
+                            ? doc.activeAffiliations.map((a) => a.organizationId?.name).filter(Boolean).join(' · ')
+                            : hospital}
+                        </span>
+                      </div>
+                      {distText && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                          <MapPin className="w-3 h-3 text-blue-500" />
+                          <span>{distText}</span>
+                        </span>
+                      )}
                     </div>
 
                     {/* Bottom Row: Next Available + View Profile Button */}

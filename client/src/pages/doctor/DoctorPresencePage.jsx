@@ -309,7 +309,12 @@ export const DoctorPresencePage = () => {
           </div>
 
           <div className="flex items-center gap-3.5 pt-1">
-            <DoctorAvatar name={doctorName} specialization={profile?.specialization} className="w-16 h-16 rounded-2xl border-2 border-blue-500/30" />
+             <DoctorAvatar
+               name={doctorName}
+               specialization={profile?.specialization}
+               avatar={profile?.userId?.avatar}
+               className="w-16 h-16 rounded-2xl border-2 border-blue-500/30"
+             />
             <div className="space-y-0.5">
               <h3 className="text-base font-black text-white">{doctorName}</h3>
               <p className="text-xs font-semibold text-blue-400">{profile?.specialization}</p>

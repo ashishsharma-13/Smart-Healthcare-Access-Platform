@@ -86,8 +86,8 @@ const emergencyRequestSchema = new mongoose.Schema(
     },
     locationSource: {
       type: String,
-      enum: ['GPS', 'MANUAL'],
-      default: 'GPS',
+      enum: ['GPS', 'DEVICE_GEOLOCATION', 'MANUAL', 'MAP_SELECTED'],
+      default: 'DEVICE_GEOLOCATION',
     },
     locationConfirmed: {
       type: Boolean,

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { getUserCurrentLocation } from '../../utils/geoUtils';
+import { EmergencyLocationCapture } from '../../components/emergency/EmergencyLocationCapture';
 import { LeafletMap } from '../../components/common/LeafletMap';
 import {
   ShieldAlert,
@@ -64,13 +64,10 @@ export const EmergencyActivatePage = () => {
 
   // Location State
   const [coordinates, setCoordinates] = useState([78.3264, 17.4568]); // [lng, lat]
-  const [locationAddress, setLocationAddress] = useState('University of Hyderabad, Gachibowli, Hyderabad');
-  const [locationAccuracy, setLocationAccuracy] = useState(10);
-  const [locationSource, setLocationSource] = useState('GPS');
+  const [locationAddress, setLocationAddress] = useState('');
+  const [locationAccuracy, setLocationAccuracy] = useState(null);
+  const [locationSource, setLocationSource] = useState('DEVICE_GEOLOCATION');
   const [locationConfirmed, setLocationConfirmed] = useState(false);
-  const [isManualLocation, setIsManualLocation] = useState(false);
-  const [fetchingGps, setFetchingGps] = useState(false);
-  const [gpsError, setGpsError] = useState('');
 
   // Created Request state
   const [createdEmergencyRequest, setCreatedEmergencyRequest] = useState(null);
@@ -97,7 +94,6 @@ export const EmergencyActivatePage = () => {
 
   useEffect(() => {
     fetchCategories();
-    initLocation();
   }, []);
 
   const fetchCategories = async () => {
@@ -153,25 +149,14 @@ export const EmergencyActivatePage = () => {
     fetchGuidance(cat.slug || cat.categoryId || cat._id);
   };
 
-  const initLocation = async (forceRefresh = false) => {
-    try {
-      setFetchingGps(true);
-      setGpsError('');
-      const loc = await getUserCurrentLocation(forceRefresh);
-      setCoordinates([loc.lng, loc.lat]);
-      setLocationAddress(loc.address || `GPS Location (${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)})`);
-      setLocationAccuracy(loc.accuracy || (loc.source === 'GPS' ? 12 : null));
-      setLocationSource(loc.source || 'GPS');
+  const handleLocationConfirmed = (loc) => {
+    if (loc && loc.latitude != null && loc.longitude != null) {
+      setCoordinates([loc.longitude, loc.latitude]);
+      setLocationAddress(loc.address || `GPS Location (${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)})`);
+      setLocationAccuracy(loc.accuracyMeters != null ? Math.round(loc.accuracyMeters) : 10);
+      setLocationSource(loc.source || 'DEVICE_GEOLOCATION');
       setLocationConfirmed(true);
-      if (loc.permissionDenied) {
-        setGpsError('GPS permission was not granted. Using manual fallback location.');
-        setIsManualLocation(true);
-      }
-    } catch (e) {
-      setGpsError('Unable to detect GPS. Please enter your location manually.');
-      setIsManualLocation(true);
-    } finally {
-      setFetchingGps(false);
+      setSubmissionError('');
     }
   };
 
@@ -600,130 +585,12 @@ export const EmergencyActivatePage = () => {
             </div>
           </div>
 
-          {/* Location Capture with GPS & Manual Fallback (Step 6) */}
-          <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-card space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
-              <div>
-                <h2 className="text-sm font-black text-slate-900">Emergency Location Capture</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Accurate coordinates are necessary to calculate emergency travel distances
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => initLocation(true)}
-                  disabled={fetchingGps}
-                  className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg flex items-center space-x-1 transition-colors cursor-pointer"
-                >
-                  <Navigation className="w-3.5 h-3.5" />
-                  <span>{fetchingGps ? 'Reading GPS...' : 'Detect GPS'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsManualLocation(!isManualLocation)}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors cursor-pointer"
-                >
-                  {isManualLocation ? 'Hide Manual Fields' : 'Enter Manually'}
-                </button>
-              </div>
-            </div>
-
-            {gpsError && (
-              <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl font-medium flex items-center space-x-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
-                <span>{gpsError}</span>
-              </div>
-            )}
-
-            {/* Location Snapshot Meta */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Coordinates</span>
-                <span className="font-mono font-bold text-slate-800">
-                  {coordinates[1].toFixed(5)}, {coordinates[0].toFixed(5)}
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Source & Accuracy</span>
-                <span className="font-bold text-slate-800">
-                  {locationSource} {locationAccuracy ? `(±${locationAccuracy}m)` : ''}
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Location Confirmation</span>
-                <span className="font-bold text-emerald-700 flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Confirmed
-                </span>
-              </div>
-            </div>
-
-            {/* Address Input */}
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700">Street Address / Landmark</label>
-              <input
-                type="text"
-                required
-                value={locationAddress}
-                onChange={(e) => {
-                  setLocationAddress(e.target.value);
-                  setLocationSource('MANUAL');
-                }}
-                placeholder="Street address, building, or nearest landmark"
-                className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500 font-medium"
-              />
-            </div>
-
-            {/* Manual Lat/Lng editing if manual mode */}
-            {isManualLocation && (
-              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-                <div>
-                  <label className="text-[11px] font-bold text-slate-600">Latitude</label>
-                  <input
-                    type="number"
-                    step="0.00001"
-                    value={coordinates[1]}
-                    onChange={(e) => {
-                      setCoordinates([coordinates[0], parseFloat(e.target.value) || 0]);
-                      setLocationSource('MANUAL');
-                    }}
-                    className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-slate-600">Longitude</label>
-                  <input
-                    type="number"
-                    step="0.00001"
-                    value={coordinates[0]}
-                    onChange={(e) => {
-                      setCoordinates([parseFloat(e.target.value) || 0, coordinates[1]]);
-                      setLocationSource('MANUAL');
-                    }}
-                    className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Interactive Leaflet Map Preview */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-700">Interactive Map Confirmation</span>
-                <span className="text-[11px] text-slate-400">Blue beacon indicates patient position</span>
-              </div>
-              <div className="h-64 w-full rounded-xl overflow-hidden border border-slate-200 shadow-inner">
-                <LeafletMap
-                  center={[coordinates[1], coordinates[0]]}
-                  userLocation={[coordinates[1], coordinates[0]]}
-                  zoom={14}
-                  className="h-full w-full"
-                />
-              </div>
-            </div>
-          </div>
+          {/* Emergency Location Capture with GPS & Manual Fallback */}
+          <EmergencyLocationCapture
+            initialCoordinates={coordinates}
+            initialAddress={locationAddress}
+            onLocationConfirmed={handleLocationConfirmed}
+          />
 
           <div className="flex justify-between items-center">
             <button

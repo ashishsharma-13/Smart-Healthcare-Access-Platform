@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { UIProvider } from './context/UIContext';
+import { LocationProvider } from './context/LocationContext';
 import { PublicLayout } from './layouts/PublicLayout';
 import { DashboardLayout } from './layouts/DashboardLayout';
 
@@ -84,22 +85,29 @@ export default function App() {
     <AuthProvider>
       <SocketProvider>
         <UIProvider>
-          <Router>
-            <Routes>
+          <LocationProvider>
+            <Router>
+              <Routes>
             {/* Public Layout */}
             <Route element={<PublicLayout />}>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/map" element={<GeneralMapPage />} />
-              <Route path="/search" element={<HealthcareSearchPage />} />
               <Route path="/emergency/fallback" element={<EmergencyFallbackPage />} />
             </Route>
 
             {/* Authenticated Dashboard / Portal Layout */}
             <Route element={<DashboardLayout />}>
               {/* Doctor & Hospital Discovery */}
-              <Route path="/search" element={<HealthcareSearchPage />} />
+              <Route
+                path="/search"
+                element={
+                  <ProtectedRoute allowedRoles={['patient', 'doctor', 'organization', 'admin', 'web_admin']}>
+                    <HealthcareSearchPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/doctors" element={<DoctorSearchPage />} />
               <Route path="/doctors/:id" element={<DoctorProfilePage />} />
               <Route path="/hospitals" element={<HospitalsListPage />} />
@@ -366,13 +374,30 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/admin/notifications"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/:section"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
-      </UIProvider>
+      </LocationProvider>
+    </UIProvider>
     </SocketProvider>
   </AuthProvider>
   );

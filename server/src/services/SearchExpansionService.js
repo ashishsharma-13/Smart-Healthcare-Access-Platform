@@ -52,7 +52,17 @@ export class SearchExpansionService {
       ? request.locationSnapshot.coordinates
       : (request.longitude != null && request.latitude != null)
       ? [request.longitude, request.latitude]
-      : [77.2090, 28.6139];
+      : null;
+    if (!coords) {
+      return {
+        success: true,
+        searchLevel: nextLevel,
+        searchRadiusKm: radiusKm,
+        newlyDiscoveredCount: 0,
+        newlyDiscoveredCandidates: [],
+        resultStatus: 'LOCATION_REQUIRED',
+      };
+    }
 
     // Use matching engine with custom radius
     const matchingCandidates = await emergencyMatchingService.findSuitableOrganizations(

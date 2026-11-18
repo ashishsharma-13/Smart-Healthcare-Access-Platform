@@ -265,7 +265,7 @@ export const verifyOtp = async (req, res) => {
 // 3. Register (Requires name, password, and at least ONE contact method. Requires at least one verified identifier in the Map. Catches code 11000 and Mongoose validation errors returning 400 responses.)
 export const register = async (req, res) => {
   try {
-    let { name, email, phone, password, role = 'patient', doctorDetails, orgDetails } = req.body;
+    let { name, email, phone, password, role = 'patient', doctorDetails, orgDetails, patientDetails } = req.body;
 
     name = name ? String(name).trim() : '';
     password = password ? String(password) : '';
@@ -340,6 +340,7 @@ export const register = async (req, res) => {
       password,
       role: role || 'patient',
       status: initialStatus,
+      governmentIdDocument: role === 'patient' ? (patientDetails?.governmentIdDocument || {}) : undefined,
     });
 
     if (email) otpStore.delete(email);

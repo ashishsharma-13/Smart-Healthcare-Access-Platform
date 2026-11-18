@@ -1,6 +1,13 @@
 import React from 'react';
 
-export const DoctorAvatar = ({ name = 'Doctor', specialization = 'Specialist', className = 'w-14 h-14' }) => {
+export const DoctorAvatar = ({ name = 'Doctor', specialization = 'Specialist', avatar = '', className = 'w-14 h-14' }) => {
+  if (avatar) {
+    return (
+      <div className={`relative rounded-2xl overflow-hidden shadow-xs border border-slate-100 flex-shrink-0 ${className}`}>
+        <img src={avatar} alt={`${name} profile`} className="w-full h-full object-cover" />
+      </div>
+    );
+  }
   // Deterministic seed based on doctor name
   const code = (name || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   

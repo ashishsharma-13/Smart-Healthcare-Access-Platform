@@ -9,7 +9,6 @@ import {
   Stethoscope,
   Award,
   Clock,
-  DollarSign,
   Building2,
   FileText,
   CheckCircle2,
@@ -197,15 +196,6 @@ export const DoctorProfilePage = () => {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleSaveProfile}
-          disabled={saving}
-          className="px-5 py-2.5 bg-[#0B4F9C] hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-2 cursor-pointer disabled:opacity-50"
-        >
-          <Save className="w-4 h-4" />
-          <span>{saving ? 'Saving changes...' : 'Save Profile'}</span>
-        </button>
       </div>
 
       <form onSubmit={handleSaveProfile} className="space-y-6">
@@ -401,9 +391,9 @@ export const DoctorProfilePage = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div className="space-y-1">
-              <label className="block font-bold text-slate-700">Standard Consultation Fee ($)</label>
+              <label className="block font-bold text-slate-700">Standard Consultation Fee (₹)</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
                 <input
                   type="number"
                   min="0"

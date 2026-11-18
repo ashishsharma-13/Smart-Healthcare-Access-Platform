@@ -1,9 +1,22 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const UIContext = createContext(null);
 
 export const UIProvider = ({ children }) => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('shap_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('shap_sidebar_collapsed', String(sidebarCollapsed));
+    } catch {}
+  }, [sidebarCollapsed]);
 
   const toggleMobileSidebar = () => setMobileSidebarOpen((prev) => !prev);
   const closeMobileSidebar = () => setMobileSidebarOpen(false);
@@ -16,6 +29,8 @@ export const UIProvider = ({ children }) => {
         toggleMobileSidebar,
         closeMobileSidebar,
         openMobileSidebar,
+        sidebarCollapsed,
+        toggleSidebar: () => setSidebarCollapsed((prev) => !prev),
       }}
     >
       {children}
@@ -32,6 +47,8 @@ export const useUI = () => {
       toggleMobileSidebar: () => {},
       closeMobileSidebar: () => {},
       openMobileSidebar: () => {},
+      sidebarCollapsed: false,
+      toggleSidebar: () => {},
     };
   }
   return context;

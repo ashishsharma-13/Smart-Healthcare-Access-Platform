@@ -55,6 +55,77 @@
   }
 }
 
+/* Shared desktop sidebar compact mode. Labels remain in the DOM for assistive
+   technology while the icon rail supplies a predictable 76px target. */
+.sidebar-collapsed .sidebar-brand,
+.sidebar-collapsed .sidebar-nav-link > span,
+.sidebar-collapsed p,
+.sidebar-collapsed h4,
+.sidebar-collapsed button > span {
+  opacity: 0;
+  width: 0;
+  max-width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar-collapsed > div:not(:first-child) {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sidebar-collapsed .sidebar-nav-link {
+  justify-content: center;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar-collapsed .sidebar-nav-link svg {
+  flex: 0 0 auto;
+}
+
+/* Workspace cards, user identity, and support copy are intentionally omitted
+   from the 76px rail rather than allowed to wrap over navigation icons. */
+.sidebar-collapsed .sidebar-nav-link + .sidebar-nav-link {
+  margin-top: 0;
+}
+
+.sidebar-collapsed .sidebar-support-card,
+.sidebar-collapsed .sidebar-user-card,
+.sidebar-collapsed .sidebar-workspace-card {
+  display: none;
+}
+
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #4f46e5 transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #4f46e5;
+  border-radius: 999px;
+}
+
+.sidebar-collapsed > div:not(:first-child) span {
+  opacity: 0;
+  width: 0;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 /* Reduced motion preference respect (Vercel Guidelines & UI UX Pro Max) */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {

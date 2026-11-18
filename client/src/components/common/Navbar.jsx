@@ -7,6 +7,7 @@ import api from '../../services/api';
 import {
   Plus,
   Bell,
+  Camera,
   Menu,
   X,
   User,
@@ -123,7 +124,7 @@ const ROLE_NOTIFICATIONS = {
 };
 
 export const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { toggleMobileSidebar } = useUI();
   const socketContext = useSocket();
   const incomingEmergency = socketContext?.incomingEmergency || null;
@@ -133,6 +134,7 @@ export const Navbar = () => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const socket = socketContext?.socket || null;
 
@@ -284,6 +286,33 @@ export const Navbar = () => {
     logout();
     setProfileDropdownOpen(false);
     navigate('/login');
+  };
+
+  const handleProfilePhotoChange = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 2 * 1024 * 1024) {
+      window.alert('Please choose an image smaller than 2 MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        setPhotoUploading(true);
+        const response = await api.put('/auth/me', { avatar: reader.result });
+        const updatedUser = response.data?.user || response.data?.data?.user;
+        if (updatedUser) updateUser(updatedUser);
+      } catch (error) {
+        console.error('Failed to update profile photo', error);
+        window.alert(error.response?.data?.message || 'Unable to update profile photo.');
+      } finally {
+        setPhotoUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   // Format today's date like "Mon, 09 Nov 2026" / "Wed, 11 Nov 2026"
@@ -500,8 +529,12 @@ export const Navbar = () => {
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                     className="flex items-center space-x-2.5 p-1 pr-2 rounded-full hover:bg-slate-100/80 transition cursor-pointer"
                   >
-                    <div className="w-8 h-8 rounded-full bg-[#F0F2FD] text-[#2F2FE4] font-bold text-xs flex items-center justify-center border border-[#C5CAF7]">
-                      {getInitials(user.name)}
+                    <div className="w-8 h-8 rounded-full bg-[#F0F2FD] text-[#2F2FE4] font-bold text-xs flex items-center justify-center border border-[#C5CAF7] overflow-hidden">
+                      {user.avatar ? (
+                        <img src={user.avatar} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        getInitials(user.name)
+                      )}
                     </div>
                     <div className="text-left hidden md:block">
                       <div className="text-xs font-bold text-[#111827] leading-tight truncate max-w-[120px]">
@@ -525,8 +558,20 @@ export const Navbar = () => {
                         <p className="font-bold text-[#111827] truncate">
                           {user.role === 'doctor' && !user.name.startsWith('Dr.') ? `Dr. ${user.name}` : user.name}
                         </p>
-                        <p className="text-[10px] text-[#64748B] truncate">{user.email || user.phone}</p>
+                       <p className="text-[10px] text-[#64748B] truncate">{user.email || user.phone}</p>
                       </div>
+
+                      <label className="flex items-center space-x-2 px-4 py-2 text-[#2F2FE4] hover:bg-[#F8FAFC] font-medium cursor-pointer">
+                        <Camera className="w-4 h-4 text-[#2F2FE4]" />
+                        <span>{photoUploading ? 'Uploading photo…' : 'Change profile photo'}</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className="hidden"
+                          disabled={photoUploading}
+                          onChange={handleProfilePhotoChange}
+                        />
+                      </label>
 
                       <Link
                         to={getProfileRoute()}

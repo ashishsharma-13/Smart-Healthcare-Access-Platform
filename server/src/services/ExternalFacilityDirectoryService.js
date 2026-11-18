@@ -1,5 +1,6 @@
 import { externalFacilityRepository } from '../repositories/ExternalFacilityRepository.js';
 import { ExternalHealthcareFacility } from '../models/index.js';
+import { MULTI_CITY_HEALTHCARE_FACILITIES } from '../utils/multiCityHealthcareData.js';
 
 export const DEFAULT_EXTERNAL_FACILITIES = [
   {
@@ -182,17 +183,194 @@ export const DEFAULT_EXTERNAL_FACILITIES = [
     verificationStatus: 'DIRECTORY_VERIFIED',
     active: true,
   },
+  {
+    externalFacilityId: 'EXT-FAC-HYD-OSMANIA',
+    facilityName: 'Osmania General Hospital & Trauma Center',
+    facilityType: 'State Apex Tertiary Public Trauma Center',
+    specialties: ['Level-1 Trauma Bay', 'Emergency Surgery', 'Casualty & Resuscitation', 'Burn Unit'],
+    latitude: 17.3785,
+    longitude: 78.4770,
+    location: {
+      type: 'Point',
+      coordinates: [78.4770, 17.3785],
+    },
+    address: 'Afzal Gunj, High Court Road, Hyderabad, Telangana 500012',
+    operatingAddress: {
+      buildingNumber: 'Trauma & Casualty Wing',
+      streetName: 'Afzal Gunj, High Court Road',
+      area: 'Afzal Gunj',
+      city: 'Hyderabad',
+      pinCode: '500012',
+      location: {
+        type: 'Point',
+        coordinates: [78.4770, 17.3785],
+      },
+    },
+    contactNumber: '04024600121',
+    emergencyContactPhone: '040-24600121',
+    dataSource: 'GOVERNMENT_DIRECTORY',
+    sourceReference: 'TELANGANA_DME_GOV',
+    verificationStatus: 'DIRECTORY_VERIFIED',
+    active: true,
+  },
+  {
+    externalFacilityId: 'EXT-FAC-HYD-GANDHI',
+    facilityName: 'Gandhi Hospital & Emergency Trauma Block',
+    facilityType: 'State Apex Tertiary Teaching & Trauma Center',
+    specialties: ['Polytrauma', 'Emergency Resuscitation', 'Toxicology', '24/7 Acute ICU'],
+    latitude: 17.4243,
+    longitude: 78.5034,
+    location: {
+      type: 'Point',
+      coordinates: [78.5034, 17.4243],
+    },
+    address: 'Musheerabad, Padmarao Nagar, Secunderabad, Hyderabad 500003',
+    operatingAddress: {
+      buildingNumber: 'Emergency Block',
+      streetName: 'Musheerabad, Padmarao Nagar',
+      area: 'Secunderabad',
+      city: 'Hyderabad',
+      pinCode: '500003',
+      location: {
+        type: 'Point',
+        coordinates: [78.5034, 17.4243],
+      },
+    },
+    contactNumber: '04027505566',
+    emergencyContactPhone: '040-27505566',
+    dataSource: 'GOVERNMENT_DIRECTORY',
+    sourceReference: 'TELANGANA_DME_GOV',
+    verificationStatus: 'DIRECTORY_VERIFIED',
+    active: true,
+  },
+  {
+    externalFacilityId: 'EXT-FAC-HYD-NIMS',
+    facilityName: "Nizam's Institute of Medical Sciences (NIMS) Emergency Center",
+    facilityType: 'Autonomous Super-Specialty Medical Institute',
+    specialties: ['Acute Neuro-trauma', 'Emergency Cardiology', 'Organ Resuscitation', 'Toxicology'],
+    latitude: 17.4223,
+    longitude: 78.4526,
+    location: {
+      type: 'Point',
+      coordinates: [78.4526, 17.4223],
+    },
+    address: 'Punjagutta, Hyderabad, Telangana 500082',
+    operatingAddress: {
+      buildingNumber: 'Emergency Medicine Dept',
+      streetName: 'Punjagutta Main Road',
+      area: 'Punjagutta',
+      city: 'Hyderabad',
+      pinCode: '500082',
+      location: {
+        type: 'Point',
+        coordinates: [78.4526, 17.4223],
+      },
+    },
+    contactNumber: '04023489000',
+    emergencyContactPhone: '040-23489000',
+    dataSource: 'GOVERNMENT_DIRECTORY',
+    sourceReference: 'NIMS_TELANGANA_GOV',
+    verificationStatus: 'DIRECTORY_VERIFIED',
+    active: true,
+  },
+  {
+    externalFacilityId: 'EXT-FAC-HYD-KONDAPUR',
+    facilityName: 'Government Area Hospital Kondapur (Casualty & Trauma)',
+    facilityType: 'Government Area Hospital & Casualty Unit',
+    specialties: ['24/7 Casualty', 'Primary Resuscitation', 'General Trauma', 'Ambulance Triage'],
+    latitude: 17.4682,
+    longitude: 78.3610,
+    location: {
+      type: 'Point',
+      coordinates: [78.3610, 17.4682],
+    },
+    address: 'Near RTO Office, Kondapur, Hyderabad, Telangana 500084',
+    operatingAddress: {
+      buildingNumber: 'Casualty Ward',
+      streetName: 'Near RTO Office, Gachibowli-Miyapur Road',
+      area: 'Kondapur / Hitec City',
+      city: 'Hyderabad',
+      pinCode: '500084',
+      location: {
+        type: 'Point',
+        coordinates: [78.3610, 17.4682],
+      },
+    },
+    contactNumber: '04023112233',
+    emergencyContactPhone: '040-23112233',
+    dataSource: 'GOVERNMENT_DIRECTORY',
+    sourceReference: 'TELANGANA_DME_GOV',
+    verificationStatus: 'DIRECTORY_VERIFIED',
+    active: true,
+  },
+  {
+    externalFacilityId: 'EXT-FAC-HYD-KING-KOTI',
+    facilityName: 'King Koti District Hospital Casualty & ER',
+    facilityType: 'District Headquarters Government Hospital',
+    specialties: ['24/7 Emergency Wing', 'Trauma Stabilization', 'Pediatric ER'],
+    latitude: 17.3915,
+    longitude: 78.4845,
+    location: {
+      type: 'Point',
+      coordinates: [78.4845, 17.3915],
+    },
+    address: 'King Koti Road, Abids, Hyderabad, Telangana 500001',
+    operatingAddress: {
+      buildingNumber: 'Emergency Casualty',
+      streetName: 'King Koti Road',
+      area: 'Abids',
+      city: 'Hyderabad',
+      pinCode: '500001',
+      location: {
+        type: 'Point',
+        coordinates: [78.4845, 17.3915],
+      },
+    },
+    contactNumber: '04024753388',
+    emergencyContactPhone: '040-24753388',
+    dataSource: 'GOVERNMENT_DIRECTORY',
+    sourceReference: 'TELANGANA_DME_GOV',
+    verificationStatus: 'DIRECTORY_VERIFIED',
+    active: true,
+  },
+  {
+    externalFacilityId: 'EXT-FAC-HYD-VANASTHALIPURAM',
+    facilityName: 'Government Area Hospital Vanasthalipuram',
+    facilityType: 'Government Area Hospital & Emergency Care',
+    specialties: ['Emergency Trauma Care', 'Casualty', 'Maternal & Child Resuscitation'],
+    latitude: 17.3275,
+    longitude: 78.5725,
+    location: {
+      type: 'Point',
+      coordinates: [78.5725, 17.3275],
+    },
+    address: 'Red Tank, Vanasthalipuram, Hyderabad, Telangana 500070',
+    operatingAddress: {
+      buildingNumber: 'Casualty Wing',
+      streetName: 'Red Tank, NH 65',
+      area: 'Vanasthalipuram',
+      city: 'Hyderabad',
+      pinCode: '500070',
+      location: {
+        type: 'Point',
+        coordinates: [78.5725, 17.3275],
+      },
+    },
+    contactNumber: '04024241088',
+    emergencyContactPhone: '040-24241088',
+    dataSource: 'GOVERNMENT_DIRECTORY',
+    sourceReference: 'TELANGANA_DME_GOV',
+    verificationStatus: 'DIRECTORY_VERIFIED',
+    active: true,
+  },
 ];
 
 export class ExternalFacilityDirectoryService {
   /**
-   * Seeds default major government trauma facilities if none exist.
+   * Seeds default major government trauma facilities if none exist or if new ones were added.
    */
   async seedDefaultExternalFacilities() {
     try {
-      const count = await externalFacilityRepository.count();
-      if (count > 0) return { seeded: 0, existing: count };
-
       let seededCount = 0;
       for (const fac of DEFAULT_EXTERNAL_FACILITIES) {
         const existing = await externalFacilityRepository.findByName(fac.facilityName);
@@ -201,6 +379,15 @@ export class ExternalFacilityDirectoryService {
           seededCount++;
         }
       }
+      for (const fac of MULTI_CITY_HEALTHCARE_FACILITIES) {
+        const result = await ExternalHealthcareFacility.updateOne(
+          { externalFacilityId: fac.externalFacilityId },
+          { $setOnInsert: fac },
+          { upsert: true }
+        );
+        seededCount += result.upsertedCount || 0;
+      }
+      const count = await externalFacilityRepository.count();
       return { seeded: seededCount, existing: count };
     } catch (err) {
       console.warn('[ExternalFacilityDirectoryService] Seed error:', err.message);

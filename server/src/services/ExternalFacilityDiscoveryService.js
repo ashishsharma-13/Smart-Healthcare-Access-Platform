@@ -19,9 +19,10 @@ export class ExternalFacilityDiscoveryService {
     // Ensure directory is seeded
     await externalFacilityDirectoryService.seedDefaultExternalFacilities();
 
-    const coords = Array.isArray(coordinates) && coordinates.length === 2 && !isNaN(coordinates[0]) && !isNaN(coordinates[1])
-      ? coordinates
-      : [77.2090, 28.6139]; // Default Delhi center
+    const coords = Array.isArray(coordinates) && coordinates.length === 2 && coordinates.every((value) => Number.isFinite(Number(value)))
+      ? coordinates.map(Number)
+      : null;
+    if (!coords) return [];
 
     const nearby = await externalFacilityRepository.findNearby({
       coordinates: coords,
@@ -47,8 +48,13 @@ export class ExternalFacilityDiscoveryService {
         longitude: destLng,
         contactNumber: facility.contactNumber || '108',
         emergencyContactPhone: facility.emergencyContactPhone || facility.contactNumber || '108',
-        specialties: facility.specialties || [],
-        dataSource: facility.dataSource,
+         specialties: facility.specialties || [],
+         ownershipType: facility.ownershipType,
+         city: facility.city || facility.operatingAddress?.city,
+         state: facility.state,
+         locality: facility.locality || facility.operatingAddress?.area,
+         demoData: Boolean(facility.demoData),
+         dataSource: facility.dataSource,
         verificationStatus: facility.verificationStatus,
         distanceKm,
         estimatedTravelMinutes: etaMins,

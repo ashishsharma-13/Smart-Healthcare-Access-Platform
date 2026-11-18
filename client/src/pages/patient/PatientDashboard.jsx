@@ -81,6 +81,12 @@ export const PatientDashboard = () => {
   };
 
   const firstName = user?.name ? user.name.split(' ')[0] : 'Aarav';
+  const currentDateLabel = new Intl.DateTimeFormat('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date());
 
   return (
     <div className="space-y-6 pb-12 select-none">
@@ -220,7 +226,7 @@ export const PatientDashboard = () => {
                         month: 'long',
                         year: 'numeric',
                       })
-                    : 'Tuesday, 10 November 2026'}
+                    : currentDateLabel}
                 </span>
                 <span className="text-slate-400 ml-2 font-mono">
                   {nextAppointment?.slotTime || '10:30–11:00 AM'} &bull; Appointment #

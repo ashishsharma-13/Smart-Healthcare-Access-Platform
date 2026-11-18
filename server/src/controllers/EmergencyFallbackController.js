@@ -114,7 +114,10 @@ export class EmergencyFallbackController {
         ? emergencyReq.locationSnapshot.coordinates
         : (emergencyReq.longitude != null && emergencyReq.latitude != null)
         ? [emergencyReq.longitude, emergencyReq.latitude]
-        : [77.2090, 28.6139];
+        : null;
+      if (!coords) {
+        return res.status(422).json({ success: false, message: 'Confirmed emergency request coordinates are required for external facility discovery.' });
+      }
 
       const facilities = await externalFacilityDiscoveryService.discoverExternalFacilities({
         coordinates: coords,

@@ -80,6 +80,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    governmentIdDocument: {
+      documentType: { type: String, default: '' },
+      documentName: { type: String, default: '' },
+      storageReference: { type: String, default: '' },
+      verificationStatus: {
+        type: String,
+        enum: ['PENDING_REVIEW', 'VERIFIED', 'REJECTED', ''],
+        default: '',
+      },
+    },
     isActive: {
       type: Boolean,
       default: true,
