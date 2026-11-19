@@ -185,10 +185,10 @@ export const LoginPage = () => {
             </button>
             <button
               type="button"
-              onClick={() => quickDemoLogin('apex@hospital.com', 'password123')}
+              onClick={() => quickDemoLogin('citizens.hyd@hospital.com', 'password123')}
               className="p-2 bg-white hover:bg-brand-50 hover:border-brand-300 text-slate-800 font-medium rounded-md border border-slate-200 text-left transition-colors truncate"
             >
-              Hospital (Apex Metro)
+              Hospital (Citizens Specialty)
             </button>
             <button
               type="button"
