@@ -10,7 +10,6 @@ import {
   Calendar,
   Siren,
   ClipboardList,
-  ChevronDown,
   LayoutDashboard,
   Clock,
   QrCode,
@@ -78,22 +77,8 @@ export const Sidebar = () => {
 
   // 1. Patient Portal Sidebar
   const patientNavContent = (
-    <div className="flex flex-col h-full min-h-0 overflow-y-auto p-4 space-y-6 select-none sidebar-scroll">
-      <div className="space-y-5 pr-1">
-        {/* Workspace Dropdown */}
-        <div>
-          <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block mb-1.5 px-1">
-            WORKSPACE
-          </span>
-          <div className="sidebar-workspace-card flex items-center justify-between p-2.5 rounded-lg border border-[#262569] bg-[#13123E] text-white font-semibold text-xs">
-            <span className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#16A34A]" />
-              Patient Portal
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
-          </div>
-        </div>
-
+    <div className="flex-1 flex flex-col min-h-0 justify-between overflow-y-auto p-4 space-y-6 select-none sidebar-scroll">
+      <div className="flex-1 space-y-5 pr-1">
         {/* Primary Patient Links */}
         <div className="space-y-0.5">
           <NavLink to="/patient/dashboard" className={getNavLinkClass}>
@@ -158,22 +143,8 @@ export const Sidebar = () => {
 
   // 2. Doctor Portal Sidebar
   const doctorNavContent = (
-    <div className="flex flex-col h-full justify-between p-4 space-y-6 select-none">
-      <div className="space-y-5">
-        {/* Workspace Dropdown */}
-        <div>
-          <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block mb-1.5 px-1">
-            WORKSPACE
-          </span>
-          <div className="sidebar-workspace-card flex items-center justify-between p-2.5 rounded-lg border border-[#262569] bg-[#13123E] text-white font-semibold text-xs">
-            <span className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#2F2FE4]" />
-              Doctor Portal
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
-          </div>
-        </div>
-
+    <div className="flex-1 flex flex-col min-h-0 justify-between overflow-y-auto p-4 space-y-6 select-none sidebar-scroll">
+      <div className="flex-1 space-y-5">
         {/* Primary Doctor Links */}
         <div className="space-y-0.5">
           <NavLink to="/doctor/dashboard" className={getNavLinkClass}>
@@ -298,38 +269,14 @@ export const Sidebar = () => {
   ];
 
   let otherSections = orgSections;
-  let workspaceTitle = 'Hospital Command';
-  let workspaceDot = 'bg-[#162E93]';
 
   if (user.role === 'admin' || user.role === 'web_admin') {
     otherSections = adminSections;
-    workspaceTitle = 'Admin Governance';
-    workspaceDot = 'bg-[#818CF8]';
   }
 
   const defaultNavContent = (
-    <div className="flex flex-col h-full justify-between p-4 space-y-6 select-none">
-      <div className="space-y-5">
-        {/* Workspace Dropdown */}
-        <div>
-          <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block mb-1.5 px-1">
-            WORKSPACE
-          </span>
-          <div className="sidebar-workspace-card flex items-center justify-between p-2.5 rounded-lg border border-[#262569] bg-[#13123E] text-white font-semibold text-xs">
-            <span className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${workspaceDot}`} />
-              {workspaceTitle}
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
-          </div>
-        </div>
-
-        {/* User Card */}
-        <div className="sidebar-user-card p-3 bg-[#13123E] border border-[#262569] rounded-xl space-y-1">
-          <h4 className="text-xs font-semibold text-white truncate">{user.name}</h4>
-          <p className="text-[11px] text-[#94A3B8] truncate">{user.email || user.phone}</p>
-        </div>
-
+    <div className="flex-1 flex flex-col min-h-0 justify-between overflow-y-auto p-4 space-y-6 select-none sidebar-scroll">
+      <div className="flex-1 space-y-5">
         <div className="space-y-5">
           {otherSections.map((section, idx) => (
             <div key={idx} className="space-y-1">
@@ -386,7 +333,7 @@ export const Sidebar = () => {
   return (
     <>
       {/* Desktop Persistent Sidebar */}
-      <aside className={`hidden lg:flex sticky top-0 ${sidebarCollapsed ? 'w-[76px] sidebar-collapsed overflow-hidden' : 'w-64'} h-full max-h-full bg-[#1A1953] border-r border-[#262569] flex-col flex-shrink-0 min-h-0 transition-[width] duration-200 ease-out`}>
+      <aside className={`hidden lg:flex sticky top-0 ${sidebarCollapsed ? 'w-[76px] sidebar-collapsed' : 'w-64'} h-full max-h-full overflow-hidden bg-[#1A1953] border-r border-[#262569] flex-col flex-shrink-0 min-h-0 transition-[width] duration-200 ease-out`}>
         <div className="flex items-center justify-between px-3 py-3 border-b border-[#262569] bg-[#13123E]">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 shrink-0 rounded-xl bg-[#2F2FE4] flex items-center justify-center text-white" aria-hidden="true">

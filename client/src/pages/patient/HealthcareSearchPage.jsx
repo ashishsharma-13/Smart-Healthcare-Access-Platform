@@ -714,7 +714,7 @@ export const HealthcareSearchPage = () => {
             <input
               type="range"
               min="5"
-              max="100"
+                  max="50"
               step="5"
               value={radiusKm}
               onChange={(e) => setRadiusKm(Number(e.target.value))}
@@ -723,8 +723,7 @@ export const HealthcareSearchPage = () => {
             <div className="flex justify-between text-[10px] text-slate-400 font-medium">
               <span>5 km</span>
               <span>25 km</span>
-              <span>50 km</span>
-              <span>100 km</span>
+                  <span>50 km</span>
             </div>
           </div>
 

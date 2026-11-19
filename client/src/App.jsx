@@ -50,6 +50,7 @@ import { OrganizationDoctorsPage } from './pages/organization/OrganizationDoctor
 
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
 import { AdminEmergencyMonitor } from './pages/admin/AdminEmergencyMonitor';
 import { NotificationsPage } from './pages/common/NotificationsPage';
 
@@ -378,7 +379,7 @@ export default function App() {
                 path="/admin/notifications"
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
-                    <AdminDashboard />
+                    <AdminNotificationsPage />
                   </ProtectedRoute>
                 }
               />
