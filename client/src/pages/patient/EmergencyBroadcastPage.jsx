@@ -89,13 +89,10 @@ export const EmergencyBroadcastPage = () => {
         <EmergencyRadarIllustration hospitalCount={broadcasts.length} />
 
         <div className="space-y-1 max-w-md mx-auto mt-1">
-          <span className="inline-block px-2.5 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-wider rounded-full border border-red-500/30">
-            TARGETED EMERGENCY BEEP TELEMETRY
-          </span>
-          <h1 className="text-lg sm:text-xl font-black tracking-tight">
+          <h1 className="text-white text-lg sm:text-xl font-black tracking-tight">
             Pinging {broadcasts.length} Suitable Facilities Simultaneously
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-slate-400 text-xs">
             Real-time ping active for <strong>{emergency?.patientName}</strong> ({emergency?.emergencyType?.toUpperCase()} EMERGENCY)
           </p>
         </div>
