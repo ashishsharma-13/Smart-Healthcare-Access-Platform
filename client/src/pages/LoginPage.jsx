@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { BrandMark } from '../components/common/BrandMark';
 import api from '../services/api';
-import { Plus, Lock, Mail, ArrowRight, UserCheck, KeyRound, AlertCircle, CheckCircle2, X } from 'lucide-react';
+import { Lock, Mail, ArrowRight, UserCheck, KeyRound, AlertCircle, CheckCircle2, X, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Toast } from '../components/ui/Toast';
 import { Badge } from '../components/ui/Badge';
@@ -13,6 +14,7 @@ export const LoginPage = () => {
   const [searchParams] = useSearchParams();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -135,9 +137,7 @@ export const LoginPage = () => {
 
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-10 h-10 rounded-xl bg-[#0B4F9C] text-white flex items-center justify-center mx-auto shadow-xs">
-            <Plus className="w-6 h-6 stroke-[3]" />
-          </div>
+           <BrandMark className="w-10 h-10 mx-auto shadow-xs" />
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">
             Sign in to SHAP
           </h2>
@@ -246,13 +246,21 @@ export const LoginPage = () => {
               <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 id="login-password"
-                type="password"
+                 type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
-              />
+                 className="w-full pl-9 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white"
+               />
+               <button
+                 type="button"
+                 onClick={() => setShowPassword((visible) => !visible)}
+                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-600"
+                 aria-label={showPassword ? 'Hide password' : 'Show password'}
+               >
+                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+               </button>
             </div>
           </div>
 
@@ -356,28 +364,48 @@ export const LoginPage = () => {
                     className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-600 font-mono tracking-widest text-center"
                   />
                 </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-700 mb-1">New Password</label>
-                  <input
-                    type="password"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Min 6 characters"
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-700 mb-1">Confirm New Password</label>
-                  <input
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Re-enter password"
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-600"
-                  />
-                </div>
+                 <div>
+                   <label className="block text-[11px] font-medium text-slate-700 mb-1">New Password</label>
+                   <div className="relative">
+                     <input
+                       type={showPassword ? 'text' : 'password'}
+                       required
+                       value={newPassword}
+                       onChange={(e) => setNewPassword(e.target.value)}
+                       placeholder="Min 6 characters"
+                       className="w-full px-3 pr-10 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-600"
+                     />
+                     <button
+                       type="button"
+                       onClick={() => setShowPassword((visible) => !visible)}
+                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-600"
+                       aria-label={showPassword ? 'Hide password' : 'Show password'}
+                     >
+                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                     </button>
+                   </div>
+                 </div>
+                 <div>
+                   <label className="block text-[11px] font-medium text-slate-700 mb-1">Confirm New Password</label>
+                   <div className="relative">
+                     <input
+                       type={showPassword ? 'text' : 'password'}
+                       required
+                       value={confirmPassword}
+                       onChange={(e) => setConfirmPassword(e.target.value)}
+                       placeholder="Re-enter password"
+                       className="w-full px-3 pr-10 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-600"
+                     />
+                     <button
+                       type="button"
+                       onClick={() => setShowPassword((visible) => !visible)}
+                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-600"
+                       aria-label={showPassword ? 'Hide password' : 'Show password'}
+                     >
+                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                     </button>
+                   </div>
+                 </div>
                 <div className="flex gap-2 justify-end pt-2">
                   <Button type="button" variant="outline" size="sm" onClick={() => setForgotStep(1)}>
                     Back

@@ -101,29 +101,44 @@ export class EmergencyFallbackController {
   async getExternalFacilities(req, res, next) {
     try {
       const { requestId } = req.params;
-      const { radiusKm = 80, limit = 10 } = req.query;
+      const { radiusKm = 80, limit = 20, lat, lng, latitude, longitude } = req.query;
 
-      const emergencyReq = await EmergencyRequest.findById(requestId).exec();
-      if (!emergencyReq) {
-        return res.status(404).json({ success: false, message: 'Emergency request not found' });
+      let coords = null;
+      let emergencyType = null;
+
+      if (requestId) {
+        const emergencyReq = await EmergencyRequest.findById(requestId).exec();
+        if (emergencyReq) {
+          coords = (emergencyReq.location?.coordinates && (emergencyReq.location.coordinates[0] !== 0 || emergencyReq.location.coordinates[1] !== 0))
+            ? emergencyReq.location.coordinates
+            : (emergencyReq.locationSnapshot?.coordinates && (emergencyReq.locationSnapshot.coordinates[0] !== 0 || emergencyReq.locationSnapshot.coordinates[1] !== 0))
+            ? emergencyReq.locationSnapshot.coordinates
+            : (emergencyReq.longitude != null && emergencyReq.latitude != null)
+            ? [emergencyReq.longitude, emergencyReq.latitude]
+            : null;
+          emergencyType = emergencyReq.emergencyType;
+        } else if (!lat && !latitude && !lng && !longitude) {
+          return res.status(404).json({ success: false, message: 'Emergency request not found' });
+        }
       }
 
-      const coords = (emergencyReq.location?.coordinates && (emergencyReq.location.coordinates[0] !== 0 || emergencyReq.location.coordinates[1] !== 0))
-        ? emergencyReq.location.coordinates
-        : (emergencyReq.locationSnapshot?.coordinates && (emergencyReq.locationSnapshot.coordinates[0] !== 0 || emergencyReq.locationSnapshot.coordinates[1] !== 0))
-        ? emergencyReq.locationSnapshot.coordinates
-        : (emergencyReq.longitude != null && emergencyReq.latitude != null)
-        ? [emergencyReq.longitude, emergencyReq.latitude]
-        : null;
       if (!coords) {
-        return res.status(422).json({ success: false, message: 'Confirmed emergency request coordinates are required for external facility discovery.' });
+        const qLat = Number(lat ?? latitude);
+        const qLng = Number(lng ?? longitude);
+        if (!isNaN(qLat) && !isNaN(qLng)) {
+          coords = [qLng, qLat];
+        }
+      }
+
+      if (!coords) {
+        coords = [78.3264, 17.4568]; // Default Hyderabad coordinates
       }
 
       const facilities = await externalFacilityDiscoveryService.discoverExternalFacilities({
         coordinates: coords,
         radiusKm: Number(radiusKm) || 80,
-        limit: Number(limit) || 10,
-        emergencyType: emergencyReq.emergencyType,
+        limit: Number(limit) || 20,
+        emergencyType,
       });
 
       return res.status(200).json({

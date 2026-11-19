@@ -4,8 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useUI } from '../../context/UIContext';
 import { useSocket } from '../../context/SocketContext';
 import api from '../../services/api';
+import { BrandMark } from './BrandMark';
 import {
-  Plus,
   Bell,
   Camera,
   Menu,
@@ -198,11 +198,6 @@ export const Navbar = () => {
 
       setNotifications((prev) => [formatted, ...prev.slice(0, 14)]);
 
-      // Audio notification if available
-      try {
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        audio.play().catch(() => {});
-      } catch (e) {}
     };
 
     socket.on('notification:new', handleNewNotification);
@@ -356,7 +351,7 @@ export const Navbar = () => {
   };
 
   return (
-    <header className="bg-white border-b border-[#E2E8F0] sticky top-0 z-40 select-none shadow-2xs">
+    <header className="bg-white border-b border-[#E2E8F0] sticky top-0 z-40 select-none">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Left: Brand Identity & Breadcrumb */}
@@ -385,15 +380,13 @@ export const Navbar = () => {
 
             {/* Brand Logo strictly with official Core Brand Palette */}
             <Link to="/" className="flex items-center space-x-2.5 group">
-              <div className="w-8 h-8 rounded-xl bg-[#2F2FE4] flex items-center justify-center text-white shadow-xs group-hover:bg-[#162E93] transition-colors">
-                <Plus className="w-5 h-5 stroke-[3]" />
-              </div>
+              <BrandMark className="w-8 h-8 shadow-xs group-hover:bg-[#162E93] transition-colors" />
               <div className="flex flex-col">
                 <span className="text-base font-black text-[#111827] tracking-tight leading-none">
                   SHAP
                 </span>
                 <span className="text-[8.5px] font-bold text-[#64748B] tracking-widest uppercase mt-0.5">
-                  CONNECTED CARE, CLEARER ACCESS.
+                  HEALTHCARE ACCESS PLATFORM
                 </span>
               </div>
             </Link>
@@ -528,6 +521,7 @@ export const Navbar = () => {
                   <button
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                     className="flex items-center space-x-2.5 p-1 pr-2 rounded-full hover:bg-slate-100/80 transition cursor-pointer"
+                    aria-label="Open profile menu"
                   >
                     <div className="w-8 h-8 rounded-full bg-[#F0F2FD] text-[#2F2FE4] font-bold text-xs flex items-center justify-center border border-[#C5CAF7] overflow-hidden">
                       {user.avatar ? (

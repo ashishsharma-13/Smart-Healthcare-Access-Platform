@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { DoctorCard } from '../components/common/DoctorCard';
 import { HospitalCard } from '../components/common/HospitalCard';
-import { HeroClinicalCommand } from '../components/graphics/HeroClinicalCommand';
+import shapHero from '../components/graphics/SHAP_Hero.png';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { DoctorCardSkeleton, HospitalCardSkeleton } from '../components/ui/Skeleton';
@@ -70,9 +70,9 @@ export const LandingPage = () => {
     e.preventDefault();
     const locParam = location.latitude != null ? `&lat=${location.latitude}&lng=${location.longitude}` : '';
     if (activeSearchTab === 'hospitals') {
-      navigate(`/hospitals?search=${encodeURIComponent(searchTerm)}${locParam}`);
+      navigate(`/search?mode=organizations&search=${encodeURIComponent(searchTerm)}${locParam}`);
     } else {
-      navigate(`/doctors?search=${encodeURIComponent(searchTerm)}&specialization=${encodeURIComponent(selectedSpecialty)}${locParam}`);
+      navigate(`/search?mode=doctors&search=${encodeURIComponent(searchTerm)}&specialization=${encodeURIComponent(selectedSpecialty)}${locParam}`);
     }
   };
 
@@ -144,8 +144,8 @@ export const LandingPage = () => {
               </div>
 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight leading-[1.12]">
-                The right care. <br className="hidden sm:inline" />
-                <span className="text-brand-600">At the exact right time.</span>
+                The right care <br className="hidden sm:inline" />
+                <span className="text-brand-600">At the exact right time</span>
               </h1>
 
               <p className="text-sm sm:text-base text-slate-600 max-w-xl leading-relaxed">
@@ -154,7 +154,7 @@ export const LandingPage = () => {
 
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-3 pt-2">
-                <Link to="/doctors">
+                <Link to="/search?mode=doctors">
                   <Button size="lg" variant="primary" icon={Search}>
                     Find Care Directory
                   </Button>
@@ -203,7 +203,11 @@ export const LandingPage = () => {
 
             {/* Right Column: High-Fidelity Clinical Command Frame */}
             <div className="lg:col-span-5 relative">
-              <HeroClinicalCommand />
+              <img
+                src={shapHero}
+                alt="SHAP healthcare coordination platform showing hospital network telemetry and emergency response"
+                className="relative left-1/2 block h-auto w-[122%] max-w-none -translate-x-1/2 rounded-2xl object-contain sm:w-[112%] lg:left-0 lg:w-[120%] lg:translate-x-[-20%]"
+              />
             </div>
 
           </div>
@@ -320,7 +324,7 @@ export const LandingPage = () => {
             </p>
           </div>
           <Link
-            to="/doctors"
+             to="/search?mode=doctors"
             className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1 group"
           >
             <span>Explore All 24 Specialties</span>
@@ -337,7 +341,7 @@ export const LandingPage = () => {
                 key={idx}
                 onClick={() => {
                   setSelectedSpecialty(item.name);
-                  navigate(`/doctors?specialization=${encodeURIComponent(item.name)}`);
+                      navigate(`/search?mode=doctors&specialization=${encodeURIComponent(item.name)}`);
                 }}
                 className="bg-white hover:bg-slate-50/90 border border-slate-200/90 hover:border-brand-400 rounded-xl p-3.5 text-center transition-all duration-150 hover:-translate-y-0.5 hover:shadow-card flex flex-col items-center justify-between group h-32"
               >
@@ -377,7 +381,7 @@ export const LandingPage = () => {
             </p>
           </div>
           <Link
-            to="/doctors"
+            to="/search?mode=doctors"
             className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1 group"
           >
             <span>View All Doctors</span>
@@ -423,7 +427,7 @@ export const LandingPage = () => {
             </p>
           </div>
           <Link
-            to="/hospitals"
+            to="/search?mode=organizations"
             className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1 group"
           >
             <span>View All Facilities</span>

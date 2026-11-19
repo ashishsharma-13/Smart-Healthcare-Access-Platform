@@ -25,6 +25,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { formatIndianPhone } from '../../utils/phoneUtils';
 import { Badge } from '../../components/ui/Badge';
 
 export const PatientProfilePage = () => {
@@ -613,7 +614,8 @@ export const PatientProfilePage = () => {
                 <input
                   type="tel"
                   value={demographics.phone}
-                  onChange={(e) => setDemographics({ ...demographics, phone: e.target.value })}
+                    onChange={(e) => setDemographics({ ...demographics, phone: e.target.value })}
+                    onBlur={(e) => setDemographics({ ...demographics, phone: formatIndianPhone(e.target.value) })}
                   className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   placeholder="+91 98111 22334"
                 />
@@ -968,6 +970,7 @@ export const PatientProfilePage = () => {
                         required
                         value={contactForm.phone}
                         onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                        onBlur={(e) => setContactForm({ ...contactForm, phone: formatIndianPhone(e.target.value) })}
                         className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200"
                         placeholder="+91 98111 99991"
                       />
@@ -982,6 +985,7 @@ export const PatientProfilePage = () => {
                         onChange={(e) =>
                           setContactForm({ ...contactForm, alternatePhone: e.target.value })
                         }
+                        onBlur={(e) => setContactForm({ ...contactForm, alternatePhone: formatIndianPhone(e.target.value) })}
                         className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200"
                         placeholder="Optional"
                       />

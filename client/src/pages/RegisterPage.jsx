@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { BrandMark } from '../components/common/BrandMark';
+import { formatIndianPhone } from '../utils/phoneUtils';
 import api from '../services/api';
 import { OrganizationAddressSection } from '../components/organization/OrganizationAddressSection';
 import {
-  Plus,
   Activity,
   User,
   Stethoscope,
@@ -25,6 +26,8 @@ import {
   Award,
   Briefcase,
   AlertCircle,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Toast } from '../components/ui/Toast';
@@ -39,6 +42,7 @@ export const RegisterPage = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState('');
   const [specialization, setSpecialization] = useState('General Physician');
   const [licenseNumber, setLicenseNumber] = useState('');
@@ -427,9 +431,7 @@ export const RegisterPage = () => {
         
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-10 h-10 rounded-xl bg-[#0B4F9C] text-white flex items-center justify-center mx-auto shadow-xs">
-            <Plus className="w-6 h-6 stroke-[3]" />
-          </div>
+           <BrandMark className="w-10 h-10 mx-auto shadow-xs" />
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">
             Create your SHAP Account
           </h2>
@@ -565,9 +567,10 @@ export const RegisterPage = () => {
                 <input
                   id="reg-phone"
                   type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+91 98765 43210"
+                   value={phone}
+                   onChange={(e) => setPhone(e.target.value)}
+                   onBlur={(e) => setPhone(formatIndianPhone(e.target.value))}
+                   placeholder="+91 98765 43210"
                   className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white font-mono"
                 />
               </div>
@@ -582,13 +585,21 @@ export const RegisterPage = () => {
               <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 id="reg-pwd"
-                type="password"
+                   type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white font-mono"
-              />
+                   className="w-full pl-9 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white font-mono"
+                 />
+                 <button
+                   type="button"
+                   onClick={() => setShowPassword((visible) => !visible)}
+                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-600"
+                   aria-label={showPassword ? 'Hide password' : 'Show password'}
+                 >
+                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                 </button>
             </div>
           </div>
 

@@ -324,7 +324,7 @@ export const AppointmentsPage = () => {
         <div>
           <button
             type="button"
-            onClick={() => navigate('/doctors')}
+          onClick={() => navigate('/search?mode=doctors')}
             className="px-4 py-2.5 bg-[#0B4F9C] hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-1.5 cursor-pointer"
           >
             <CalendarPlus className="w-3.5 h-3.5" />

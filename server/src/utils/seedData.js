@@ -38,7 +38,7 @@ const seed = async () => {
     email: 'admin@shap.com',
     password: 'password123',
     role: 'admin',
-    phone: '+1-555-0100',
+    phone: '+91 90000 00100',
   });
 
   // 2. Patient
@@ -47,7 +47,7 @@ const seed = async () => {
     email: 'patient@shap.com',
     password: 'password123',
     role: 'patient',
-    phone: '+1-555-0199',
+    phone: '+91 90000 00199',
     address: {
       street: '42 Connaught Place',
       city: 'Central City',
@@ -62,7 +62,7 @@ const seed = async () => {
     email: 'apex@hospital.com',
     password: 'password123',
     role: 'organization',
-    phone: '+1-555-0111',
+    phone: '+91 90000 00111',
   });
 
   const org1 = await Organization.create({
@@ -82,7 +82,7 @@ const seed = async () => {
       coordinates: [77.2150, 28.6200], // ~1.2 km from patient
     },
     emergencyCapable: true,
-    emergencyContactPhone: '+1-800-APEX-911',
+    emergencyContactPhone: '+91 1800 000 911',
     qrCheckinCode: 'ORG-QR-APEX-METRO-2025',
     facilities: ['Trauma Center Level 1', 'Cardiac ICU', 'Cath Lab', '24/7 Stroke Unit', 'Ventilators'],
     rating: 4.9,
@@ -102,7 +102,7 @@ const seed = async () => {
     email: 'stjude@hospital.com',
     password: 'password123',
     role: 'organization',
-    phone: '+1-555-0222',
+    phone: '+91 90000 00222',
   });
 
   const org2 = await Organization.create({
@@ -122,7 +122,7 @@ const seed = async () => {
       coordinates: [77.2280, 28.6080], // ~2.5 km from patient
     },
     emergencyCapable: true,
-    emergencyContactPhone: '+1-800-STJUDE-99',
+    emergencyContactPhone: '+91 1800 000 992',
     qrCheckinCode: 'ORG-QR-STJUDE-2025',
     facilities: ['24/7 Emergency Care', 'Pediatric ICU', 'Trauma Resuscitation', 'Blood Bank'],
     rating: 4.8,
@@ -141,7 +141,7 @@ const seed = async () => {
     email: 'citycare@clinic.com',
     password: 'password123',
     role: 'organization',
-    phone: '+1-555-0333',
+    phone: '+91 90000 00333',
   });
 
   const org3 = await Organization.create({
@@ -161,7 +161,7 @@ const seed = async () => {
       coordinates: [77.2000, 28.6250],
     },
     emergencyCapable: false,
-    emergencyContactPhone: '+1-555-0334',
+    emergencyContactPhone: '+91 90000 00334',
     qrCheckinCode: 'ORG-QR-CITYCARE-2025',
     facilities: ['Outpatient Care', 'Diagnostics', 'Pharmacy', 'Consultation'],
     rating: 4.6,
@@ -174,7 +174,7 @@ const seed = async () => {
     email: 'northdistrict@hospital.com',
     password: 'password123',
     role: 'organization',
-    phone: '+1-555-0444',
+    phone: '+91 90000 00444',
   });
 
   await Organization.create({
@@ -194,7 +194,7 @@ const seed = async () => {
       coordinates: [77.1950, 28.6450],
     },
     emergencyCapable: true,
-    emergencyContactPhone: '+1-555-0445',
+    emergencyContactPhone: '+91 90000 00445',
     qrCheckinCode: 'ORG-QR-NORTH-2025',
     facilities: ['Emergency Bay', 'General Surgery'],
   });
@@ -224,7 +224,7 @@ const seed = async () => {
     email: 'sarah.jenkins@shap.com',
     password: 'password123',
     role: 'doctor',
-    phone: '+1-555-0801',
+    phone: '+91 90000 00801',
     avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&auto=format&fit=crop&q=80',
   });
 
@@ -258,7 +258,7 @@ const seed = async () => {
     email: 'marcus.chen@shap.com',
     password: 'password123',
     role: 'doctor',
-    phone: '+1-555-0802',
+    phone: '+91 90000 00802',
     avatar: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80',
   });
 
@@ -292,7 +292,7 @@ const seed = async () => {
     email: 'emily.rodriguez@shap.com',
     password: 'password123',
     role: 'doctor',
-    phone: '+1-555-0803',
+    phone: '+91 90000 00803',
     avatar: 'https://images.unsplash.com/photo-1594824813572-c5139c82c219?w=300&auto=format&fit=crop&q=80',
   });
 
@@ -326,7 +326,7 @@ const seed = async () => {
     email: 'michael.vance@shap.com',
     password: 'password123',
     role: 'doctor',
-    phone: '+1-555-0804',
+    phone: '+91 90000 00804',
   });
 
   await Doctor.create({

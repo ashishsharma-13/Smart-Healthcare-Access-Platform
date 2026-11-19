@@ -231,7 +231,7 @@ export const EmergencyActivatePage = () => {
                 id: item.organizationId?._id || item.organizationId,
                 name: item.organizationId?.name || 'Healthcare Facility',
                 address: item.organizationId?.operatingAddress || item.organizationId?.address || 'Verified Address',
-                emergencyContactPhone: item.organizationId?.emergencyContactPhone || item.organizationId?.phone || '+1-555-0199',
+                emergencyContactPhone: item.organizationId?.emergencyContactPhone || item.organizationId?.phone || '+91 90000 00199',
                 distanceKm: item.distanceKm,
                 estimatedTravelMinutes: item.estimatedTravelMinutes,
                 suitabilityScore: item.overallScore,
@@ -525,7 +525,7 @@ export const EmergencyActivatePage = () => {
                 <input
                   type="text"
                   readOnly
-                  value={user?.phone || '+1-555-0199'}
+                  value={user?.phone || '+91 90000 00199'}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-medium"
                 />
               </div>

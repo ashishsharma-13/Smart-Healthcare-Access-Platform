@@ -35,6 +35,7 @@ import {
   Scan,
 } from 'lucide-react';
 import { HelpCenterModal } from './HelpCenterModal';
+import { BrandMark } from './BrandMark';
 
 export const Sidebar = () => {
   const { user } = useAuth();
@@ -97,7 +98,7 @@ export const Sidebar = () => {
           </NavLink>
 
           <NavLink to="/emergency/activate" className={getEmergencyLinkClass}>
-            <Siren className="w-4 h-4 text-white shrink-0 animate-pulse" />
+            <Siren className="w-4 h-4 text-white shrink-0" />
             <span>Emergency Beep</span>
           </NavLink>
 
@@ -336,9 +337,7 @@ export const Sidebar = () => {
       <aside className={`hidden lg:flex sticky top-0 ${sidebarCollapsed ? 'w-[76px] sidebar-collapsed' : 'w-64'} h-full max-h-full overflow-hidden bg-[#1A1953] border-r border-[#262569] flex-col flex-shrink-0 min-h-0 transition-[width] duration-200 ease-out`}>
         <div className="flex items-center justify-between px-3 py-3 border-b border-[#262569] bg-[#13123E]">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 shrink-0 rounded-xl bg-[#2F2FE4] flex items-center justify-center text-white" aria-hidden="true">
-              <Plus className="w-5 h-5 stroke-[3]" />
-            </div>
+             <BrandMark className="w-8 h-8" />
             <span className="sidebar-brand text-sm font-black tracking-tight text-white">SHAP</span>
           </div>
           <button

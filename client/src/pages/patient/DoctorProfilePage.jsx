@@ -270,7 +270,7 @@ export const DoctorProfilePage = () => {
         </div>
 
         <button
-          onClick={() => navigate('/doctors')}
+          onClick={() => navigate('/search?mode=doctors')}
           className="self-start sm:self-auto px-4 py-2 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
         >
           &larr; Back to search

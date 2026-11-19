@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, ShieldCheck, PhoneCall } from 'lucide-react';
+import { ShieldCheck, PhoneCall } from 'lucide-react';
+import { BrandMark } from './BrandMark';
 
 export const Footer = () => {
   return (
@@ -13,9 +14,7 @@ export const Footer = () => {
           {/* Col 1: Brand & Regulatory Mission (5 cols) */}
           <div className="md:col-span-5 space-y-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center text-white shadow-2xs">
-                <Activity className="w-4 h-4 stroke-[2.25]" />
-              </div>
+              <BrandMark className="w-7 h-7" />
               <span className="text-lg font-bold text-white tracking-tight">SHAP</span>
               <span className="text-[10px] font-mono uppercase bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">
                 Govt Standards NCR
@@ -39,12 +38,12 @@ export const Footer = () => {
             </h4>
             <ul className="space-y-2 text-xs text-slate-400">
               <li>
-                <Link to="/doctors" className="hover:text-white transition-colors">
+                <Link to="/search?mode=doctors" className="hover:text-white transition-colors">
                   Find Doctors
                 </Link>
               </li>
               <li>
-                <Link to="/hospitals" className="hover:text-white transition-colors">
+                <Link to="/search?mode=organizations" className="hover:text-white transition-colors">
                   Trauma Hospitals
                 </Link>
               </li>

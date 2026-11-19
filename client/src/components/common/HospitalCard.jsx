@@ -114,7 +114,7 @@ export const HospitalCard = ({ hospital, onSelect, isEmergencyMode = false }) =>
               <span>Emergency</span>
             </Link>
             <Link
-              to="/hospitals"
+              to="/search?mode=organizations"
               className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors"
             >
               Details

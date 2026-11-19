@@ -24,15 +24,15 @@ export const Button = React.forwardRef(({
   };
 
   const variantStyles = {
-    primary: 'bg-[#2F2FE4] hover:bg-[#162E93] active:bg-[#1A1953] text-white shadow-2xs border border-transparent',
-    secondary: 'bg-[#162E93] hover:bg-[#112474] active:bg-[#0C1A55] text-white shadow-2xs border border-transparent',
-    navy: 'bg-[#1A1953] hover:bg-[#13123E] active:bg-[#080616] text-white shadow-2xs border border-transparent',
-    outline: 'border border-[#E2E8F0] bg-white hover:bg-[#F1F5F9] active:bg-[#E2E8F0] text-[#111827] shadow-2xs',
+    primary: 'bg-[#2F2FE4] hover:bg-[#162E93] active:bg-[#1A1953] text-white border border-transparent',
+    secondary: 'bg-[#162E93] hover:bg-[#112474] active:bg-[#0C1A55] text-white border border-transparent',
+    navy: 'bg-[#1A1953] hover:bg-[#13123E] active:bg-[#080616] text-white border border-transparent',
+    outline: 'border border-[#E2E8F0] bg-white hover:bg-[#F1F5F9] active:bg-[#E2E8F0] text-[#111827]',
     ghost: 'hover:bg-[#F1F5F9] active:bg-[#E2E8F0] text-[#111827]',
-    emergency: 'bg-[#DC2626] hover:bg-[#B91C1C] active:bg-[#991B1B] text-white shadow-2xs font-bold tracking-wide border border-transparent',
+    emergency: 'bg-[#DC2626] hover:bg-[#B91C1C] active:bg-[#991B1B] text-white font-bold tracking-wide border border-transparent',
     emergencyOutline: 'border border-[#DC2626] bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#DC2626] font-semibold',
-    presence: 'bg-[#16A34A] hover:bg-[#15803D] active:bg-[#166534] text-white shadow-2xs font-semibold border border-transparent',
-    danger: 'bg-[#DC2626] hover:bg-[#B91C1C] active:bg-[#991B1B] text-white shadow-2xs border border-transparent',
+    presence: 'bg-[#16A34A] hover:bg-[#15803D] active:bg-[#166534] text-white font-semibold border border-transparent',
+    danger: 'bg-[#DC2626] hover:bg-[#B91C1C] active:bg-[#991B1B] text-white border border-transparent',
   };
 
   return (

@@ -176,6 +176,17 @@ export const EmergencyLocationCapture = ({
     }
   };
 
+  const handleManualMode = () => {
+    setActiveTab('manual');
+    setSuggestions([]);
+    requestAnimationFrame(() => {
+      document.getElementById('emergency-manual-location')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    });
+  };
+
   // Determine current active map coordinates
   const currentMapLat =
     activeTab === 'gps' && location.latitude != null ? location.latitude : Number(manualLat);
@@ -214,7 +225,7 @@ export const EmergencyLocationCapture = ({
 
           <button
             type="button"
-            onClick={() => setActiveTab('manual')}
+            onClick={handleManualMode}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'manual'
                 ? 'bg-white text-slate-900 shadow-xs font-bold'
@@ -336,7 +347,7 @@ export const EmergencyLocationCapture = ({
 
       {/* 4. Secondary Mode: Manual Entry & Map Selection Form */}
       {activeTab === 'manual' && (
-        <div className="space-y-4 animate-fade-in">
+        <div id="emergency-manual-location" className="space-y-4 animate-fade-in">
           {/* Status Badge */}
           <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
             <div className="flex items-center gap-2">

@@ -123,7 +123,7 @@ export default async function autoSeed() {
     email: 'admin@shap.com',
     password: 'password123',
     role: 'admin',
-    phone: '+1-555-0100',
+    phone: '+91 90000 00100',
   });
 
   // 2. Patient 1: Aarav Mehta (Test suite baseline)
@@ -132,7 +132,7 @@ export default async function autoSeed() {
     email: 'patient@shap.com',
     password: 'password123',
     role: 'patient',
-    phone: '+1-555-0199',
+    phone: '+91 90000 00199',
     dateOfBirth: '1988-06-14',
     gender: 'Male',
     bloodGroup: 'O+',
@@ -142,7 +142,7 @@ export default async function autoSeed() {
     emergencyContact: {
       name: 'Pooja Mehta',
       relationship: 'Spouse',
-      phone: '+1-555-0144',
+      phone: '+91 90000 00144',
     },
     medicalNotes: 'Mild exercise-induced asthma in spring. Regular cardio monitoring.',
     address: {
@@ -159,7 +159,7 @@ export default async function autoSeed() {
     email: 'jamie@shap.com',
     password: 'password123',
     role: 'patient',
-    phone: '+1-555-0188',
+    phone: '+91 90000 00188',
     dateOfBirth: '1990-04-18',
     gender: 'Female',
     bloodGroup: 'A+',
@@ -169,7 +169,7 @@ export default async function autoSeed() {
     emergencyContact: {
       name: 'Karthik Iyer',
       relationship: 'Spouse',
-      phone: '+1-555-0189',
+      phone: '+91 90000 00189',
     },
     medicalNotes: 'Routine cardiology monitoring and health follow-ups.',
     address: {
@@ -208,8 +208,8 @@ export default async function autoSeed() {
       userId: patient._id,
       name: 'Pooja Mehta',
       relationship: 'SPOUSE',
-      phone: '+1-555-0144',
-      alternatePhone: '+1-555-0145',
+      phone: '+91 90000 00144',
+      alternatePhone: '+91 90000 00145',
       email: 'pooja.mehta@example.com',
       isPrimary: true,
       notes: 'Lives with patient; has emergency keys',
@@ -292,7 +292,7 @@ export default async function autoSeed() {
     email: 'apex@hospital.com',
     password: 'password123',
     role: 'organization',
-    phone: '+1-555-0111',
+    phone: '+91 90000 00111',
   });
 
   const org1 = await getOrCreateOrg(org1User._id, {
@@ -334,7 +334,7 @@ export default async function autoSeed() {
       coordinates: [77.2150, 28.6200],
     },
     emergencyCapable: true,
-    emergencyContactPhone: '+1-800-APEX-911',
+    emergencyContactPhone: '+91 1800 000 911',
     qrCheckinCode: 'ORG-QR-APEX-METRO-2025',
     facilities: ['Trauma Center Level 1', 'Cardiac ICU', 'Cath Lab', '24/7 Stroke Unit', 'Ventilators'],
     rating: 4.9,
@@ -351,7 +351,7 @@ export default async function autoSeed() {
     email: 'stjude@hospital.com',
     password: 'password123',
     role: 'organization',
-    phone: '+1-555-0222',
+    phone: '+91 90000 00222',
   });
 
   const org2 = await getOrCreateOrg(org2User._id, {
@@ -393,7 +393,7 @@ export default async function autoSeed() {
       coordinates: [77.2280, 28.6080],
     },
     emergencyCapable: true,
-    emergencyContactPhone: '+1-800-STJUDE-99',
+    emergencyContactPhone: '+91 1800 000 992',
     qrCheckinCode: 'ORG-QR-STJUDE-2025',
     facilities: ['24/7 Emergency Care', 'Pediatric ICU', 'Trauma Resuscitation', 'Blood Bank'],
     rating: 4.8,
@@ -410,7 +410,7 @@ export default async function autoSeed() {
     email: 'citycare@clinic.com',
     password: 'password123',
     role: 'organization',
-    phone: '+1-555-0333',
+    phone: '+91 90000 00333',
   });
 
   const org3 = await getOrCreateOrg(org3User._id, {
@@ -429,7 +429,7 @@ export default async function autoSeed() {
       coordinates: [77.2000, 28.6250],
     },
     emergencyCapable: false,
-    emergencyContactPhone: '+1-555-0334',
+    emergencyContactPhone: '+91 90000 00334',
     qrCheckinCode: 'ORG-QR-CITYCARE-2025',
     facilities: ['Outpatient Care', 'Diagnostics', 'Pharmacy', 'Consultation'],
     rating: 4.6,
@@ -442,7 +442,7 @@ export default async function autoSeed() {
     email: 'northdistrict@hospital.com',
     password: 'password123',
     role: 'organization',
-    phone: '+1-555-0444',
+    phone: '+91 90000 00444',
   });
 
   await getOrCreateOrg(orgPendingUser._id, {
@@ -461,7 +461,7 @@ export default async function autoSeed() {
       coordinates: [77.1950, 28.6450],
     },
     emergencyCapable: true,
-    emergencyContactPhone: '+1-555-0445',
+    emergencyContactPhone: '+91 90000 00445',
     qrCheckinCode: 'ORG-QR-NORTH-2025',
     facilities: ['Emergency Bay', 'General Surgery'],
   });
@@ -473,7 +473,7 @@ export default async function autoSeed() {
     email: 'riverside@hospital.com',
     password: 'password123',
     role: 'organization',
-    phone: '+1 800-RIVERSIDE',
+    phone: '+91 1800 000 101',
   });
 
   const riversideOrg = await getOrCreateOrg(riversideUser._id, {
@@ -492,7 +492,7 @@ export default async function autoSeed() {
       coordinates: [77.2180, 28.6180],
     },
     emergencyCapable: true,
-    emergencyContactPhone: '+1 800-RIVERSIDE',
+    emergencyContactPhone: '+91 1800 000 101',
     qrCheckinCode: 'ORG-QR-RIVERSIDE-2026',
     facilities: ['24/7 emergency', 'Cardiology', 'Oxygen', 'Level 1 Trauma', 'Cardiac ICU', 'Cath Lab'],
     rating: 4.9,
@@ -509,7 +509,7 @@ export default async function autoSeed() {
     email: 'lakeside@hospital.com',
     password: 'password123',
     role: 'organization',
-    phone: '+1 800-LAKESIDE',
+    phone: '+91 1800 000 102',
   });
 
   const lakesideOrg = await getOrCreateOrg(lakesideUser._id, {
@@ -528,7 +528,7 @@ export default async function autoSeed() {
       coordinates: [77.2250, 28.6120],
     },
     emergencyCapable: true,
-    emergencyContactPhone: '+1 800-LAKESIDE',
+    emergencyContactPhone: '+91 1800 000 102',
     qrCheckinCode: 'ORG-QR-LAKESIDE-2026',
     facilities: ['Cardiology', 'Diagnostic services', 'Monitoring', 'Specialty Outpatient'],
     rating: 4.8,
@@ -544,7 +544,7 @@ export default async function autoSeed() {
     email: 'northside@hospital.com',
     password: 'password123',
     role: 'organization',
-    phone: '+1 800-NORTHSIDE',
+    phone: '+91 1800 000 103',
   });
 
   const northsideOrg = await getOrCreateOrg(northsideUser._id, {
@@ -563,7 +563,7 @@ export default async function autoSeed() {
       coordinates: [77.2100, 28.6280],
     },
     emergencyCapable: true,
-    emergencyContactPhone: '+1 800-NORTHSIDE',
+    emergencyContactPhone: '+91 1800 000 103',
     qrCheckinCode: 'ORG-QR-NORTHSIDE-2026',
     facilities: ['24/7 emergency', 'Cardiology', 'Imaging', 'General ICU', 'Radiology Suite'],
     rating: 4.7,
@@ -579,7 +579,7 @@ export default async function autoSeed() {
     email: 'cedar@hospital.com',
     password: 'password123',
     role: 'organization',
-    phone: '+1 800-CEDAR',
+    phone: '+91 1800 000 104',
   });
 
   const cedarOrg = await getOrCreateOrg(cedarUser._id, {
@@ -598,7 +598,7 @@ export default async function autoSeed() {
       coordinates: [77.2020, 28.6210],
     },
     emergencyCapable: false,
-    emergencyContactPhone: '+1 800-CEDAR',
+    emergencyContactPhone: '+91 1800 000 104',
     qrCheckinCode: 'ORG-QR-CEDAR-2026',
     facilities: ['Primary Care', 'Family Medicine', 'Outpatient Pharmacy'],
     rating: 4.6,
@@ -640,7 +640,7 @@ export default async function autoSeed() {
     email: 'sarah.jenkins@shap.com',
     password: 'password123',
     role: 'doctor',
-    phone: '+1-555-0801',
+    phone: '+91 90000 00801',
     avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&auto=format&fit=crop&q=80',
   });
 
@@ -673,7 +673,7 @@ export default async function autoSeed() {
     email: 'marcus.chen@shap.com',
     password: 'password123',
     role: 'doctor',
-    phone: '+1-555-0802',
+    phone: '+91 90000 00802',
     avatar: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80',
   });
 
@@ -706,7 +706,7 @@ export default async function autoSeed() {
     email: 'emily.rodriguez@shap.com',
     password: 'password123',
     role: 'doctor',
-    phone: '+1-555-0803',
+    phone: '+91 90000 00803',
     avatar: 'https://images.unsplash.com/photo-1594824813572-c5139c82c219?w=300&auto=format&fit=crop&q=80',
   });
 
@@ -739,7 +739,7 @@ export default async function autoSeed() {
     email: 'michael.vance@shap.com',
     password: 'password123',
     role: 'doctor',
-    phone: '+1-555-0804',
+    phone: '+91 90000 00804',
   });
 
   await getOrCreateDoctor(doc4User._id, {
@@ -760,7 +760,7 @@ export default async function autoSeed() {
     email: 'mira.patel@shap.com',
     password: 'password123',
     role: 'doctor',
-    phone: '+1 (555) 234-5678',
+    phone: '+91 90000 02345',
     avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&auto=format&fit=crop&q=80',
   });
 
@@ -795,7 +795,7 @@ export default async function autoSeed() {
     email: 'daniel.brooks@shap.com',
     password: 'password123',
     role: 'doctor',
-    phone: '+1 (555) 345-6789',
+    phone: '+91 90000 03456',
     avatar: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80',
   });
 
@@ -830,7 +830,7 @@ export default async function autoSeed() {
     email: 'sofia.chen@shap.com',
     password: 'password123',
     role: 'doctor',
-    phone: '+1 (555) 456-7890',
+    phone: '+91 90000 04567',
     avatar: 'https://images.unsplash.com/photo-1594824813572-c5139c82c219?w=300&auto=format&fit=crop&q=80',
   });
 
@@ -865,7 +865,7 @@ export default async function autoSeed() {
     email: 'ethan.ross@shap.com',
     password: 'password123',
     role: 'doctor',
-    phone: '+1 (555) 567-8901',
+    phone: '+91 90000 05678',
   });
 
   const docEthan = await getOrCreateDoctor(docEthanUser._id, {

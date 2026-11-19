@@ -55,9 +55,9 @@ export const PatientDashboard = () => {
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/doctors?search=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/search?mode=doctors&search=${encodeURIComponent(searchQuery.trim())}`);
     } else {
-      navigate('/doctors');
+      navigate('/search?mode=doctors');
     }
   };
 
@@ -105,7 +105,7 @@ export const PatientDashboard = () => {
         </div>
 
         <Link
-          to="/doctors"
+          to="/search?mode=doctors"
           className="inline-flex items-center space-x-1.5 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs rounded-lg shadow-2xs transition-colors self-start sm:self-auto cursor-pointer focus:ring-2 focus:ring-brand-500 focus:outline-none"
         >
           <Search className="w-3.5 h-3.5" />
@@ -287,7 +287,7 @@ export const PatientDashboard = () => {
                 <button
                   key={spec.name}
                   type="button"
-                  onClick={() => navigate(`/doctors?specialization=${encodeURIComponent(spec.query)}`)}
+                  onClick={() => navigate(`/search?mode=doctors&specialization=${encodeURIComponent(spec.query)}`)}
                   className="px-3 py-1 rounded-full text-xs font-medium bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors border border-brand-200/60 cursor-pointer"
                 >
                   {spec.name}

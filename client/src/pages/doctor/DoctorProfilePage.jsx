@@ -76,7 +76,7 @@ export const DoctorProfilePage = () => {
         const doc = res.data.data;
         setDoctorMeta(doc);
         setName(doc.userId?.name || user?.name || 'Dr. Mira Patel');
-        setPhone(doc.userId?.phone || user?.phone || '+1 (555) 234-5678');
+        setPhone(doc.userId?.phone || user?.phone || '+91 90000 00234');
         setEmail(doc.userId?.email || user?.email || 'mira.patel@shap.care');
         setSpecialization(doc.specialization || 'Cardiology');
         setLicenseNumber(doc.licenseNumber || 'NMC-2014-99821');
@@ -100,7 +100,7 @@ export const DoctorProfilePage = () => {
     } catch (err) {
       console.warn('Could not fetch doctor profile, using fallback defaults', err);
       setName(user?.name || 'Dr. Mira Patel');
-      setPhone(user?.phone || '+1 (555) 234-5678');
+      setPhone(user?.phone || '+91 90000 00234');
       setEmail(user?.email || 'mira.patel@shap.care');
       setSpecialization('Cardiology');
       setLicenseNumber('NMC-2014-99821');
@@ -226,7 +226,7 @@ export const DoctorProfilePage = () => {
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+1 (555) 234-5678"
+                placeholder="+91 98765 43210"
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
             </div>

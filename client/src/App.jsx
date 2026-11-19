@@ -11,12 +11,10 @@ import { DashboardLayout } from './layouts/DashboardLayout';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
-import { HospitalsListPage } from './pages/public/HospitalsListPage';
 import { GeneralMapPage } from './pages/public/GeneralMapPage';
 
 // Patient Pages
 import { HealthcareSearchPage } from './pages/patient/HealthcareSearchPage';
-import { DoctorSearchPage } from './pages/patient/DoctorSearchPage';
 import { DoctorProfilePage } from './pages/patient/DoctorProfilePage';
 import { PatientDashboard } from './pages/patient/PatientDashboard';
 import { AppointmentsPage } from './pages/patient/AppointmentsPage';
@@ -109,9 +107,9 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/doctors" element={<DoctorSearchPage />} />
+              <Route path="/doctors" element={<Navigate to="/search?mode=doctors" replace />} />
               <Route path="/doctors/:id" element={<DoctorProfilePage />} />
-              <Route path="/hospitals" element={<HospitalsListPage />} />
+              <Route path="/hospitals" element={<Navigate to="/search?mode=organizations" replace />} />
               <Route path="/map" element={<GeneralMapPage />} />
 
               {/* General Dashboard Redirect */}

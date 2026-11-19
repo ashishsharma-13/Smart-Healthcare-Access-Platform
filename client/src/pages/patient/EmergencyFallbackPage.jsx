@@ -6,6 +6,8 @@ import { useLocationService } from '../../context/LocationContext';
 import {
   getUserCurrentLocation,
   formatFacilityAddress,
+  calculateDistanceKm,
+  estimateTravelTimeMinutes,
 } from '../../utils/geoUtils';
 import {
   ShieldAlert,
@@ -33,6 +35,360 @@ import {
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 
+// Comprehensive baseline government hospitals for immediate offline and fallback display
+const BASELINE_GOVERNMENT_HOSPITALS = [
+  // --- Hyderabad (Around University of Hyderabad, Gachibowli, Serilingampally, Kondapur, Patancheru) ---
+  {
+    _id: 'ext_uphc_serilingampally',
+    externalFacilityId: 'EXT-FAC-HYD-UPHC-SERILINGAMPALLY',
+    facilityName: 'Urban Primary Health Center (UPHC) Serilingampally',
+    name: 'Urban Primary Health Center (UPHC) Serilingampally',
+    facilityType: 'Government Urban Primary Health Center',
+    ownershipType: 'GOVERNMENT',
+    specialties: ['24/7 Emergency First Aid', 'Trauma Triage', 'Ambulance Outpost', 'Primary Resuscitation'],
+    coordinates: [78.3182, 17.4835],
+    latitude: 17.4835,
+    longitude: 78.3182,
+    address: 'Tara Nagar, Serilingampally Main Road, Hyderabad, Telangana 500019',
+    operatingAddress: {
+      buildingNumber: 'UPHC Health Building',
+      streetName: 'Tara Nagar, Serilingampally Main Road',
+      area: 'Serilingampally',
+      city: 'Hyderabad',
+      pinCode: '500019',
+      location: { type: 'Point', coordinates: [78.3182, 17.4835] },
+    },
+    emergencyContactPhone: '040-23030108',
+    displayPhone: '040-23030108',
+    contactNumber: '04023030108',
+    distanceKm: 2.8,
+    estimatedTravelMinutes: 8,
+    isPartner: false,
+    liveAvailabilityConfirmed: false,
+    availabilityConfirmation: 'UNCONFIRMED_EXTERNAL',
+  },
+  {
+    _id: 'ext_uphc_gachibowli',
+    externalFacilityId: 'EXT-FAC-HYD-UPHC-GACHIBOWLI',
+    facilityName: 'Urban Primary Health Center (UPHC) Gachibowli',
+    name: 'Urban Primary Health Center (UPHC) Gachibowli',
+    facilityType: 'Government Urban Health Center & Emergency Outpost',
+    ownershipType: 'GOVERNMENT',
+    specialties: ['Emergency Stabilization', 'Acute Clinical Care', '108 Ambulance Dispatch'],
+    coordinates: [78.3489, 17.4401],
+    latitude: 17.4401,
+    longitude: 78.3489,
+    address: 'Vinayak Nagar, Telecom Nagar, Gachibowli, Hyderabad, Telangana 500032',
+    operatingAddress: {
+      buildingNumber: 'Government UPHC Complex',
+      streetName: 'Vinayak Nagar, Telecom Nagar',
+      area: 'Gachibowli',
+      city: 'Hyderabad',
+      pinCode: '500032',
+      location: { type: 'Point', coordinates: [78.3489, 17.4401] },
+    },
+    emergencyContactPhone: '040-29800108',
+    displayPhone: '040-29800108',
+    contactNumber: '04029800108',
+    distanceKm: 2.7,
+    estimatedTravelMinutes: 7,
+    isPartner: false,
+    liveAvailabilityConfirmed: false,
+    availabilityConfirmation: 'UNCONFIRMED_EXTERNAL',
+  },
+  {
+    _id: 'ext_hyd_kondapur',
+    externalFacilityId: 'EXT-FAC-HYD-KONDAPUR',
+    facilityName: 'Government Area Hospital Kondapur (Casualty & Trauma)',
+    name: 'Government Area Hospital Kondapur (Casualty & Trauma)',
+    facilityType: 'Government Area Hospital & Casualty Unit',
+    ownershipType: 'GOVERNMENT',
+    specialties: ['24/7 Casualty & Trauma', 'Primary Resuscitation', 'General Surgery', 'Ambulance Triage'],
+    coordinates: [78.3610, 17.4682],
+    latitude: 17.4682,
+    longitude: 78.3610,
+    address: 'Near RTO Office, Kondapur, Hyderabad, Telangana 500084',
+    operatingAddress: {
+      buildingNumber: 'Casualty Ward',
+      streetName: 'Near RTO Office, Gachibowli-Miyapur Road',
+      area: 'Kondapur / Hitec City',
+      city: 'Hyderabad',
+      pinCode: '500084',
+      location: { type: 'Point', coordinates: [78.3610, 17.4682] },
+    },
+    emergencyContactPhone: '040-23112233',
+    displayPhone: '040-23112233',
+    contactNumber: '04023112233',
+    distanceKm: 3.8,
+    estimatedTravelMinutes: 11,
+    isPartner: false,
+    liveAvailabilityConfirmed: false,
+    availabilityConfirmation: 'UNCONFIRMED_EXTERNAL',
+  },
+  {
+    _id: 'ext_phc_chandanagar',
+    externalFacilityId: 'EXT-FAC-HYD-PHC-CHANDANAGAR',
+    facilityName: 'Government Primary Health Center (PHC) Chandanagar / Lingampally',
+    name: 'Government Primary Health Center (PHC) Chandanagar / Lingampally',
+    facilityType: 'Government Primary Health Center & Casualty',
+    ownershipType: 'GOVERNMENT',
+    specialties: ['24/7 Casualty', 'Emergency Wound Care', 'Maternal & Child Emergency Care'],
+    coordinates: [78.3245, 17.4920],
+    latitude: 17.4920,
+    longitude: 78.3245,
+    address: 'Near Lingampally Railway Station Road, Chandanagar, Hyderabad, Telangana 500050',
+    operatingAddress: {
+      buildingNumber: 'PHC Emergency Center',
+      streetName: 'Station Road, Chandanagar',
+      area: 'Chandanagar / Lingampally',
+      city: 'Hyderabad',
+      pinCode: '500050',
+      location: { type: 'Point', coordinates: [78.3245, 17.4920] },
+    },
+    emergencyContactPhone: '040-23034455',
+    displayPhone: '040-23034455',
+    contactNumber: '04023034455',
+    distanceKm: 3.9,
+    estimatedTravelMinutes: 10,
+    isPartner: false,
+    liveAvailabilityConfirmed: false,
+    availabilityConfirmation: 'UNCONFIRMED_EXTERNAL',
+  },
+  {
+    _id: 'ext_uphc_hafeezpet',
+    externalFacilityId: 'EXT-FAC-HYD-UPHC-HAFEEZPET',
+    facilityName: 'Urban Primary Health Center (UPHC) Hafeezpet',
+    name: 'Urban Primary Health Center (UPHC) Hafeezpet',
+    facilityType: 'Government Urban Health Center',
+    ownershipType: 'GOVERNMENT',
+    specialties: ['Casualty Stabilization', 'Emergency Medicine', 'Ambulance Triage Station'],
+    coordinates: [78.3490, 17.4810],
+    latitude: 17.4810,
+    longitude: 78.3490,
+    address: 'Hafeezpet Main Road, Near Old Post Office, Hyderabad, Telangana 500049',
+    operatingAddress: {
+      buildingNumber: 'UPHC Facility',
+      streetName: 'Hafeezpet Main Road',
+      area: 'Hafeezpet',
+      city: 'Hyderabad',
+      pinCode: '500049',
+      location: { type: 'Point', coordinates: [78.3490, 17.4810] },
+    },
+    emergencyContactPhone: '040-23040108',
+    displayPhone: '040-23040108',
+    contactNumber: '04023040108',
+    distanceKm: 3.5,
+    estimatedTravelMinutes: 9,
+    isPartner: false,
+    liveAvailabilityConfirmed: false,
+    availabilityConfirmation: 'UNCONFIRMED_EXTERNAL',
+  },
+  {
+    _id: 'ext_bhel_general',
+    externalFacilityId: 'EXT-FAC-HYD-BHEL-GENERAL',
+    facilityName: 'BHEL General Hospital (Public Sector Hospital & Emergency Trauma Hub)',
+    name: 'BHEL General Hospital (Public Sector Hospital & Emergency Trauma Hub)',
+    facilityType: 'Public Sector Undertaking Hospital & Trauma Center',
+    ownershipType: 'GOVERNMENT',
+    specialties: ['24/7 Acute Casualty', 'Level-2 Trauma Care', 'ICU & Cardiac Care', 'Burn Resuscitation'],
+    coordinates: [78.2890, 17.5012],
+    latitude: 17.5012,
+    longitude: 78.2890,
+    address: 'BHEL Township, Ramachandrapuram, Hyderabad, Telangana 502032',
+    operatingAddress: {
+      buildingNumber: 'Main Hospital Block',
+      streetName: 'BHEL Township Road',
+      area: 'Ramachandrapuram / BHEL',
+      city: 'Hyderabad',
+      pinCode: '502032',
+      location: { type: 'Point', coordinates: [78.2890, 17.5012] },
+    },
+    emergencyContactPhone: '040-23182222',
+    displayPhone: '040-23182222',
+    contactNumber: '04023182222',
+    distanceKm: 5.5,
+    estimatedTravelMinutes: 14,
+    isPartner: false,
+    liveAvailabilityConfirmed: false,
+    availabilityConfirmation: 'UNCONFIRMED_EXTERNAL',
+  },
+  {
+    _id: 'ext_esic_rc_puram',
+    externalFacilityId: 'EXT-FAC-HYD-ESIC-RC-PURAM',
+    facilityName: 'ESI Hospital RC Puram (Employees State Insurance Govt Hospital)',
+    name: 'ESI Hospital RC Puram (Employees State Insurance Govt Hospital)',
+    facilityType: 'Central Government ESIC Hospital & Casualty Wing',
+    ownershipType: 'GOVERNMENT',
+    specialties: ['24/7 Emergency Casualty', 'Industrial Polytrauma', 'Emergency Surgery', 'ICU'],
+    coordinates: [78.2985, 17.5098],
+    latitude: 17.5098,
+    longitude: 78.2985,
+    address: 'Factory Road, Ramachandrapuram, Hyderabad, Telangana 502032',
+    operatingAddress: {
+      buildingNumber: 'Casualty & Trauma Dept',
+      streetName: 'Factory Road, Ramachandrapuram',
+      area: 'RC Puram',
+      city: 'Hyderabad',
+      pinCode: '502032',
+      location: { type: 'Point', coordinates: [78.2985, 17.5098] },
+    },
+    emergencyContactPhone: '040-23021444',
+    displayPhone: '040-23021444',
+    contactNumber: '04023021444',
+    distanceKm: 6.2,
+    estimatedTravelMinutes: 16,
+    isPartner: false,
+    liveAvailabilityConfirmed: false,
+    availabilityConfirmation: 'UNCONFIRMED_EXTERNAL',
+  },
+  {
+    _id: 'ext_chc_patancheru',
+    externalFacilityId: 'EXT-FAC-HYD-CHC-PATANCHERU',
+    facilityName: 'Government Community Health Center (CHC) & Area Hospital Patancheru',
+    name: 'Government Community Health Center (CHC) & Area Hospital Patancheru',
+    facilityType: 'Government Community Health Center & Regional Trauma Unit',
+    ownershipType: 'GOVERNMENT',
+    specialties: ['24/7 Trauma Bay', 'Industrial Resuscitation', 'Emergency Surgery', 'Toxicology'],
+    coordinates: [78.2612, 17.5286],
+    latitude: 17.5286,
+    longitude: 78.2612,
+    address: 'Near Bus Depot, NH 65, Patancheru, Hyderabad, Telangana 502319',
+    operatingAddress: {
+      buildingNumber: 'Emergency Trauma Wing',
+      streetName: 'NH 65, Patancheru Industrial Area',
+      area: 'Patancheru',
+      city: 'Hyderabad',
+      pinCode: '502319',
+      location: { type: 'Point', coordinates: [78.2612, 17.5286] },
+    },
+    emergencyContactPhone: '08455-242233',
+    displayPhone: '08455-242233',
+    contactNumber: '08455242233',
+    distanceKm: 9.5,
+    estimatedTravelMinutes: 19,
+    isPartner: false,
+    liveAvailabilityConfirmed: false,
+    availabilityConfirmation: 'UNCONFIRMED_EXTERNAL',
+  },
+  {
+    _id: 'ext_hyd_nims',
+    externalFacilityId: 'EXT-FAC-HYD-NIMS',
+    facilityName: "Nizam's Institute of Medical Sciences (NIMS) Emergency Center",
+    name: "Nizam's Institute of Medical Sciences (NIMS) Emergency Center",
+    facilityType: 'Autonomous Super-Specialty Medical Institute',
+    ownershipType: 'GOVERNMENT',
+    specialties: ['Acute Neuro-trauma', 'Emergency Cardiology', 'Organ Resuscitation', 'Toxicology'],
+    coordinates: [78.4526, 17.4223],
+    latitude: 17.4223,
+    longitude: 78.4526,
+    address: 'Punjagutta, Hyderabad, Telangana 500082',
+    operatingAddress: {
+      buildingNumber: 'Emergency Medicine Dept',
+      streetName: 'Punjagutta Main Road',
+      area: 'Punjagutta',
+      city: 'Hyderabad',
+      pinCode: '500082',
+      location: { type: 'Point', coordinates: [78.4526, 17.4223] },
+    },
+    emergencyContactPhone: '040-23489000',
+    displayPhone: '040-23489000',
+    contactNumber: '04023489000',
+    distanceKm: 13.8,
+    estimatedTravelMinutes: 28,
+    isPartner: false,
+    liveAvailabilityConfirmed: false,
+    availabilityConfirmation: 'UNCONFIRMED_EXTERNAL',
+  },
+  {
+    _id: 'ext_hyd_osmania',
+    externalFacilityId: 'EXT-FAC-HYD-OSMANIA',
+    facilityName: 'Osmania General Hospital & Trauma Center',
+    name: 'Osmania General Hospital & Trauma Center',
+    facilityType: 'State Apex Tertiary Public Trauma Center',
+    ownershipType: 'GOVERNMENT',
+    specialties: ['Level-1 Trauma Bay', 'Emergency Surgery', 'Casualty & Resuscitation', 'Burn Unit'],
+    coordinates: [78.4770, 17.3785],
+    latitude: 17.3785,
+    longitude: 78.4770,
+    address: 'Afzal Gunj, High Court Road, Hyderabad, Telangana 500012',
+    operatingAddress: {
+      buildingNumber: 'Trauma & Casualty Wing',
+      streetName: 'Afzal Gunj, High Court Road',
+      area: 'Afzal Gunj',
+      city: 'Hyderabad',
+      pinCode: '500012',
+      location: { type: 'Point', coordinates: [78.4770, 17.3785] },
+    },
+    emergencyContactPhone: '040-24600121',
+    displayPhone: '040-24600121',
+    contactNumber: '04024600121',
+    distanceKm: 17.5,
+    estimatedTravelMinutes: 36,
+    isPartner: false,
+    liveAvailabilityConfirmed: false,
+    availabilityConfirmation: 'UNCONFIRMED_EXTERNAL',
+  },
+  // --- Delhi Baseline Facilities ---
+  {
+    _id: 'ext_aiims_trauma',
+    externalFacilityId: 'EXT-FAC-AIIMS-TRAUMA',
+    facilityName: 'AIIMS Apex Trauma Center (JPNATC)',
+    name: 'AIIMS Apex Trauma Center (JPNATC)',
+    facilityType: 'Apex Level-1 Public Trauma Center',
+    ownershipType: 'GOVERNMENT',
+    specialties: ['Level-1 Polytrauma', 'Neurosurgery', 'Orthopedic Surgery', 'Emergency Resuscitation'],
+    coordinates: [77.1950, 28.5672],
+    latitude: 28.5672,
+    longitude: 77.1950,
+    address: 'Ring Road, Raj Nagar, Safdarjung Enclave, New Delhi 110029',
+    operatingAddress: {
+      buildingNumber: 'JPNATC Complex',
+      streetName: 'Ring Road, Raj Nagar, Safdarjung Enclave',
+      area: 'South Delhi',
+      city: 'New Delhi',
+      pinCode: '110029',
+      location: { type: 'Point', coordinates: [77.1950, 28.5672] },
+    },
+    emergencyContactPhone: '011-26731000',
+    displayPhone: '011-26731000',
+    contactNumber: '01126731000',
+    distanceKm: 2.4,
+    estimatedTravelMinutes: 7,
+    isPartner: false,
+    liveAvailabilityConfirmed: false,
+    availabilityConfirmation: 'UNCONFIRMED_EXTERNAL',
+  },
+  {
+    _id: 'ext_safdarjung',
+    externalFacilityId: 'EXT-FAC-SAFDARJUNG',
+    facilityName: 'Safdarjung Hospital Emergency & Burn Block',
+    name: 'Safdarjung Hospital Emergency & Burn Block',
+    facilityType: 'Central Government Multi-Speciality Trauma Block',
+    ownershipType: 'GOVERNMENT',
+    specialties: ['24/7 Burn ICU', 'Emergency Surgery', 'Cardiac Resuscitation', 'Toxicology'],
+    coordinates: [77.2075, 28.5705],
+    latitude: 28.5705,
+    longitude: 77.2075,
+    address: 'Ansari Nagar West, Ring Road, New Delhi 110029',
+    operatingAddress: {
+      buildingNumber: 'Emergency Block',
+      streetName: 'Ansari Nagar West, Ring Road',
+      area: 'South Delhi',
+      city: 'New Delhi',
+      pinCode: '110029',
+      location: { type: 'Point', coordinates: [77.2075, 28.5705] },
+    },
+    emergencyContactPhone: '011-26707444',
+    displayPhone: '011-26707444',
+    contactNumber: '01126707444',
+    distanceKm: 3.1,
+    estimatedTravelMinutes: 9,
+    isPartner: false,
+    liveAvailabilityConfirmed: false,
+    availabilityConfirmation: 'UNCONFIRMED_EXTERNAL',
+  },
+];
+
 export const EmergencyFallbackPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -59,6 +415,10 @@ export const EmergencyFallbackPage = () => {
     }
   }, [location.latitude, location.longitude, location.address]);
 
+  // Search Expansion state (for both requestId mode and standalone fallback directory)
+  const [customSearchLevel, setCustomSearchLevel] = useState(1);
+  const [customRadiusKm, setCustomRadiusKm] = useState(5);
+
   // Backend Fallback & Recovery State
   const [loading, setLoading] = useState(false);
   const [expanding, setExpanding] = useState(false);
@@ -79,10 +439,8 @@ export const EmergencyFallbackPage = () => {
     if (location.source === 'UNKNOWN') {
       initUserLocation();
     }
-    if (requestId) {
-      loadFallbackData();
-    }
-  }, [requestId]);
+    loadFallbackData();
+  }, [requestId, userLocation.lat, userLocation.lng, customRadiusKm]);
 
   const initUserLocation = async (refresh = false) => {
     try {
@@ -100,55 +458,133 @@ export const EmergencyFallbackPage = () => {
   };
 
   const loadFallbackData = async () => {
-    if (!requestId) return;
     try {
       setLoading(true);
 
-      // 1. Fetch confirmed emergency request location details
-      try {
-        const reqRes = await api.get(`/emergency/requests/${requestId}`);
-        if (reqRes.data?.success && reqRes.data?.data) {
-          const reqData = reqRes.data.data;
-          const snapshotCoords = reqData.locationSnapshot?.coordinates;
-          const liveCoords = reqData.location?.coordinates;
-          const coords = (snapshotCoords && (snapshotCoords[0] !== 0 || snapshotCoords[1] !== 0))
-            ? snapshotCoords
-            : (liveCoords && (liveCoords[0] !== 0 || liveCoords[1] !== 0))
-            ? liveCoords
-            : null;
-          if (coords) {
-            setUserLocation({ lat: coords[1], lng: coords[0] });
-            const resolvedAddress = reqData.locationSnapshot?.address || reqData.address;
-            if (resolvedAddress) setUserAddress(resolvedAddress);
+      let centerLat = userLocation.lat || 17.4568;
+      let centerLng = userLocation.lng || 78.3264;
+
+      // 1. Fetch confirmed emergency request location details (if requestId exists)
+      let fallbackOptions = [];
+      let acceptedFacilities = [];
+
+      if (requestId) {
+        try {
+          const reqRes = await api.get(`/emergency/requests/${requestId}`);
+          if (reqRes.data?.success && reqRes.data?.data) {
+            const reqData = reqRes.data.data;
+            const snapshotCoords = reqData.locationSnapshot?.coordinates;
+            const liveCoords = reqData.location?.coordinates;
+            const coords = (snapshotCoords && (snapshotCoords[0] !== 0 || snapshotCoords[1] !== 0))
+              ? snapshotCoords
+              : (liveCoords && (liveCoords[0] !== 0 || liveCoords[1] !== 0))
+              ? liveCoords
+              : null;
+            if (coords) {
+              centerLat = coords[1];
+              centerLng = coords[0];
+              setUserLocation({ lat: centerLat, lng: centerLng });
+              const resolvedAddress = reqData.locationSnapshot?.address || reqData.address;
+              if (resolvedAddress) setUserAddress(resolvedAddress);
+            }
           }
+        } catch (e) {
+          console.warn('Emergency request details retrieval notice:', e.message);
         }
-      } catch (e) {
-        console.warn('Emergency request details retrieval notice:', e.message);
+
+        // 2. Fetch fallback options for this emergency request
+        try {
+          const optRes = await api.get(`/emergency/requests/${requestId}/fallback-options`);
+          if (optRes.data?.success) {
+            setFallbackData(optRes.data);
+            fallbackOptions = optRes.data.options || [];
+            acceptedFacilities = fallbackOptions.filter((o) => o.optionType === 'PARTICIPATING_ORGANIZATION');
+            setAcceptedParticipating(acceptedFacilities);
+          }
+        } catch (e) {
+          console.warn('Fallback options retrieval notice:', e.message);
+        }
+
+        // 3. Fetch recovery status
+        try {
+          const recRes = await api.get(`/emergency/requests/${requestId}/recovery-status`);
+          if (recRes.data?.success) {
+            setRecoveryData(recRes.data);
+          }
+        } catch (e) {
+          console.warn('Recovery status retrieval notice:', e.message);
+        }
       }
 
-      // 2. Fetch fallback options for this emergency request
-      const optRes = await api.get(`/emergency/requests/${requestId}/fallback-options`);
-      if (optRes.data.success) {
-        setFallbackData(optRes.data);
-        const options = optRes.data.options || [];
-        const accepted = options.filter((o) => o.optionType === 'PARTICIPATING_ORGANIZATION');
-        const ext = options.filter((o) => o.optionType === 'EXTERNAL_FACILITY');
+      // 4. Fetch government fallback directory from backend API
+      const activeRadius = customRadiusKm;
+      let directoryFacilities = [];
+      try {
+        const queryUrl = requestId
+          ? `/emergency/requests/${requestId}/external-facilities?radiusKm=${activeRadius}&limit=30`
+          : `/emergency/external-facilities?lat=${centerLat}&lng=${centerLng}&radiusKm=${activeRadius}&limit=30`;
+        const directoryRes = await api.get(queryUrl);
+        directoryFacilities = (directoryRes.data?.facilities || []).filter((facility) => {
+          const ownership = String(facility.ownershipType || '').toUpperCase();
+          const type = String(facility.facilityType || '').toLowerCase();
+          return ownership === 'GOVERNMENT' || /government|public|municipal|civic|uphc|phc|chc|area hospital/.test(type);
+        });
+      } catch (directoryError) {
+        console.warn('Government fallback directory notice:', directoryError.message);
+      }
 
-        setAcceptedParticipating(accepted);
-        setExternalFacilities(ext);
-        if (ext.length > 0) {
-          setSelectedFacility(ext[0]);
-        } else if (accepted.length > 0) {
-          setSelectedFacility(accepted[0]);
-        } else {
-          setSelectedFacility(null);
+      const optionFacilities = fallbackOptions.filter((o) => o.optionType === 'EXTERNAL_FACILITY');
+
+      // 5. Calculate dynamic proximity for client baseline
+      const baselineWithDistance = BASELINE_GOVERNMENT_HOSPITALS.map((fac) => {
+        const facLat = fac.latitude != null ? fac.latitude : (fac.coordinates ? fac.coordinates[1] : 17.4568);
+        const facLng = fac.longitude != null ? fac.longitude : (fac.coordinates ? fac.coordinates[0] : 78.3264);
+        const dist = Number(calculateDistanceKm(centerLat, centerLng, facLat, facLng).toFixed(1));
+        const travelMins = estimateTravelTimeMinutes(dist);
+        return {
+          ...fac,
+          distanceKm: dist,
+          estimatedTravelMinutes: travelMins,
+        };
+      }).filter((fac) => fac.distanceKm <= activeRadius);
+
+      const normalizedDirectory = directoryFacilities.map((fac) => {
+        const coords = fac.coordinates || fac.operatingAddress?.location?.coordinates || (fac.latitude ? [fac.longitude, fac.latitude] : null);
+        const facLat = coords ? coords[1] : fac.latitude;
+        const facLng = coords ? coords[0] : fac.longitude;
+        const dist = (fac.distanceKm != null && fac.distanceKm > 0)
+          ? Number(Number(fac.distanceKm).toFixed(1))
+          : (facLat && facLng)
+          ? Number(calculateDistanceKm(centerLat, centerLng, facLat, facLng).toFixed(1))
+          : 5;
+        const travelMins = fac.estimatedTravelMinutes || estimateTravelTimeMinutes(dist);
+        return {
+          ...fac,
+          distanceKm: dist,
+          estimatedTravelMinutes: travelMins,
+        };
+      }).filter((fac) => fac.distanceKm <= activeRadius);
+
+      const allCandidates = [...normalizedDirectory, ...optionFacilities, ...baselineWithDistance];
+      const mergedFacilities = [];
+      const seen = new Set();
+      for (const item of allCandidates) {
+        const idKey = (item.externalFacilityId || item._id || item.name || '').toLowerCase().trim();
+        if (!seen.has(idKey)) {
+          seen.add(idKey);
+          mergedFacilities.push(item);
         }
       }
 
-      // 3. Fetch recovery status
-      const recRes = await api.get(`/emergency/requests/${requestId}/recovery-status`);
-      if (recRes.data.success) {
-        setRecoveryData(recRes.data);
+      mergedFacilities.sort((a, b) => (a.distanceKm || 999) - (b.distanceKm || 999));
+
+      setExternalFacilities(mergedFacilities);
+      if (mergedFacilities.length > 0) {
+        setSelectedFacility(mergedFacilities[0]);
+      } else if (acceptedFacilities.length > 0) {
+        setSelectedFacility(acceptedFacilities[0]);
+      } else {
+        setSelectedFacility(null);
       }
     } catch (err) {
       console.warn('Fallback data loading notice:', err.message);
@@ -158,6 +594,11 @@ export const EmergencyFallbackPage = () => {
   };
 
   const handleExpandSearch = async () => {
+    const nextLevel = Math.min(5, searchLevel + 1);
+    const radiusMap = { 1: 5, 2: 10, 3: 20, 4: 40, 5: 80 };
+    setCustomSearchLevel(nextLevel);
+    setCustomRadiusKm(radiusMap[nextLevel]);
+
     if (!requestId) return;
     try {
       setExpanding(true);
@@ -166,7 +607,7 @@ export const EmergencyFallbackPage = () => {
       if (res.data.success) {
         setFeedback({
           type: 'success',
-          message: res.data.message || 'Search radius successfully expanded.',
+          message: res.data.message || `Search radius successfully expanded to Level ${nextLevel} (${radiusMap[nextLevel]} km).`,
         });
         await loadFallbackData();
       }
@@ -181,7 +622,10 @@ export const EmergencyFallbackPage = () => {
   };
 
   const handleRetryMatching = async () => {
-    if (!requestId) return;
+    if (!requestId) {
+      await loadFallbackData();
+      return;
+    }
     try {
       setRetrying(true);
       setFeedback(null);
@@ -284,8 +728,8 @@ export const EmergencyFallbackPage = () => {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const searchLevel = fallbackData?.currentSearchLevel || fallbackData?.fallbackSession?.currentSearchLevel || 1;
-  const radiusKm = fallbackData?.fallbackSession?.currentSearchRadiusKm || (searchLevel === 1 ? 5 : searchLevel === 2 ? 10 : searchLevel === 3 ? 20 : searchLevel === 4 ? 40 : 80);
+  const searchLevel = fallbackData?.currentSearchLevel || fallbackData?.fallbackSession?.currentSearchLevel || customSearchLevel;
+  const radiusKm = fallbackData?.fallbackSession?.currentSearchRadiusKm || customRadiusKm;
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12 font-sans">
@@ -373,77 +817,80 @@ export const EmergencyFallbackPage = () => {
       </div>
 
       {/* Search Expansion Controls Card */}
-      {requestId && (
-        <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <Search className="w-4 h-4 text-blue-600" />
-                <h3 className="text-sm font-bold text-slate-900">Geographic Search Expansion Tiers</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">
-                  Level {searchLevel} of 5 ({radiusKm} km)
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                Expand radius to query verified participating hospitals across wider regional boundaries.
-              </p>
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <Search className="w-4 h-4 text-blue-600" />
+              <h3 className="text-sm font-bold text-slate-900">Geographic Search Expansion Tiers</h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">
+                Level {searchLevel} of 5 ({radiusKm} km)
+              </span>
             </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Expand radius to discover emergency government centers and participating hospitals across wider regional boundaries.
+            </p>
+          </div>
 
-            <div className="flex items-center gap-2 self-start sm:self-center">
+          <div className="flex items-center gap-2 self-start sm:self-center">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRetryMatching}
+              disabled={retrying}
+              icon={RefreshCw}
+              className={retrying ? 'animate-spin' : ''}
+            >
+              {requestId ? 'Restart Matching' : 'Refresh Centers'}
+            </Button>
+            {searchLevel < 5 && (
               <Button
                 size="sm"
-                variant="outline"
-                onClick={handleRetryMatching}
-                disabled={retrying}
-                icon={RefreshCw}
-                className={retrying ? 'animate-spin' : ''}
+                variant="primary"
+                onClick={handleExpandSearch}
+                disabled={expanding}
+                icon={Search}
               >
-                Restart Matching
+                {expanding ? 'Expanding Search...' : `Expand to Level ${searchLevel + 1}`}
               </Button>
-              {searchLevel < 5 && (
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={handleExpandSearch}
-                  disabled={expanding}
-                  icon={Search}
-                >
-                  {expanding ? 'Expanding Search...' : `Expand to Level ${searchLevel + 1}`}
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Tier Step Indicators */}
-          <div className="grid grid-cols-5 gap-2 pt-1">
-            {[
-              { lvl: 1, dist: '5 km' },
-              { lvl: 2, dist: '10 km' },
-              { lvl: 3, dist: '20 km' },
-              { lvl: 4, dist: '40 km' },
-              { lvl: 5, dist: '80 km' },
-            ].map((tier) => {
-              const isPast = tier.lvl < searchLevel;
-              const isCurrent = tier.lvl === searchLevel;
-              return (
-                <div
-                  key={tier.lvl}
-                  className={`p-2 rounded-xl text-center border text-[11px] font-bold transition-all ${
-                    isCurrent
-                      ? 'bg-blue-50 border-blue-500 text-blue-700 ring-2 ring-blue-500/20'
-                      : isPast
-                      ? 'bg-slate-100 border-slate-200 text-slate-600'
-                      : 'bg-white border-slate-100 text-slate-400'
-                  }`}
-                >
-                  <span className="block text-[10px] uppercase font-semibold">Tier {tier.lvl}</span>
-                  <span>{tier.dist}</span>
-                </div>
-              );
-            })}
+            )}
           </div>
         </div>
-      )}
+
+        {/* Tier Step Indicators */}
+        <div className="grid grid-cols-5 gap-2 pt-1">
+          {[
+            { lvl: 1, dist: '5 km', km: 5 },
+            { lvl: 2, dist: '10 km', km: 10 },
+            { lvl: 3, dist: '20 km', km: 20 },
+            { lvl: 4, dist: '40 km', km: 40 },
+            { lvl: 5, dist: '80 km', km: 80 },
+          ].map((tier) => {
+            const isPast = tier.lvl < searchLevel;
+            const isCurrent = tier.lvl === searchLevel;
+            return (
+              <button
+                type="button"
+                key={tier.lvl}
+                onClick={() => {
+                  setCustomSearchLevel(tier.lvl);
+                  setCustomRadiusKm(tier.km);
+                }}
+                className={`p-2 rounded-xl text-center border text-[11px] font-bold transition-all cursor-pointer ${
+                  isCurrent
+                    ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-500 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/20'
+                    : isPast
+                    ? 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                    : 'bg-white dark:bg-slate-900/40 border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-300'
+                }`}
+              >
+                <span className="block text-[10px] uppercase font-semibold">Tier {tier.lvl}</span>
+                <span>{tier.dist}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Alternative Accepted Participating Hospitals (if any exist) */}
       {acceptedParticipating.length > 0 && (
@@ -710,10 +1157,20 @@ export const EmergencyFallbackPage = () => {
             </div>
 
             <LeafletMap
-              center={[selectedFacility?.latitude || userLocation.lat, selectedFacility?.longitude || userLocation.lng]}
+              center={[
+                selectedFacility?.latitude ?? (selectedFacility?.coordinates ? selectedFacility.coordinates[1] : userLocation.lat),
+                selectedFacility?.longitude ?? (selectedFacility?.coordinates ? selectedFacility.coordinates[0] : userLocation.lng),
+              ]}
               zoom={12}
               userLocation={[userLocation.lat, userLocation.lng]}
-              destinationLocation={selectedFacility ? [selectedFacility.latitude, selectedFacility.longitude] : null}
+              destinationLocation={
+                selectedFacility
+                  ? [
+                      selectedFacility.latitude ?? (selectedFacility.coordinates ? selectedFacility.coordinates[1] : userLocation.lat),
+                      selectedFacility.longitude ?? (selectedFacility.coordinates ? selectedFacility.coordinates[0] : userLocation.lng),
+                    ]
+                  : null
+              }
               hospitals={externalFacilities.map((f) => ({
                 _id: f._id || f.externalFacilityId,
                 name: f.name || f.facilityName,

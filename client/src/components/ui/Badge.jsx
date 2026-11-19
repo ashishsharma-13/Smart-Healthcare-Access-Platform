@@ -10,8 +10,8 @@ export const Badge = ({
   className = '',
 }) => {
   const sizeStyles = {
-    xs: 'text-[10px] px-2 py-0.5 font-semibold tracking-wide',
-    sm: 'text-[11px] px-2.5 py-0.5 font-semibold tracking-normal',
+    xs: 'text-[10px] px-1.5 py-0.5 font-semibold tracking-wide',
+    sm: 'text-[11px] px-2 py-0.5 font-semibold tracking-normal',
     md: 'text-xs px-3 py-1 font-semibold tracking-normal',
   };
 

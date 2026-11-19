@@ -23,6 +23,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { formatIndianPhone } from '../../utils/phoneUtils';
 import { Badge } from '../../components/ui/Badge';
 import { Toast } from '../../components/ui/Toast';
 import { TableSkeleton } from '../../components/ui/Skeleton';
@@ -356,9 +357,10 @@ export const OrganizationProfilePage = () => {
               <input
                 type="tel"
                 required
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
-                placeholder="+91 98765 43210"
+                 value={contactPhone}
+                 onChange={(e) => setContactPhone(e.target.value)}
+                 onBlur={(e) => setContactPhone(formatIndianPhone(e.target.value))}
+                 placeholder="+91 98765 43210"
                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>

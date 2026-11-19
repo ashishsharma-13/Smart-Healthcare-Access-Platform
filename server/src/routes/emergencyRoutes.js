@@ -47,6 +47,7 @@ router.post('/requests/:requestId/complete', authenticate, (req, res) => emergen
 router.get('/requests/:requestId/history', authenticate, (req, res) => emergencyJourneyController.getEmergencyHistory(req, res));
 
 // --- MODULE 15: EMERGENCY FALLBACK & RECOVERY MANAGEMENT ---
+router.get('/external-facilities', (req, res, next) => emergencyFallbackController.getExternalFacilities(req, res, next));
 router.get('/requests/:requestId/external-facilities', (req, res, next) => emergencyFallbackController.getExternalFacilities(req, res, next));
 router.get('/external-facilities/:facilityId', (req, res, next) => emergencyFallbackController.getExternalFacilityById(req, res, next));
 router.get('/requests/:requestId/fallback-options', (req, res, next) => emergencyFallbackController.getFallbackOptions(req, res, next));

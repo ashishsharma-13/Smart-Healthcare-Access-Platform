@@ -10,6 +10,7 @@
     "seed": "node src/utils/seedData.js",
     "seed:hyderabad": "node src/utils/seedHyderabadHospitals.js",
     "seed:multi-city": "node src/utils/seedMultiCityHealthcareFacilities.js",
+    "seed:demo-accounts": "node src/utils/seedDemoAccounts.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --detectOpenHandles"
   },
   "dependencies": {
