@@ -53,6 +53,7 @@ export const EmergencyEnRoutePage = () => {
   const [sharingStatusText, setSharingStatusText] = useState('Location sharing is off');
   const [liveAccuracy, setLiveAccuracy] = useState(null);
   const [lastTelemetryTime, setLastTelemetryTime] = useState(null);
+  const [liveUserLocation, setLiveUserLocation] = useState(null); // [lat, lng]
   const [gpsError, setGpsError] = useState('');
   const locationWatchIdRef = useRef(null);
   const lastUpdateSentTimeRef = useRef(0);
@@ -118,8 +119,18 @@ export const EmergencyEnRoutePage = () => {
       try {
         const jRes = await api.get(`/emergency/requests/${id}/journey`);
         if (jRes.data.success) {
-          setJourney(jRes.data.data);
-          setIsSharingLocation(!!jRes.data.data.isSharingLocation);
+          const j = jRes.data.data;
+          setJourney(j);
+          const lastKnown = j.lastKnownLocation;
+          if (lastKnown?.latitude != null && lastKnown?.longitude != null) {
+            setLiveUserLocation([lastKnown.latitude, lastKnown.longitude]);
+            if (lastKnown.accuracyMeters != null) {
+              setLiveAccuracy(Math.round(lastKnown.accuracyMeters));
+            }
+            if (lastKnown.updatedAt) {
+              setLastTelemetryTime(new Date(lastKnown.updatedAt).toLocaleTimeString());
+            }
+          }
         }
       } catch (err) {
         // Journey may not have started yet
@@ -166,58 +177,67 @@ export const EmergencyEnRoutePage = () => {
       try {
         stopLocationSharingWatcher();
         await api.post(`/emergency/requests/${id}/journey/stop-sharing`);
-        setIsSharingLocation(false);
-        setSharingStatusText('Location sharing stopped');
       } catch (err) {
         console.warn('Error stopping location sharing:', err.message);
+      } finally {
+        setIsSharingLocation(false);
+        setSharingStatusText('Location sharing stopped');
       }
-    } else {
-      // User requested to enable sharing
-      if (!navigator.geolocation) {
-        setGpsError('Geolocation is not supported by your browser.');
-        return;
-      }
+      return;
+    }
 
-      setGpsError('');
-      setSharingStatusText('Requesting GPS permission...');
+    // User requested to enable sharing
+    if (!navigator.geolocation) {
+      setGpsError('Geolocation is not supported by your browser.');
+      return;
+    }
 
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude, accuracy, speed, heading } = position.coords;
+    setGpsError('');
+    setSharingStatusText('Requesting GPS permission...');
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude, accuracy, speed, heading } = position.coords;
+        const nextCoords = [latitude, longitude];
+
+        setLiveUserLocation(nextCoords);
+        setLiveAccuracy(Math.round(accuracy));
+        setLastTelemetryTime(new Date().toLocaleTimeString());
+
+        try {
+          await api.post(`/emergency/requests/${id}/journey/location`, {
+            latitude,
+            longitude,
+            accuracyMeters: accuracy,
+            speed,
+            heading,
+            isSharingLocation: true,
+          });
+          lastUpdateSentTimeRef.current = Date.now();
           setIsSharingLocation(true);
-          setLiveAccuracy(Math.round(accuracy));
-          setLastTelemetryTime(new Date().toLocaleTimeString());
           setSharingStatusText(`Sharing live telemetry (±${Math.round(accuracy)}m)`);
-
-          try {
-            await api.post(`/emergency/requests/${id}/journey/location`, {
-              latitude,
-              longitude,
-              accuracyMeters: accuracy,
-              speed,
-              heading,
-              isSharingLocation: true,
-            });
-            lastUpdateSentTimeRef.current = Date.now();
-          } catch (err) {
-            console.warn('Error sending initial location update:', err.message);
-          }
-
-          // Begin background interval update (throttled to 4 seconds)
           startLocationSharingWatcher();
-        },
-        (error) => {
-          let msg = 'Failed to obtain GPS location.';
-          if (error.code === 1) msg = 'Location permission was denied. You can continue navigation without live tracking.';
-          if (error.code === 2) msg = 'Location unavailable. GPS signal could not be established.';
-          if (error.code === 3) msg = 'Location request timed out.';
-          setGpsError(msg);
+        } catch (err) {
+          const message =
+            err.response?.data?.message ||
+            'Unable to start live location sharing. Start the journey and try again.';
+          setGpsError(message);
           setIsSharingLocation(false);
           setSharingStatusText('Location sharing is off');
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 3000 }
-      );
-    }
+          setToast({ type: 'error', message });
+        }
+      },
+      (error) => {
+        let msg = 'Failed to obtain GPS location.';
+        if (error.code === 1) msg = 'Location permission was denied. You can continue navigation without live tracking.';
+        if (error.code === 2) msg = 'Location unavailable. GPS signal could not be established.';
+        if (error.code === 3) msg = 'Location request timed out.';
+        setGpsError(msg);
+        setIsSharingLocation(false);
+        setSharingStatusText('Location sharing is off');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 3000 }
+    );
   };
 
   const startLocationSharingWatcher = () => {
@@ -226,12 +246,14 @@ export const EmergencyEnRoutePage = () => {
     locationWatchIdRef.current = navigator.geolocation.watchPosition(
       async (pos) => {
         const now = Date.now();
-        // Rate limit: send at most once every 3.5 seconds
-        if (now - lastUpdateSentTimeRef.current < 3500) return;
-
         const { latitude, longitude, accuracy, speed, heading } = pos.coords;
+
+        setLiveUserLocation([latitude, longitude]);
         setLiveAccuracy(Math.round(accuracy));
         setLastTelemetryTime(new Date().toLocaleTimeString());
+
+        // Rate limit: send at most once every 3.5 seconds
+        if (now - lastUpdateSentTimeRef.current < 3500) return;
 
         try {
           lastUpdateSentTimeRef.current = now;
@@ -243,12 +265,16 @@ export const EmergencyEnRoutePage = () => {
             heading,
             isSharingLocation: true,
           });
+          setSharingStatusText(`Sharing live telemetry (±${Math.round(accuracy)}m)`);
         } catch (e) {
-          // Throttled or offline
+          // Throttled or temporarily offline; keep local live marker updating
         }
       },
-      (err) => console.warn('Watch position error:', err.message),
-      { enableHighAccuracy: true, maximumAge: 2000 }
+      (err) => {
+        console.warn('Watch position error:', err.message);
+        setGpsError('Live GPS signal was interrupted. Navigation preview may be stale until signal returns.');
+      },
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
     );
   };
 
@@ -261,13 +287,20 @@ export const EmergencyEnRoutePage = () => {
 
   // 3. Google Maps Deep-link Launch
   const handleLaunchGoogleMaps = () => {
-    const destination = emergency?.selectedOrganizationId;
-    const destCoords = destination?.location?.coordinates || destination?.operatingAddress?.coordinates;
-    const destLat = destCoords ? destCoords[1] : 28.62;
-    const destLng = destCoords ? destCoords[0] : 77.215;
+    const selectedDestination = emergency?.selectedOrganizationId;
+    const rawDestCoords = selectedDestination?.location?.coordinates || selectedDestination?.operatingAddress?.coordinates;
+    const destLat = rawDestCoords ? rawDestCoords[1] : 28.62;
+    const destLng = rawDestCoords ? rawDestCoords[0] : 77.215;
+    const origin = liveUserLocation || fallbackUserCoords;
+    const originParam =
+      Array.isArray(origin) && origin.length === 2
+        ? `&origin=${origin[0]},${origin[1]}`
+        : '';
 
-    // Mandated URL format
-    const mapsUrl = journey?.googleMapsUrl || `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}&travelmode=driving`;
+    // Use live origin when available for accurate turn-by-turn directions
+    const mapsUrl = journey?.googleMapsUrl
+      ? journey.googleMapsUrl + (originParam && !journey.googleMapsUrl.includes('origin=') ? originParam : '')
+      : `https://www.google.com/maps/dir/?api=1${originParam}&destination=${destLat},${destLng}&travelmode=driving`;
     window.open(mapsUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -325,9 +358,10 @@ export const EmergencyEnRoutePage = () => {
   }
 
   const destination = emergency?.selectedOrganizationId;
-  const userCoords = emergency?.location?.coordinates
+  const fallbackUserCoords = emergency?.location?.coordinates
     ? [emergency.location.coordinates[1], emergency.location.coordinates[0]]
     : [28.6139, 77.209];
+  const userCoords = liveUserLocation || fallbackUserCoords;
 
   const destRawCoords = destination?.operatingAddress?.coordinates || destination?.location?.coordinates;
   const destCoords = destRawCoords
@@ -544,7 +578,7 @@ export const EmergencyEnRoutePage = () => {
                 <span>Emergency Coordination & Treatment Complete</span>
               </div>
               <p className="text-xs text-slate-600 max-w-md mx-auto">
-                Care was coordinated with <strong>{facility?.name || 'Emergency Facility'}</strong>. How was your emergency triage, bed readiness, and clinical care?
+                Care was coordinated with <strong>{destination?.name || 'Emergency Facility'}</strong>. How was your emergency triage, bed readiness, and clinical care?
               </p>
 
               {emergencyFeedback ? (
@@ -808,8 +842,8 @@ export const EmergencyEnRoutePage = () => {
         target={{
           type: 'EMERGENCY',
           id: emergency?._id,
-          organizationId: facility?._id || emergency?.selectedOrganizationId?._id || emergency?.selectedOrganizationId,
-          organizationName: facility?.name || emergency?.selectedOrganizationId?.name || 'Emergency Facility',
+          organizationId: destination?._id || emergency?.selectedOrganizationId?._id || emergency?.selectedOrganizationId,
+          organizationName: destination?.name || emergency?.selectedOrganizationId?.name || 'Emergency Facility',
           date: emergency?.createdAt ? new Date(emergency.createdAt).toLocaleDateString() : 'Today',
         }}
         onSuccess={(fb) => {

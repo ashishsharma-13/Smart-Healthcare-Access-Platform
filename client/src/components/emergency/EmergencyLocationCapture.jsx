@@ -50,32 +50,51 @@ export const EmergencyLocationCapture = ({
   const [isSearching, setIsSearching] = useState(false);
   const [manualSaved, setManualSaved] = useState(Boolean(initialCoordinates || location.latitude));
   const searchTimeoutRef = useRef(null);
+  const lastLocationSyncRef = useRef('');
+  const onLocationConfirmedRef = useRef(onLocationConfirmed);
 
-  // Sync state if context location changes from GPS detection
   useEffect(() => {
-    if (location.latitude != null && location.longitude != null) {
-      if (location.source === 'DEVICE_GEOLOCATION') {
-        setActiveTab('gps');
-      }
-      setManualLat(location.latitude);
-      setManualLng(location.longitude);
-      if (location.address) {
-        setManualAddress(location.address);
-      }
-      if (onLocationConfirmed) {
-        onLocationConfirmed({
-          latitude: location.latitude,
-          longitude: location.longitude,
-          coordinates: [location.longitude, location.latitude],
-          address: location.address,
-          accuracyMeters: location.accuracyMeters,
-          source: location.source,
-          capturedAt: location.capturedAt,
-          confirmationStatus: location.confirmationStatus,
-        });
-      }
+    onLocationConfirmedRef.current = onLocationConfirmed;
+  }, [onLocationConfirmed]);
+
+  // Sync state only when the underlying location actually changes.
+  // Avoid re-running on unstable callback identities, which can snap the UI back to GPS mode.
+  useEffect(() => {
+    if (location.latitude == null || location.longitude == null) return;
+
+    const syncKey = [
+      location.latitude,
+      location.longitude,
+      location.source || '',
+      location.capturedAt || '',
+      location.address || '',
+      location.confirmationStatus || '',
+    ].join('|');
+
+    if (syncKey === lastLocationSyncRef.current) return;
+    lastLocationSyncRef.current = syncKey;
+
+    if (location.source === 'DEVICE_GEOLOCATION') {
+      setActiveTab('gps');
     }
-  }, [location, onLocationConfirmed]);
+
+    setManualLat(location.latitude);
+    setManualLng(location.longitude);
+    if (location.address) {
+      setManualAddress(location.address);
+    }
+
+    onLocationConfirmedRef.current?.({
+      latitude: location.latitude,
+      longitude: location.longitude,
+      coordinates: [location.longitude, location.latitude],
+      address: location.address,
+      accuracyMeters: location.accuracyMeters,
+      source: location.source,
+      capturedAt: location.capturedAt,
+      confirmationStatus: location.confirmationStatus,
+    });
+  }, [location]);
 
   // Handle GPS trigger
   const handleDetectGPS = async () => {
